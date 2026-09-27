@@ -171,10 +171,11 @@ export default function ChatSection({
           { label: 'Chất lượng xuất bản: Đạt chuẩn Fashion Campaign Lookbook 8K', status: 'pass' }
         ];
         image = '/assets/y_ngoc_aodai.jpg';
-        note = 'Ảnh Lookbook độ phân giải 8K đã được kết xuất thành công với tính nhất quán nhận diện nhân vật 100%. Anh có thể tải bộ ảnh gốc ở bên dưới.';
+        note = 'Bộ ảnh Lookbook chuẩn 8K đã kết xuất thành công. Anh có thể bấm vào tệp bên dưới để tải về các định dạng: PDF (Catalog), PNG (Ảnh gốc 8K) và JPEG (Đa nền tảng).';
         files = [
-          { name: 'Lookbook_Y_Ngoc_Ao_Dai_Trang.pdf', size: '4.8 MB', type: 'pdf' },
-          { name: 'Prompt_Sheet_KOL_Thoi_Trang.docx', size: '380 KB', type: 'word' }
+          { name: 'Lookbook_Y_Ngoc_Ao_Dai_Trang.pdf', size: '4.8 MB', type: 'pdf', url: '/assets/y_ngoc_aodai.jpg' },
+          { name: 'Lookbook_Y_Ngoc_Master_8K.png', size: '12.4 MB', type: 'png', url: '/assets/y_ngoc_aodai.jpg' },
+          { name: 'Lookbook_Y_Ngoc_Editorial.jpeg', size: '6.2 MB', type: 'jpeg', url: '/assets/y_ngoc_aodai.jpg' }
         ];
       } else if (skillId.includes('pccc') || skillId.includes('chua-chay')) {
         aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'PCCC'}) đã hoàn thành kiểm tra sơ bộ hồ sơ nghiệm thu hệ thống PCCC theo quy chuẩn QCVN 06:2026/BXD:`;
@@ -186,11 +187,11 @@ export default function ChatSection({
           { label: 'Đề xuất: Bổ sung biên bản thử nghiệm hệ thống báo cháy tự động và cập nhật sơ đồ hoàn công.', status: 'pass' }
         ];
         image = null;
-        note = 'Hồ sơ PCCC đã được đối soát 100%. Anh có thể xuất báo cáo Word (.doc) hoặc nghe tóm tắt kết quả.';
+        note = 'Hồ sơ nghiệm thu PCCC đã được đối soát 100%. Kết quả xuất bản đầy đủ gồm: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
         files = [
-          { name: 'Bao_cao_kiem_tra_PCCC.pdf', size: '2.4 MB', type: 'pdf' },
+          { name: 'Bien_ban_nghiem_thu_PCCC.docx', size: '1.4 MB', type: 'word' },
           { name: 'Danh_sach_diem_luu_y.xlsx', size: '324 KB', type: 'excel' },
-          { name: 'So_do_hoan_cong.pdf', size: '1.1 MB', type: 'pdf' }
+          { name: 'Bao_cao_kiem_tra_PCCC.pdf', size: '2.4 MB', type: 'pdf' }
         ];
       } else if (skillId.includes('mua-sam') || skillId.includes('dau-thau') || skillId.includes('bao-gia')) {
         aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Mua sắm'}) đã hoàn thành bóc tách và so sánh đa báo giá thiết bị:`;
@@ -201,10 +202,11 @@ export default function ChatSection({
           { label: 'Đề xuất: Lựa chọn phương án có tổng chi phí sở hữu (TCO) thấp nhất.', status: 'pass' }
         ];
         image = null;
-        note = 'Bảng so sánh chi tiết và dự thảo tờ trình mua sắm đã sẵn sàng để xuất file.';
+        note = 'Hồ sơ bóc tách mua sắm đã hoàn tất. Kết quả xuất bản đầy đủ gồm: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
         files = [
+          { name: 'To_trinh_mua_sam_ISO.docx', size: '1.2 MB', type: 'word' },
           { name: 'Bang_so_sanh_3_bao_gia.xlsx', size: '512 KB', type: 'excel' },
-          { name: 'To_trinh_mua_sam_ISO.docx', size: '1.2 MB', type: 'word' }
+          { name: 'Bao_cao_danh_gia_NCC.pdf', size: '1.8 MB', type: 'pdf' }
         ];
       } else if (skillId.includes('mep') || skillId.includes('van-hanh') || skillId.includes('toa-nha')) {
         aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'MEP'}) đã hoàn tất phân tích hệ thống cơ điện và quy trình bảo trì tòa nhà:`;
@@ -215,8 +217,9 @@ export default function ChatSection({
           { label: 'Đề xuất: Hiệu chuẩn cảm biến nhiệt độ tầng hầm và thay thế bộ lọc gió.', status: 'pass' }
         ];
         image = null;
-        note = 'Báo cáo kiểm toán vận hành MEP đã được trích xuất chi tiết.';
+        note = 'Báo cáo kỹ thuật MEP đã được trích xuất thành công dưới dạng: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
         files = [
+          { name: 'Bien_ban_kiem_toan_MEP.docx', size: '1.1 MB', type: 'word' },
           { name: 'Nhat_ky_van_hanh_MEP.xlsx', size: '820 KB', type: 'excel' },
           { name: 'Quy_trinh_bao_tri_toa_nha.pdf', size: '1.9 MB', type: 'pdf' }
         ];
@@ -229,9 +232,26 @@ export default function ChatSection({
           { label: 'Đề xuất: Làm rõ mốc bàn giao thực tế và cơ chế giải quyết tranh chấp.', status: 'pass' }
         ];
         image = null;
-        note = 'Biên bản rà soát pháp lý kèm ghi chú rủi ro đã sẵn sàng.';
+        note = 'Hồ sơ pháp lý hợp đồng đã được trích xuất đầy đủ: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
         files = [
-          { name: 'Ra_soat_hop_dong_phap_ly.docx', size: '1.4 MB', type: 'word' }
+          { name: 'Ra_soat_hop_dong_phap_ly.docx', size: '1.4 MB', type: 'word' },
+          { name: 'Bang_doi_chieu_dieu_khoan.xlsx', size: '420 KB', type: 'excel' },
+          { name: 'Bao_cao_tham_dinh_phap_ly.pdf', size: '2.1 MB', type: 'pdf' }
+        ];
+      } else if (skillId.includes('tai-chinh') || skillId.includes('du-toan')) {
+        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Tài chính'}) đã hoàn tất mô hình dự toán chi phí & dòng tiền:`;
+        checklist = [
+          { label: 'Dự toán ngân sách CAPEX/OPEX: Chi tiết theo từng hạng mục', status: 'pass' },
+          { label: 'Dự báo dòng tiền hoàn vốn & NPV/IRR: Đạt chỉ số an toàn tài chính', status: 'pass' },
+          { label: 'Kế hoạch kiểm soát chi phí: Tối ưu theo hạn mức duyệt', status: 'pass' },
+          { label: 'Đề xuất: Phê duyệt phương án phân kỳ giải ngân theo mốc nghiệm thu.', status: 'pass' }
+        ];
+        image = null;
+        note = 'Mô hình dự toán tài chính đã sẵn sàng tải về: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
+        files = [
+          { name: 'Thuyet_minh_du_toan_tai_chinh.docx', size: '1.3 MB', type: 'word' },
+          { name: 'Bang_du_toan_ngan_sach_CAPEX.xlsx', size: '920 KB', type: 'excel' },
+          { name: 'Bao_cao_tham_dinh_tai_chinh.pdf', size: '2.5 MB', type: 'pdf' }
         ];
       } else {
         if (checklist.length === 0) {
@@ -243,7 +263,9 @@ export default function ChatSection({
         }
         if (files.length === 0) {
           files = [
-            { name: `Bao_cao_${activeSkill?.id || 'Skill'}.pdf`, size: '1.8 MB', type: 'pdf' }
+            { name: `Bao_cao_${activeSkill?.id || 'van_ban'}.docx`, size: '1.2 MB', type: 'word' },
+            { name: `Bang_tong_hop_${activeSkill?.id || 'so_lieu'}.xlsx`, size: '450 KB', type: 'excel' },
+            { name: `Ho_so_xuat_ban_${activeSkill?.id || 'tai_lieu'}.pdf`, size: '1.8 MB', type: 'pdf' }
           ];
         }
       }
@@ -689,20 +711,37 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
                       </div>
                     )}
 
-                    {/* Attached Files (Khớp 100% 3 thẻ file mẫu) */}
+                    {/* Attached Files (Khớp 100% định dạng xuất bản theo từng Skill) */}
                     {m.files && m.files.length > 0 && (
                       <div className="attached-files-row">
                         {m.files.map((file, fIdx) => {
+                          const isImage = file.type === 'png' || file.type === 'jpeg' || file.type === 'jpg' || file.name.endsWith('.png') || file.name.endsWith('.jpg') || file.name.endsWith('.jpeg');
                           const isExcel = file.type === 'excel' || file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+                          const isWord = file.type === 'word' || file.name.endsWith('.docx') || file.name.endsWith('.doc');
+                          const isPdf = file.type === 'pdf' || file.name.endsWith('.pdf');
+
+                          let badgeClass = 'pdf-tag';
+                          let icon = <FileText size={16} />;
+                          if (isImage) {
+                            badgeClass = 'image-tag';
+                            icon = <Sparkles size={16} />;
+                          } else if (isExcel) {
+                            badgeClass = 'excel-tag';
+                            icon = <FileSpreadsheet size={16} />;
+                          } else if (isWord) {
+                            badgeClass = 'word-tag';
+                            icon = <FileText size={16} />;
+                          }
+
                           return (
                             <div 
                               key={fIdx} 
-                              className="file-card-pill" 
+                              className={`file-card-pill ${badgeClass}-pill`} 
                               onClick={() => onOpenFileViewer(file)}
-                              title="Bấm để xem và tải file"
+                              title={`Bấm để xem và tải file ${file.name}`}
                             >
-                              <div className={`file-badge-icon ${isExcel ? 'excel-tag' : 'pdf-tag'}`}>
-                                {isExcel ? <FileSpreadsheet size={16} /> : <FileText size={16} />}
+                              <div className={`file-badge-icon ${badgeClass}`}>
+                                {icon}
                               </div>
                               <div className="file-pill-info">
                                 <div className="file-pill-name">{file.name}</div>
@@ -1058,41 +1097,103 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
           {/* Pills cho Chat văn bản */}
           {bannerMode === 'chat' && (
             <>
-              <button 
-                className={`pill-action-btn voice-summary-pill ${speechActive ? 'speaking-active' : ''}`}
-                onClick={() => handleVoiceSummary()}
-                title="Nghe tóm tắt bằng giọng nói"
-              >
-                <Volume2 size={16} />
-                <span>{speechActive ? 'Đang đọc...' : 'Tóm tắt bằng giọng nói'}</span>
-              </button>
+              {(activeSkill?.id === 'kol-thoi-trang' || activeSkill?.id?.includes('kol') || activeSkill?.id?.includes('thoi-trang')) ? (
+                <>
+                  <button 
+                    className="pill-action-btn"
+                    onClick={() => {
+                      const a = document.createElement('a');
+                      a.href = '/assets/y_ngoc_aodai.jpg';
+                      a.download = 'Lookbook_Y_Ngoc_Master_8K.png';
+                      a.target = '_blank';
+                      a.click();
+                    }}
+                    title="Tải về ảnh PNG chất lượng gốc 8K"
+                  >
+                    <Sparkles size={16} color="#ec4899" />
+                    <span>Tải ảnh PNG 8K</span>
+                  </button>
 
-              <button 
-                className="pill-action-btn"
-                onClick={handleExportWord}
-                title="Tải về file báo cáo Word (.doc)"
-              >
-                <span className="word-blue-tag">W</span>
-                <span>Xuất báo cáo Word</span>
-              </button>
+                  <button 
+                    className="pill-action-btn"
+                    onClick={() => {
+                      const a = document.createElement('a');
+                      a.href = '/assets/y_ngoc_aodai.jpg';
+                      a.download = 'Lookbook_Y_Ngoc_Editorial.jpeg';
+                      a.target = '_blank';
+                      a.click();
+                    }}
+                    title="Tải về ảnh JPEG tối ưu đa nền tảng"
+                  >
+                    <Eye size={16} color="#38bdf8" />
+                    <span>Tải ảnh JPEG</span>
+                  </button>
 
-              <button 
-                className="pill-action-btn"
-                onClick={() => handleSend(`Hãy tạo giúp tôi một Tờ trình phê duyệt hồ sơ ${activeSkill.name || 'PCCC'}.`)}
-                title="Tạo tờ trình phê duyệt"
-              >
-                <FileText size={16} />
-                <span>Tạo tờ trình</span>
-              </button>
+                  <button 
+                    className="pill-action-btn"
+                    onClick={() => onOpenFileViewer({ name: 'Lookbook_Y_Ngoc_Ao_Dai_Trang.pdf', size: '4.8 MB', type: 'pdf' })}
+                    title="Xuất trọn bộ Catalog Lookbook PDF"
+                  >
+                    <FileText size={16} className="text-red" />
+                    <span>Xuất Catalog PDF</span>
+                  </button>
 
-              <button 
-                className="pill-action-btn"
-                onClick={() => handleSend(`Lập bảng Checklist chi tiết các hạng mục cần nghiệm thu.`)}
-                title="Lập checklist nghiệm thu"
-              >
-                <CheckCircle2 size={16} />
-                <span>Lập checklist</span>
-              </button>
+                  <button 
+                    className={`pill-action-btn voice-summary-pill ${speechActive ? 'speaking-active' : ''}`}
+                    onClick={() => handleVoiceSummary('Dạ anh Trí, bộ ảnh Lookbook KOL Thời Trang Ý Ngọc với tà áo dài truyền thống đã hoàn thành kết xuất độ phân giải 8K, khóa nhận diện nhân vật 100%.')}
+                    title="Nghe tóm tắt bộ ảnh bằng giọng nói"
+                  >
+                    <Volume2 size={16} />
+                    <span>{speechActive ? 'Đang đọc...' : 'Tóm tắt bộ ảnh'}</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    className={`pill-action-btn voice-summary-pill ${speechActive ? 'speaking-active' : ''}`}
+                    onClick={() => handleVoiceSummary()}
+                    title="Nghe tóm tắt bằng giọng nói"
+                  >
+                    <Volume2 size={16} />
+                    <span>{speechActive ? 'Đang đọc...' : 'Tóm tắt bằng giọng nói'}</span>
+                  </button>
+
+                  <button 
+                    className="pill-action-btn"
+                    onClick={handleExportWord}
+                    title="Tải về file báo cáo Word (.docx)"
+                  >
+                    <span className="word-blue-tag">W</span>
+                    <span>Xuất file Word (.docx)</span>
+                  </button>
+
+                  <button 
+                    className="pill-action-btn"
+                    onClick={() => onOpenFileViewer({ 
+                      name: activeSkill?.id === 'pccc' ? 'Danh_sach_diem_luu_y.xlsx' : activeSkill?.id === 'mua-sam' ? 'Bang_so_sanh_3_bao_gia.xlsx' : 'Bang_tong_hop_so_lieu.xlsx', 
+                      size: '450 KB', 
+                      type: 'excel' 
+                    })}
+                    title="Bóc tách và tải bảng tính Excel (.xlsx)"
+                  >
+                    <FileSpreadsheet size={16} className="text-green" />
+                    <span>Xuất file Excel (.xlsx)</span>
+                  </button>
+
+                  <button 
+                    className="pill-action-btn"
+                    onClick={() => onOpenFileViewer({ 
+                      name: activeSkill?.id === 'pccc' ? 'Bao_cao_kiem_tra_PCCC.pdf' : activeSkill?.id === 'mua-sam' ? 'Bao_cao_danh_gia_NCC.pdf' : 'Ho_so_xuat_ban.pdf', 
+                      size: '2.4 MB', 
+                      type: 'pdf' 
+                    })}
+                    title="Xuất tài liệu báo cáo PDF (.pdf)"
+                  >
+                    <FileText size={16} className="text-red" />
+                    <span>Xuất file PDF (.pdf)</span>
+                  </button>
+                </>
+              )}
             </>
           )}
 

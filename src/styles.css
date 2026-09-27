@@ -2252,12 +2252,91 @@ body {
   flex-shrink: 0;
 }
 
-.pdf-icon-badge {
+.pdf-icon-badge,
+.pdf-tag {
   color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
-.excel-icon-badge {
-  color: #16a34a;
+.excel-icon-badge,
+.excel-tag {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.word-tag {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.image-tag {
+  color: #ec4899;
+  background: rgba(236, 72, 153, 0.1);
+}
+
+.image-bg {
+  background: rgba(236, 72, 153, 0.15) !important;
+  color: #ec4899 !important;
+}
+
+.word-bg {
+  background: rgba(37, 99, 235, 0.15) !important;
+  color: #2563eb !important;
+}
+
+.excel-bg {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+}
+
+.pdf-bg {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+}
+
+/* File Image Preview Container in Modal */
+.file-image-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-preview-wrapper {
+  position: relative;
+  width: 100%;
+  max-height: 380px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e2e8f0;
+  background: #0f172a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.file-preview-img-tag {
+  width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+}
+
+.image-preview-tag-overlay {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+  color: #f472b6;
+  border: 1px solid rgba(244, 114, 182, 0.4);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .file-meta-col {
