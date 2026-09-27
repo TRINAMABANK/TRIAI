@@ -103,35 +103,19 @@ export default function AuthModal({
         ? 'QUANG NHỰT TRÍ' 
         : namePart.toUpperCase();
 
+      const isAdminEmail = email.toLowerCase() === 'triqnnamabank@gmail.com';
+
       onLogin({
         name: displayName,
         email: email.trim(),
         avatar: '/assets/user_avatar.png',
-        role: 'Chủ sở hữu',
-        plan: 'Gói Pro Vĩnh Viễn',
+        role: isAdminEmail ? 'Chủ sở hữu' : 'Khách hàng',
+        plan: isAdminEmail ? 'Gói Admin Toàn Quyền (Full 33+ Skill)' : 'Gói Khách Hàng',
+        isAdmin: isAdminEmail,
         loginType: 'password'
       });
       onClose();
     }, 850);
-  };
-
-  // Xử lý đăng nhập nhanh tài khoản test phân quyền
-  const handleQuickSwitchAccount = (account) => {
-    setIsLoading(true);
-    showToast(`Đang chuyển sang tài khoản: ${account.name}...`);
-    setTimeout(() => {
-      setIsLoading(false);
-      onLogin({
-        name: account.name,
-        email: account.email,
-        avatar: account.avatar || '/assets/user_avatar.png',
-        role: account.role,
-        plan: account.plan,
-        isAdmin: account.isAdmin,
-        loginType: 'quick_test'
-      });
-      onClose();
-    }, 500);
   };
 
   return (
@@ -150,8 +134,8 @@ export default function AuthModal({
           <div className="auth-brand-badge">
             <div className="auth-brain-icon">🧠</div>
             <div>
-              <h3 className="auth-title">Đăng Nhập & Phân Quyền TRÍ AI</h3>
-              <p className="auth-subtitle">Chọn tài khoản test hoặc đăng nhập bằng email của bạn</p>
+              <h3 className="auth-title">Đăng Nhập Tài Khoản TRÍ AI</h3>
+              <p className="auth-subtitle">Đăng nhập bằng Gmail để đồng bộ dữ liệu và sử dụng bản quyền</p>
             </div>
           </div>
           <button className="modal-close-btn" onClick={onClose} title="Đóng">
@@ -162,121 +146,6 @@ export default function AuthModal({
         {/* Body */}
         <div className="auth-modal-body">
           
-          {/* PHÂN QUYỀN: BẢNG CHỌN TÀI KHOẢN TEST NHANH */}
-          <div className="auth-test-accounts-section">
-            <div className="auth-test-section-head">
-              <span className="auth-test-badge-title">🧪 TEST PHÂN QUYỀN THEO TÀI KHOẢN (1-CLICK)</span>
-              <span className="auth-test-hint">Bấm để chuyển nhanh tài khoản & kiểm tra Skill</span>
-            </div>
-
-            <div className="auth-test-accounts-grid">
-              {/* 1. Admin Full Skill */}
-              <div 
-                className={`auth-test-account-card admin-card ${currentUser?.email === 'triqnnamabank@gmail.com' ? 'active-user' : ''}`}
-                onClick={() => handleQuickSwitchAccount({
-                  name: 'QUANG NHỰT TRÍ',
-                  email: 'triqnnamabank@gmail.com',
-                  role: 'Chủ sở hữu',
-                  plan: 'Gói Admin Toàn Quyền (Full 33+ Skill)',
-                  avatar: '/assets/user_avatar.png',
-                  isAdmin: true
-                })}
-              >
-                <div className="test-acc-icon">👑</div>
-                <div className="test-acc-info">
-                  <div className="test-acc-name">QUANG NHỰT TRÍ <span className="admin-tag">Admin</span></div>
-                  <div className="test-acc-email">triqnnamabank@gmail.com</div>
-                  <div className="test-acc-skill-tag">✓ Full 33+ Skill (Toàn quyền)</div>
-                </div>
-                {currentUser?.email === 'triqnnamabank@gmail.com' && <span className="active-dot">● Đang dùng</span>}
-              </div>
-
-              {/* 2. Khách hàng KOL Thời Trang */}
-              <div 
-                className={`auth-test-account-card ${currentUser?.email === 'kol.fashion@gmail.com' ? 'active-user' : ''}`}
-                onClick={() => handleQuickSwitchAccount({
-                  name: 'Khách Hàng KOL Thời Trang',
-                  email: 'kol.fashion@gmail.com',
-                  role: 'Khách hàng',
-                  plan: 'Gói KOL Thời Trang (1 Skill)',
-                  avatar: '/assets/agent_phaply.png',
-                  isAdmin: false
-                })}
-              >
-                <div className="test-acc-icon">✨</div>
-                <div className="test-acc-info">
-                  <div className="test-acc-name">Khách Hàng KOL</div>
-                  <div className="test-acc-email">kol.fashion@gmail.com</div>
-                  <div className="test-acc-skill-tag kol-tag">1 Skill: KOL Thời Trang Ý Ngọc</div>
-                </div>
-                {currentUser?.email === 'kol.fashion@gmail.com' && <span className="active-dot">● Đang dùng</span>}
-              </div>
-
-              {/* 3. Khách hàng Kỹ thuật PCCC & MEP */}
-              <div 
-                className={`auth-test-account-card ${currentUser?.email === 'kythuat.pccc@gmail.com' ? 'active-user' : ''}`}
-                onClick={() => handleQuickSwitchAccount({
-                  name: 'Kỹ Sư Nghiệm Thu Tòa Nhà',
-                  email: 'kythuat.pccc@gmail.com',
-                  role: 'Khách hàng',
-                  plan: 'Gói Kỹ Thuật & Vận Hành (2 Skill)',
-                  avatar: '/assets/agent_an.png',
-                  isAdmin: false
-                })}
-              >
-                <div className="test-acc-icon">🔥</div>
-                <div className="test-acc-info">
-                  <div className="test-acc-name">Kỹ Sư Công Trình</div>
-                  <div className="test-acc-email">kythuat.pccc@gmail.com</div>
-                  <div className="test-acc-skill-tag pccc-tag">2 Skill: PCCC & Kỹ thuật MEP</div>
-                </div>
-                {currentUser?.email === 'kythuat.pccc@gmail.com' && <span className="active-dot">● Đang dùng</span>}
-              </div>
-
-              {/* 4. Khách hàng Mua sắm & Pháp lý */}
-              <div 
-                className={`auth-test-account-card ${currentUser?.email === 'muasam.phaply@gmail.com' ? 'active-user' : ''}`}
-                onClick={() => handleQuickSwitchAccount({
-                  name: 'Chuyên Viên Mua Sắm & Pháp Lý',
-                  email: 'muasam.phaply@gmail.com',
-                  role: 'Khách hàng',
-                  plan: 'Gói Mua Sắm & Hợp Đồng (2 Skill)',
-                  avatar: '/assets/agent_muasam.png',
-                  isAdmin: false
-                })}
-              >
-                <div className="test-acc-icon">🛒</div>
-                <div className="test-acc-info">
-                  <div className="test-acc-name">Chuyên Viên Mua Sắm</div>
-                  <div className="test-acc-email">muasam.phaply@gmail.com</div>
-                  <div className="test-acc-skill-tag procurement-tag">2 Skill: Báo giá & Pháp lý</div>
-                </div>
-                {currentUser?.email === 'muasam.phaply@gmail.com' && <span className="active-dot">● Đang dùng</span>}
-              </div>
-
-              {/* 5. Khách hàng mới (Chưa mua gói - Dùng thử 15 phút) */}
-              <div 
-                className={`auth-test-account-card ${currentUser?.email === 'khachhang.moi@gmail.com' ? 'active-user' : ''}`}
-                onClick={() => handleQuickSwitchAccount({
-                  name: 'Khách Hàng Mới',
-                  email: 'khachhang.moi@gmail.com',
-                  role: 'Khách hàng',
-                  plan: 'Chưa kích hoạt (Dùng thử 15 phút)',
-                  avatar: '/assets/user_avatar.png',
-                  isAdmin: false
-                })}
-              >
-                <div className="test-acc-icon">🎁</div>
-                <div className="test-acc-info">
-                  <div className="test-acc-name">Khách Hàng Mới <span className="customer-tag">Dùng thử</span></div>
-                  <div className="test-acc-email">khachhang.moi@gmail.com</div>
-                  <div className="test-acc-skill-tag trial-tag">0 Skill • Chọn Store để dùng thử 15 phút</div>
-                </div>
-                {currentUser?.email === 'khachhang.moi@gmail.com' && <span className="active-dot">● Đang dùng</span>}
-              </div>
-            </div>
-          </div>
-
           {/* Social Sign-In Buttons */}
           <div className="auth-social-buttons">
             {/* 1. Continue with Google (Nút đen chữ trắng icon Google) */}
