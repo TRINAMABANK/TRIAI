@@ -11,36 +11,44 @@ import {
   Globe, 
   Layers, 
   FileText, 
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
-  FileSpreadsheet,
-  ShieldCheck,
-  AlertTriangle,
-  Play,
-  Pause,
-  RotateCcw,
-  Sliders,
-  Check,
-  Upload,
-  UserCheck,
-  FileCheck,
-  Eye,
-  ArrowRight,
-  Terminal,
-  Zap,
-  CornerDownLeft
+  ChevronDown, 
+  ChevronUp, 
+  Sparkles, 
+  FileSpreadsheet, 
+  ShieldCheck, 
+  AlertTriangle, 
+  Play, 
+  Pause, 
+  RotateCcw, 
+  Sliders, 
+  Check, 
+  Upload, 
+  UserCheck, 
+  FileCheck, 
+  Eye, 
+  ArrowRight, 
+  Terminal, 
+  Zap, 
+  CornerDownLeft,
+  Users,
+  X,
+  ChevronRight,
+  UserRound,
+  MessageSquare
 } from 'lucide-react';
+import { AGENTS_DATA } from '../data/agentsData';
 
 export default function ChatSection({ 
   activeSkill, 
   onOpenSkillPicker, 
-  onOpenFileViewer,
-  messages,
-  setMessages,
-  bannerMode = 'chat',
-  onChangeBannerMode,
-  onSelectSkill
+  onOpenFileViewer, 
+  messages, 
+  setMessages, 
+  bannerMode = 'chat', 
+  onChangeBannerMode, 
+  onSelectSkill,
+  activeAgent,
+  onSelectAgent
 }) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -49,6 +57,33 @@ export default function ChatSection({
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [speechActive, setSpeechActive] = useState(false);
+
+  // States for Companion Agents
+  const [showAgentPicker, setShowAgentPicker] = useState(false);
+  const [activeCompanionAgent, setActiveCompanionAgent] = useState(activeAgent || null);
+  const agentPickerRef = useRef(null);
+
+  // Sync with prop if activeAgent changes
+  useEffect(() => {
+    if (activeAgent) {
+      setActiveCompanionAgent(activeAgent);
+    }
+  }, [activeAgent]);
+
+  // Click outside to close Agent popover
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (agentPickerRef.current && !agentPickerRef.current.contains(e.target)) {
+        setShowAgentPicker(false);
+      }
+    };
+    if (showAgentPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAgentPicker]);
 
   // States for sub-modes
   const [activeFileIndex, setActiveFileIndex] = useState(0);
@@ -213,9 +248,16 @@ export default function ChatSection({
         }
       }
 
+      if (activeCompanionAgent) {
+        aiResponseText = `Dạ anh Trí, tôi là ${activeCompanionAgent.name} (${activeCompanionAgent.role}). Tôi đã tiếp nhận yêu cầu: "${query}". Dưới đây là phân tích chuyên môn của tôi:`;
+      }
+
       const aiMsg = {
         id: Date.now() + 1,
         role: 'ai',
+        agentName: activeCompanionAgent?.name,
+        agentRole: activeCompanionAgent?.role,
+        agentAvatar: activeCompanionAgent?.avatar,
         skillId: activeSkill?.id || 'pccc',
         skillName: activeSkill?.name || 'PCCC',
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
@@ -232,6 +274,35 @@ export default function ChatSection({
         textInputRef.current?.focus();
       }, 60);
     }, 800);
+  };
+
+  // Chọn Agent đồng hành từ bảng popup
+  const handleSelectCompanionAgent = (agent) => {
+    setActiveCompanionAgent(agent);
+    setShowAgentPicker(false);
+    if (onSelectAgent) onSelectAgent(agent);
+
+    // Kích hoạt tin nhắn trao đổi cùng Agent
+    const agentGreetingMsg = {
+      id: Date.now(),
+      role: 'ai',
+      agentName: agent.name,
+      agentRole: agent.role,
+      agentAvatar: agent.avatar,
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      text: `Dạ anh Trí! Tôi là ${agent.name} (${agent.role}). ${agent.greeting}`,
+      checklist: [
+        { label: `Chuyên môn cốt lõi: ${agent.specialties.join(' • ')}`, status: 'pass' },
+        { label: 'Trạng thái tham mưu: Đã kết nối trực tiếp và sẵn sàng hỗ trợ anh', status: 'pass' }
+      ],
+      note: `Anh có thể đặt câu hỏi hoặc gửi tệp liên quan đến ${agent.name} để bắt đầu làm việc ngay.`,
+      files: []
+    };
+
+    setMessages(prev => [...prev, agentGreetingMsg]);
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 60);
   };
 
   // Kích hoạt gọi lệnh kiểm tra kết quả (Kết quả thực tế)
@@ -550,12 +621,12 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
                 {/* Avatar */}
                 <div className="thread-avatar-col">
                   {isUser ? (
-                    <div className="user-initials-badge">AT</div>
+                    <div className="user-initials-badge">QT</div>
                   ) : (
                     <div className="ai-neon-badge">
                       <img 
-                        src="/assets/brand_logo.png" 
-                        alt="Trí AI" 
+                        src={m.agentAvatar || "/assets/brand_logo.png"} 
+                        alt={m.agentName || "Trí AI"} 
                         className="ai-avatar-pic"
                         onError={(e) => {
                           e.target.style.display = 'none';
@@ -570,7 +641,8 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
                 <div className="thread-bubble-col">
                   {!isUser && (
                     <div className="ai-title-row">
-                      <span className="ai-brand-label">TRÍ AI</span>
+                      <span className="ai-brand-label">{m.agentName ? m.agentName.toUpperCase() : 'TRÍ AI'}</span>
+                      {m.agentRole && <span className="ai-agent-role-pill">{m.agentRole}</span>}
                       <span className="ai-timestamp">{m.time || '10:24'}</span>
                     </div>
                   )}
@@ -1372,6 +1444,30 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
         </div>
       )}
 
+      {/* CHIP BÁO ĐANG ĐỒNG HÀNH CÙNG AGENT */}
+      {activeCompanionAgent && (
+        <div className="active-companion-chip-bar animated-fade-in">
+          <div className="active-companion-chip-left">
+            <img 
+              src={activeCompanionAgent.avatar} 
+              alt={activeCompanionAgent.name} 
+              className="chip-avatar-img"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            <span>Đang đồng hành cùng: <b>{activeCompanionAgent.name}</b> <span className="chip-role">({activeCompanionAgent.role})</span></span>
+          </div>
+          <button 
+            type="button" 
+            className="chip-btn-dismiss" 
+            onClick={() => setActiveCompanionAgent(null)}
+            title="Hủy đồng hành, quay về Trí AI mặc định"
+          >
+            <X size={13} />
+            <span>Hủy</span>
+          </button>
+        </div>
+      )}
+
       {/* 2. KHI CHỌN CHAT VĂN BẢN: THANH CHAT CHUẨN MỰC, TINH GỌN */}
       {bannerMode === 'chat' && (
         <div className="standard-chat-dock-bar">
@@ -1404,7 +1500,7 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder="Nhập tin nhắn để chat lại với Trí AI (Nhấn Enter để gửi)..."
+              placeholder={activeCompanionAgent ? `Trao đổi chuyên môn với ${activeCompanionAgent.name}...` : "Nhập tin nhắn để chat lại với Trí AI (Nhấn Enter để gửi)..."}
               className="standard-chat-text-input"
             />
           </div>
@@ -1419,6 +1515,75 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
               <Mic size={15} className="voice-mic-icon" />
               <span>Nói giọng nói</span>
             </button>
+
+            {/* NÚT AGENT ĐỒNG HÀNH CUỐI CÙNG BÊN PHẢI */}
+            <div className="agent-companion-trigger-wrapper" ref={agentPickerRef}>
+              <button 
+                type="button"
+                className={`btn-dock-pill btn-agent-companion ${showAgentPicker ? 'active' : ''} ${activeCompanionAgent ? 'has-active' : ''}`}
+                onClick={() => setShowAgentPicker(!showAgentPicker)}
+                title="Bấm để chọn Agent đồng hành (4 Chuyên gia AI)"
+              >
+                {activeCompanionAgent ? (
+                  <img src={activeCompanionAgent.avatar} alt="" className="btn-agent-mini-avatar" />
+                ) : (
+                  <Users size={15} className="agent-dock-icon" />
+                )}
+                <span className="btn-agent-label">{activeCompanionAgent ? activeCompanionAgent.name : 'Agent đồng hành'}</span>
+                <ChevronUp size={13} className={`agent-dock-chevron ${showAgentPicker ? 'open' : ''}`} />
+              </button>
+
+              {/* BẢNG AGENT ĐỒNG HÀNH (4 CHUYÊN GIA AI) - KHỚP 100% GIAO DIỆN CỘT 1 */}
+              {showAgentPicker && (
+                <div className="agent-companion-popover animated-scale-up">
+                  <div className="agent-popover-header">
+                    <div className="agent-popover-title-row">
+                      <span className="agent-popover-title">AGENT ĐỒNG HÀNH</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="btn-agent-popover-close" 
+                      onClick={() => setShowAgentPicker(false)}
+                      title="Đóng bảng Agent"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+
+                  <div className="agent-popover-list">
+                    {AGENTS_DATA.map((agent) => {
+                      const isSelected = activeCompanionAgent?.id === agent.id;
+                      return (
+                        <div 
+                          key={agent.id}
+                          className={`agent-popover-row ${isSelected ? 'selected' : ''}`}
+                          onClick={() => handleSelectCompanionAgent(agent)}
+                          title={`Kích hoạt ${agent.name}`}
+                        >
+                          <div className="agent-popover-avatar-wrap">
+                            <img 
+                              src={agent.avatar} 
+                              alt={agent.name} 
+                              className="agent-popover-avatar"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<span class="avatar-fallback-initials">AG</span>';
+                              }}
+                            />
+                            {isSelected && <span className="agent-selected-badge">✓</span>}
+                          </div>
+                          <div className="agent-popover-info">
+                            <b className="agent-popover-name">{agent.name}</b>
+                            <span className="agent-popover-role">{agent.role}</span>
+                          </div>
+                          <ChevronRight size={16} className="agent-popover-arrow" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <button 
               type="button"

@@ -260,6 +260,8 @@ export default function App() {
               bannerMode={bannerMode}
               onChangeBannerMode={(mode) => setBannerMode(mode)}
               onSelectSkill={(s) => setActiveSkill(s)}
+              activeAgent={selectedAgent}
+              onSelectAgent={(agent) => setSelectedAgent(agent)}
             />
           </>
         )}

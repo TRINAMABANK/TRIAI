@@ -267,37 +267,6 @@ export default function Sidebar({
             </div>
           )}
         </div>
-
-        {/* 6. AGENT ĐỒNG HÀNH (4 CHUYÊN GIA AI) */}
-        <div className="sidebar-section-box">
-          <div 
-            className="sidebar-section-header clickable-header"
-            onClick={() => setShowAgents(!showAgents)}
-          >
-            <span className="sidebar-section-title">Agent đồng hành</span>
-            <ChevronDown size={14} className={`header-chevron ${showAgents ? 'open' : ''}`} />
-          </div>
-
-          {showAgents && (
-            <div className="sidebar-agents-list">
-              {AGENTS_DATA.map((agent) => (
-                <div 
-                  key={agent.id} 
-                  className="sidebar-agent-row"
-                  onClick={() => onSelectAgent && onSelectAgent(agent)}
-                  title={`Trao đổi cùng ${agent.name}`}
-                >
-                  <img src={agent.avatar} alt={agent.name} className="sidebar-agent-avatar" />
-                  <div className="sidebar-agent-info">
-                    <b className="sidebar-agent-name">{agent.name}</b>
-                    <span className="sidebar-agent-role">{agent.role}</span>
-                  </div>
-                  <ChevronRight size={14} className="agent-row-arrow" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* 7. FOOTER: USER PROFILE & USAGE METER */}
