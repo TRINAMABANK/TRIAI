@@ -104,37 +104,126 @@ export default function ChatSection({
     setIsAiTyping(true);
 
     setTimeout(() => {
-      let aiResponseText = `Dạ anh, em (${activeSkill.name || 'Trí AI'}) đã tiếp nhận yêu cầu: "${query}". Dưới đây là kết quả phân tích chuyên môn:`;
-      let checklist = activeSkill.checklist || [
-        { label: 'Thành phần hồ sơ: Đầy đủ', status: 'pass' },
-        { label: 'Biểu mẫu: Đúng theo quy định', status: 'pass' },
-        { label: 'Nội dung kỹ thuật: Phù hợp thiết kế được duyệt', status: 'pass' },
-        { label: 'Các hạng mục cần lưu ý: 2 điểm (đã đánh dấu chi tiết)', status: 'pass' },
-        { label: 'Đề xuất: Bổ sung biên bản thử nghiệm hệ thống báo cháy tự động và cập nhật sơ đồ hoàn công.', status: 'pass' }
-      ];
+      // Xác định Skill chính xác từ activeSkill hoặc ngữ cảnh truy vấn
+      let skillId = (activeSkill?.id || '').toLowerCase();
+      if (!skillId) {
+        if (query.toLowerCase().includes('ngọc') || query.toLowerCase().includes('áo dài') || query.toLowerCase().includes('lookbook') || query.toLowerCase().includes('kol')) {
+          skillId = 'kol-thoi-trang';
+        } else if (query.toLowerCase().includes('báo giá') || query.toLowerCase().includes('mua sắm') || query.toLowerCase().includes('đấu thầu')) {
+          skillId = 'mua-sam';
+        } else if (query.toLowerCase().includes('mep') || query.toLowerCase().includes('cơ điện') || query.toLowerCase().includes('bảo trì')) {
+          skillId = 'mep';
+        } else if (query.toLowerCase().includes('hợp đồng') || query.toLowerCase().includes('pháp lý')) {
+          skillId = 'phap-ly';
+        } else {
+          skillId = 'pccc';
+        }
+      }
 
-      const isKolSkill = activeSkill.id === 'kol-thoi-trang' || query.toLowerCase().includes('ngọc') || query.toLowerCase().includes('áo dài') || query.toLowerCase().includes('lookbook');
-      if (isKolSkill) {
+      let aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Trí AI'}) đã tiếp nhận yêu cầu: "${query}". Dưới đây là kết quả phân tích chuyên môn:`;
+      let checklist = activeSkill?.checklist || [];
+      let image = null;
+      let note = 'Anh có thể xem báo cáo chi tiết ở bên phải, hoặc yêu cầu em xuất báo cáo Word / đọc tóm tắt ngay bây giờ.';
+      let files = activeSkill?.sampleFiles || [];
+
+      if (skillId.includes('kol') || skillId.includes('thoi-trang') || skillId.includes('y-ngoc')) {
         aiResponseText = `Dạ anh Trí, em đã kích hoạt Skill KOL Thời Trang và hoàn thành khởi tạo bộ ảnh Lookbook theo quy trình chuẩn cho người mẫu Ý Ngọc:`;
+        checklist = [
+          { label: 'Nhận diện nhân vật Ý Ngọc: Khóa gương mặt nhất quán 100%', status: 'pass' },
+          { label: 'Trang phục Áo dài trắng: Lụa tơ tằm thêu hoa cúc và cườm thủ công', status: 'pass' },
+          { label: 'Bối cảnh Khách sạn cao cấp: Sảnh tiệc di sản 5 sao, đèn chùm pha lê', status: 'pass' },
+          { label: 'Ánh sáng & Nhiếp ảnh: Commercial Photography, tiêu cự 85mm', status: 'pass' },
+          { label: 'Chất lượng xuất bản: Đạt chuẩn Fashion Campaign Lookbook 8K', status: 'pass' }
+        ];
+        image = '/assets/y_ngoc_aodai.jpg';
+        note = 'Ảnh Lookbook độ phân giải 8K đã được kết xuất thành công với tính nhất quán nhận diện nhân vật 100%. Anh có thể tải bộ ảnh gốc ở bên dưới.';
+        files = [
+          { name: 'Lookbook_Y_Ngoc_Ao_Dai_Trang.pdf', size: '4.8 MB', type: 'pdf' },
+          { name: 'Prompt_Sheet_KOL_Thoi_Trang.docx', size: '380 KB', type: 'word' }
+        ];
+      } else if (skillId.includes('pccc') || skillId.includes('chua-chay')) {
+        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'PCCC'}) đã hoàn thành kiểm tra sơ bộ hồ sơ nghiệm thu hệ thống PCCC theo quy chuẩn QCVN 06:2026/BXD:`;
+        checklist = [
+          { label: 'Thành phần hồ sơ: Đầy đủ theo quy định', status: 'pass' },
+          { label: 'Biểu mẫu: Đúng theo Nghị định 136/2020/NĐ-CP & QCVN 06:2026/BXD', status: 'pass' },
+          { label: 'Nội dung kỹ thuật: Phù hợp thiết kế được duyệt', status: 'pass' },
+          { label: 'Các hạng mục cần lưu ý: 2 điểm (Van xả tràn & Sơ đồ hoàn công)', status: 'pass' },
+          { label: 'Đề xuất: Bổ sung biên bản thử nghiệm hệ thống báo cháy tự động và cập nhật sơ đồ hoàn công.', status: 'pass' }
+        ];
+        image = null;
+        note = 'Hồ sơ PCCC đã được đối soát 100%. Anh có thể xuất báo cáo Word (.doc) hoặc nghe tóm tắt kết quả.';
+        files = [
+          { name: 'Bao_cao_kiem_tra_PCCC.pdf', size: '2.4 MB', type: 'pdf' },
+          { name: 'Danh_sach_diem_luu_y.xlsx', size: '324 KB', type: 'excel' },
+          { name: 'So_do_hoan_cong.pdf', size: '1.1 MB', type: 'pdf' }
+        ];
+      } else if (skillId.includes('mua-sam') || skillId.includes('dau-thau') || skillId.includes('bao-gia')) {
+        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Mua sắm'}) đã hoàn thành bóc tách và so sánh đa báo giá thiết bị:`;
+        checklist = [
+          { label: 'Số lượng báo giá so sánh: Đầy đủ 3 nhà cung cấp uy tín', status: 'pass' },
+          { label: 'Đơn giá & Chiết khấu: Tối ưu 12% so với đơn giá dự toán duyệt', status: 'pass' },
+          { label: 'Hồ sơ năng lực & Chứng chỉ CO/CQ: Hợp lệ theo tiêu chuẩn', status: 'pass' },
+          { label: 'Đề xuất: Lựa chọn phương án có tổng chi phí sở hữu (TCO) thấp nhất.', status: 'pass' }
+        ];
+        image = null;
+        note = 'Bảng so sánh chi tiết và dự thảo tờ trình mua sắm đã sẵn sàng để xuất file.';
+        files = [
+          { name: 'Bang_so_sanh_3_bao_gia.xlsx', size: '512 KB', type: 'excel' },
+          { name: 'To_trinh_mua_sam_ISO.docx', size: '1.2 MB', type: 'word' }
+        ];
+      } else if (skillId.includes('mep') || skillId.includes('van-hanh') || skillId.includes('toa-nha')) {
+        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'MEP'}) đã hoàn tất phân tích hệ thống cơ điện và quy trình bảo trì tòa nhà:`;
+        checklist = [
+          { label: 'Trạm biến áp & Tủ điện phân phối: Phân tải cân bằng 3 pha', status: 'pass' },
+          { label: 'Hệ thống bơm nước & Điều hòa HVAC: Áp lực và lưu lượng ổn định', status: 'pass' },
+          { label: 'Lịch bảo dưỡng phòng ngừa rủi ro: Đã lên kế hoạch quý', status: 'pass' },
+          { label: 'Đề xuất: Hiệu chuẩn cảm biến nhiệt độ tầng hầm và thay thế bộ lọc gió.', status: 'pass' }
+        ];
+        image = null;
+        note = 'Báo cáo kiểm toán vận hành MEP đã được trích xuất chi tiết.';
+        files = [
+          { name: 'Nhat_ky_van_hanh_MEP.xlsx', size: '820 KB', type: 'excel' },
+          { name: 'Quy_trinh_bao_tri_toa_nha.pdf', size: '1.9 MB', type: 'pdf' }
+        ];
+      } else if (skillId.includes('phap-ly') || skillId.includes('hop-dong')) {
+        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Pháp lý'}) đã hoàn thành rà soát các điều khoản hợp đồng:`;
+        checklist = [
+          { label: 'Tư cách chủ thể & Thẩm quyền đại diện: Hợp lệ 100%', status: 'pass' },
+          { label: 'Điều khoản bảo lãnh & Tạm ứng thanh toán: Đảm bảo an toàn tài chính', status: 'pass' },
+          { label: 'Điều khoản phạt vi phạm & Bồi thường thiệt hại: Đúng luật', status: 'pass' },
+          { label: 'Đề xuất: Làm rõ mốc bàn giao thực tế và cơ chế giải quyết tranh chấp.', status: 'pass' }
+        ];
+        image = null;
+        note = 'Biên bản rà soát pháp lý kèm ghi chú rủi ro đã sẵn sàng.';
+        files = [
+          { name: 'Ra_soat_hop_dong_phap_ly.docx', size: '1.4 MB', type: 'word' }
+        ];
+      } else {
+        if (checklist.length === 0) {
+          checklist = [
+            { label: `Quy trình thực thi Skill [${activeSkill?.name}]: Đạt chuẩn`, status: 'pass' },
+            { label: 'Dữ liệu đầu vào: Hợp lệ và đồng bộ', status: 'pass' },
+            { label: 'Đề xuất: Thực hiện theo đúng quy chuẩn nghiệp vụ.', status: 'pass' }
+          ];
+        }
+        if (files.length === 0) {
+          files = [
+            { name: `Bao_cao_${activeSkill?.id || 'Skill'}.pdf`, size: '1.8 MB', type: 'pdf' }
+          ];
+        }
       }
 
       const aiMsg = {
         id: Date.now() + 1,
         role: 'ai',
-        skillId: activeSkill.id,
-        skillName: activeSkill.name,
+        skillId: activeSkill?.id || 'pccc',
+        skillName: activeSkill?.name || 'PCCC',
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         text: aiResponseText,
         checklist: checklist,
-        image: isKolSkill ? '/assets/y_ngoc_aodai.jpg' : null,
-        note: isKolSkill 
-          ? 'Ảnh Lookbook độ phân giải 8K đã được kết xuất thành công với tính nhất quán nhận diện nhân vật 100%. Anh có thể tải bộ ảnh gốc ở bên dưới.'
-          : 'Anh có thể xem báo cáo chi tiết ở bên phải, hoặc em đọc tóm tắt bằng giọng nói cho anh ngay bây giờ.',
-        files: activeSkill.sampleFiles || [
-          { name: 'Bao_cao_kiem_tra_PCCC.pdf', size: '2.4 MB', type: 'pdf' },
-          { name: 'Danh_sach_diem_luu_y.xlsx', size: '324 KB', type: 'excel' },
-          { name: 'So_do_hoan_cong.pdf', size: '1.1 MB', type: 'pdf' }
-        ]
+        image: image,
+        note: note,
+        files: files
       };
 
       setMessages(prev => [...prev, aiMsg]);
@@ -369,7 +458,17 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
               <div className="welcome-suggestions-grid">
                 <div 
                   className="welcome-suggestion-card"
-                  onClick={() => handleSend('Anh kiểm tra giúp tôi hồ sơ nghiệm thu hệ thống PCCC này được không?')}
+                  onClick={() => {
+                    if (onSelectSkill) {
+                      onSelectSkill({
+                        id: 'pccc',
+                        name: 'Nghiệm thu PCCC Tòa nhà',
+                        category: 'Kỹ thuật',
+                        status: 'Đã kích hoạt'
+                      });
+                    }
+                    handleSend('Anh kiểm tra giúp tôi hồ sơ nghiệm thu hệ thống PCCC này được không?');
+                  }}
                 >
                   <div className="sug-icon-box red">🔥</div>
                   <div className="sug-text-wrap">
@@ -380,7 +479,17 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
 
                 <div 
                   className="welcome-suggestion-card"
-                  onClick={() => handleSend('So sánh giúp tôi 3 bảng báo giá thiết bị điều hòa VRV trung tâm.')}
+                  onClick={() => {
+                    if (onSelectSkill) {
+                      onSelectSkill({
+                        id: 'mua-sam',
+                        name: 'Bóc tách & So sánh Đa báo giá',
+                        category: 'Mua sắm',
+                        status: 'Đã kích hoạt'
+                      });
+                    }
+                    handleSend('So sánh giúp tôi 3 bảng báo giá thiết bị điều hòa VRV trung tâm.');
+                  }}
                 >
                   <div className="sug-icon-box orange">🛒</div>
                   <div className="sug-text-wrap">
@@ -391,7 +500,17 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
 
                 <div 
                   className="welcome-suggestion-card"
-                  onClick={() => handleSend('Ý Ngọc + Áo dài trắng + Khách sạn cao cấp + Fashion Campaign + Commercial Photography + Giữ nhận diện nhân vật')}
+                  onClick={() => {
+                    if (onSelectSkill) {
+                      onSelectSkill({
+                        id: 'kol-thoi-trang',
+                        name: 'KOL Thời Trang Siêu Thực (Ý Ngọc)',
+                        category: 'KOL AI',
+                        status: 'Đã kích hoạt'
+                      });
+                    }
+                    handleSend('Ý Ngọc + Áo dài trắng + Khách sạn cao cấp + Fashion Campaign + Commercial Photography + Giữ nhận diện nhân vật');
+                  }}
                 >
                   <div className="sug-icon-box pink">✨</div>
                   <div className="sug-text-wrap">
@@ -402,7 +521,17 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
 
                 <div 
                   className="welcome-suggestion-card"
-                  onClick={() => handleSend('Kiểm toán vận hành hệ thống cơ điện MEP và máy phát điện dự phòng.')}
+                  onClick={() => {
+                    if (onSelectSkill) {
+                      onSelectSkill({
+                        id: 'mep',
+                        name: 'Vận hành Kỹ thuật MEP & Cơ điện',
+                        category: 'Kỹ thuật',
+                        status: 'Đã kích hoạt'
+                      });
+                    }
+                    handleSend('Kiểm toán vận hành hệ thống cơ điện MEP và máy phát điện dự phòng.');
+                  }}
                 >
                   <div className="sug-icon-box blue">⚙️</div>
                   <div className="sug-text-wrap">
