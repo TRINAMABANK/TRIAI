@@ -10,6 +10,21 @@ export default function StoreModal({ isOpen, onClose, onActivateSkill }) {
 
   const storePacks = [
     {
+      id: 'store-kol',
+      name: 'Gói KOL Thời Trang AI (Ý Ngọc Lookbook)',
+      price: '399.000đ/tháng',
+      billing: 'Thanh toán hàng tháng hoặc 3.990.000đ/năm',
+      icon: Sparkles,
+      color: 'pink',
+      badge: 'Công nghệ mới',
+      features: [
+        'Khóa nhận diện gương mặt KOL Ý Ngọc nhất quán 100%',
+        'Sản xuất bộ ảnh Lookbook & Fashion Campaign chuẩn 8K',
+        'Tùy biến bối cảnh Luxury Hotel, Studio, Áo dài, Haute Couture',
+        'Xuất file đầy đủ định dạng: PDF, PNG, JPEG độ nét cao'
+      ]
+    },
+    {
       id: 'store-pccc',
       name: 'Gói Chuyên Gia PCCC',
       price: '199.000đ/tháng',
@@ -18,37 +33,37 @@ export default function StoreModal({ isOpen, onClose, onActivateSkill }) {
       color: 'red',
       features: [
         'Rà soát tự động biên bản thử áp lực, kiểm định PCCC',
-        'Đối chiếu chuẩn QCVN 06:2022/BXD và TCVN 3890',
+        'Đối chiếu chuẩn QCVN 06:2026/BXD và Nghị định 136/2020',
         'Soạn thảo văn bản giải trình và khắc phục tồn đọng',
         'Cập nhật tự động thông tư, nghị định mới nhất'
       ]
     },
     {
       id: 'store-mua-sam',
-      name: 'Gói Procurement & Đấu thầu',
+      name: 'Gói Mua Sắm & Báo Giá',
       price: '99.000đ/tháng',
       billing: 'Thanh toán hàng tháng hoặc 950.000đ/năm',
       icon: ShoppingCart,
       color: 'orange',
       features: [
-        'Tự động bóc tách so sánh tối thiểu 3 báo giá',
-        'Đánh giá năng lực nhà thầu & rủi ro giá cả',
-        'Lập tờ trình mua sắm theo chuẩn tập đoàn',
+        'Tự động bóc tách so sánh tối thiểu 3-5 báo giá',
+        'Đánh giá năng lực nhà thầu & tối ưu 10-15% chi phí',
+        'Lập tờ trình mua sắm theo chuẩn tập đoàn ISO',
         'Cơ sở dữ liệu hơn 1.200 NCC thiết bị uy tín'
       ]
     },
     {
-      id: 'store-van-hanh',
-      name: 'Gói Quản Lý & Vận Hành Tòa Nhà',
+      id: 'store-mep',
+      name: 'Gói Kỹ Sư Cơ Điện MEP',
       price: '299.000đ/tháng',
       billing: 'Thanh toán hàng tháng hoặc 2.900.000đ/năm',
       icon: Building2,
       color: 'blue',
       features: [
-        'Quy trình vận hành chuẩn MEP/MEPF và PCCC',
-        'Cảnh báo lịch bảo trì, bảo dưỡng định kỳ',
+        'Quy trình vận hành chuẩn MEP/MEPF và HVAC tòa nhà',
+        'Cảnh báo lịch bảo trì, bảo dưỡng định kỳ hệ thống',
         'Lập nhật ký vận hành kỹ thuật tự động',
-        'Tối ưu hóa chỉ số tiêu thụ điện năng OPEX'
+        'Ứng phó khẩn cấp sự cố điện nguồn ATS và máy phát'
       ]
     },
     {

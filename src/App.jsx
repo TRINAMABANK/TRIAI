@@ -137,11 +137,28 @@ export default function App() {
 
   // Xử lý khi mua / kích hoạt gói Skill trong Store
   const handleActivatePurchasedSkill = (purchasedPkg) => {
-    let matchedSkill = skills.find(s => s.id === purchasedPkg.id || s.name.toLowerCase() === purchasedPkg.name.toLowerCase());
+    const packageToSkillMap = {
+      'store-kol': 'kol-thoi-trang',
+      'kol-thoi-trang': 'kol-thoi-trang',
+      'store-pccc': 'pccc',
+      'pccc': 'pccc',
+      'store-muasam': 'mua-sam',
+      'store-mua-sam': 'mua-sam',
+      'mua-sam': 'mua-sam',
+      'store-mep': 'mep',
+      'mep': 'mep',
+      'store-phap-ly': 'phap-ly',
+      'phap-ly': 'phap-ly',
+      'store-van-hanh': 'van-hanh-toa-nha',
+      'van-hanh-toa-nha': 'van-hanh-toa-nha'
+    };
+
+    const targetSkillId = packageToSkillMap[purchasedPkg.id] || purchasedPkg.id;
+    let matchedSkill = skills.find(s => s.id === targetSkillId || s.id === purchasedPkg.id || s.name.toLowerCase() === purchasedPkg.name.toLowerCase());
     
     if (!matchedSkill) {
       matchedSkill = {
-        id: purchasedPkg.id || 'skill-' + Date.now(),
+        id: targetSkillId || 'skill-' + Date.now(),
         name: purchasedPkg.name,
         category: purchasedPkg.category || 'Gói đã mua',
         desc: purchasedPkg.desc || 'Bộ kỹ năng chuyên môn đã kích hoạt bản quyền.',
@@ -162,10 +179,35 @@ export default function App() {
     if (user.email) {
       saveUserOwnedSkill(user.email, matchedSkill.id);
     }
+
+    // Cập nhật thông tin gói của người dùng
+    const updatedUser = {
+      ...user,
+      role: 'Khách hàng',
+      plan: `Gói ${matchedSkill.name} (Đã thanh toán)`
+    };
+    setUser(updatedUser);
+    try {
+      localStorage.setItem('tri_ai_logged_user', JSON.stringify(updatedUser));
+    } catch (e) {}
     
     setActiveSkill(matchedSkill);
     setTab('chat');
     setBannerMode('chat');
+
+    // Thông báo chào mừng kích hoạt chuyên biệt trong Chat
+    const celebrationMsg = {
+      id: Date.now(),
+      role: 'ai',
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      text: `🎉 CHÚC MỪNG BẠN ĐÃ MỞ KHÓA BẢN QUYỀN [${matchedSkill.name.toUpperCase()}] THÀNH CÔNG!\n\nToàn bộ không gian làm việc của TRÍ AI đã được chuyển đổi và tối ưu riêng theo tính năng & quy trình của ${matchedSkill.name}. Bạn có thể bắt đầu bằng việc đặt câu hỏi hoặc chọn một trong các thao tác nhanh bên dưới.`,
+      checklist: matchedSkill.checklist || [
+        { label: `Kích hoạt năng lực: ${matchedSkill.name}`, status: 'pass' },
+        { label: 'Bản quyền thương mại: Đã xác thực thành công', status: 'pass' }
+      ],
+      files: matchedSkill.sampleFiles || []
+    };
+    setMessages(prev => [...prev, celebrationMsg]);
   };
 
   // Chuyển sang chat kèm tin nhắn gợi ý hoặc Agent
@@ -283,6 +325,8 @@ export default function App() {
                 }, 60);
               }}
               user={user}
+              activeSkill={activeSkill}
+              isAdmin={isAdmin}
               onOpenSkillManager={() => setIsSkillManagerOpen(true)}
               onOpenAccountModal={() => setIsAccountModalOpen(true)}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}

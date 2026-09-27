@@ -32,6 +32,8 @@ export default function HeroBanner({
     plan: 'Gói Pro Vĩnh Viễn', 
     isLoggedIn: true 
   },
+  activeSkill = {},
+  isAdmin = true,
   onOpenSkillManager,
   onOpenAccountModal,
   onOpenAuthModal,
@@ -141,7 +143,7 @@ export default function HeroBanner({
           <div className="banner-brand-unit">
             <div 
               className="banner-brain-badge" 
-              onClick={() => toggleSound('Xin chào anh Trí! Trí AI đã sẵn sàng phục vụ anh.')}
+              onClick={() => toggleSound(`Xin chào ${user.name || 'anh Trí'}! ${activeSkill.name ? 'Skill ' + activeSkill.name : 'Trí AI'} đã sẵn sàng phục vụ.`)}
               title="Bấm để nghe Trí AI chào mừng"
             >
               <Cpu size={22} className="brain-icon-glow" />
@@ -150,11 +152,17 @@ export default function HeroBanner({
             <div className="banner-brand-texts">
               <div className="banner-title-line">
                 <span className="b-title">TRÍ AI</span>
-                <span className="b-subtitle">Trợ lý AI của bạn</span>
-                <span className="b-version-tag">PRO B2B</span>
+                <span className="b-subtitle">
+                  {!isAdmin && activeSkill.name ? activeSkill.name : 'Trợ lý AI của bạn'}
+                </span>
+                <span className="b-version-tag">
+                  {!isAdmin ? 'ĐÃ MỞ KHÓA' : 'PRO B2B'}
+                </span>
               </div>
               <p className="banner-desc-line">
-                Hệ sinh thái tự động hóa quy trình nghiệp vụ &amp; hỗ trợ quyết định
+                {!isAdmin && activeSkill.desc 
+                  ? activeSkill.desc 
+                  : 'Hệ sinh thái tự động hóa quy trình nghiệp vụ & hỗ trợ quyết định'}
               </p>
             </div>
           </div>

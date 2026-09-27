@@ -543,95 +543,239 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
                   }}
                 />
               </div>
-              <h2 className="welcome-title">Trí AI Đã Sẵn Sàng</h2>
+              {/* Tiêu đề và mô tả tùy biến theo Skill đã mua / kích hoạt */}
+              <h2 className="welcome-title">
+                {activeSkill?.id === 'kol-thoi-trang' ? 'Studio Sáng Tạo KOL Thời Trang Ý Ngọc' :
+                 activeSkill?.id === 'pccc' ? 'Chuyên Gia Nghiệm Thu & Thẩm Duyệt PCCC' :
+                 activeSkill?.id === 'mua-sam' ? 'Chuyên Viên Bóc Tách & Đa Báo Giá' :
+                 activeSkill?.id === 'mep' ? 'Chuyên Gia Vận Hành Kỹ Thuật MEP' :
+                 activeSkill?.name ? `Trí AI — Chuyên Môn ${activeSkill.name}` : 'Trí AI Đã Sẵn Sàng'}
+              </h2>
               <p className="welcome-desc">
-                Hệ sinh thái đã được làm mới hoàn toàn để bắt đầu sử dụng từ đầu. Hãy chọn một gợi ý bên dưới hoặc nhập tin nhắn để bắt đầu:
+                {activeSkill?.id === 'kol-thoi-trang' ? 'Không gian sản xuất bộ ảnh chiến dịch thời trang chuẩn 8K, khóa nhận diện gương mặt người mẫu Ý Ngọc và xuất bản tài liệu Lookbook.' :
+                 activeSkill?.id === 'pccc' ? 'Hệ thống đối soát 100% hồ sơ nghiệm thu, bản vẽ hoàn công và quy chuẩn QCVN 06:2026/BXD.' :
+                 activeSkill?.id === 'mua-sam' ? 'Hệ thống so sánh 3-5 báo giá nhà cung cấp, tối ưu đơn giá 10-15% và lập tờ trình mua sắm ISO.' :
+                 activeSkill?.id === 'mep' ? 'Hệ thống quản trị kỹ thuật cơ điện, vận hành HVAC, máy phát điện và ứng phó sự cố tòa nhà.' :
+                 activeSkill?.desc ? activeSkill.desc : 'Hãy chọn một thao tác nhanh bên dưới để bắt đầu làm việc ngay:'}
               </p>
 
               <div className="welcome-suggestions-grid">
-                <div 
-                  className="welcome-suggestion-card"
-                  onClick={() => {
-                    if (onSelectSkill) {
-                      onSelectSkill({
-                        id: 'pccc',
-                        name: 'Nghiệm thu PCCC Tòa nhà',
-                        category: 'Kỹ thuật',
-                        status: 'Đã kích hoạt'
-                      });
-                    }
-                    handleSend('Anh kiểm tra giúp tôi hồ sơ nghiệm thu hệ thống PCCC này được không?');
-                  }}
-                >
-                  <div className="sug-icon-box red">🔥</div>
-                  <div className="sug-text-wrap">
-                    <b>Kiểm tra hồ sơ PCCC</b>
-                    <span>Rà soát nghiệm thu theo QCVN 06:2026/BXD</span>
-                  </div>
-                </div>
+                {activeSkill?.id === 'kol-thoi-trang' ? (
+                  <>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Ý Ngọc + Áo dài trắng + Khách sạn cao cấp + Fashion Campaign + Commercial Photography + Giữ nhận diện nhân vật')}
+                    >
+                      <div className="sug-icon-box pink">✨</div>
+                      <div className="sug-text-wrap">
+                        <b>Lookbook Áo Dài Trắng</b>
+                        <span>Ảnh thương mại 8K khách sạn 5 sao</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Ý Ngọc + Haute Couture Dạ Hội + Sân Khấu Thời Trang + Ánh sáng Studio chuẩn quốc tế')}
+                    >
+                      <div className="sug-icon-box orange">👗</div>
+                      <div className="sug-text-wrap">
+                        <b>BST Dạ Hội Haute Couture</b>
+                        <span>Thiết kế thời trang dạ tiệc sang trọng</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Xuất bản bảng thông số Prompt Sheet và Style Guide Lookbook chi tiết')}
+                    >
+                      <div className="sug-icon-box blue">📄</div>
+                      <div className="sug-text-wrap">
+                        <b>Xuất Prompt Sheet & Style Guide</b>
+                        <span>Tài liệu kỹ thuật định dạng PDF & PNG</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Kiểm tra độ tương đồng và khóa nhận diện gương mặt người mẫu Ý Ngọc 100%')}
+                    >
+                      <div className="sug-icon-box red">🎯</div>
+                      <div className="sug-text-wrap">
+                        <b>Khóa nhận diện gương mặt</b>
+                        <span>Đảm bảo 100% nhất quán nhận diện</span>
+                      </div>
+                    </div>
+                  </>
+                ) : activeSkill?.id === 'pccc' ? (
+                  <>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Anh kiểm tra giúp tôi hồ sơ nghiệm thu hệ thống PCCC này được không?')}
+                    >
+                      <div className="sug-icon-box red">🔥</div>
+                      <div className="sug-text-wrap">
+                        <b>Kiểm tra hồ sơ PCCC</b>
+                        <span>Rà soát nghiệm thu theo QCVN 06:2026/BXD</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Kiểm tra biên bản thử áp lực đường ống chữa cháy và van xả tràn tầng 15.')}
+                    >
+                      <div className="sug-icon-box orange">📋</div>
+                      <div className="sug-text-wrap">
+                        <b>Biên bản thử áp lực</b>
+                        <span>Kiểm tra áp suất van xả tràn & đường ống</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Rà soát bản vẽ hoàn công và đối chiếu sơ đồ vị trí đầu phun Sprinkler.')}
+                    >
+                      <div className="sug-icon-box blue">📐</div>
+                      <div className="sug-text-wrap">
+                        <b>Bản vẽ hoàn công</b>
+                        <span>Khoanh vùng điểm lưu ý sơ đồ Sprinkler</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Xuất báo cáo kết quả kiểm tra định dạng Word (.doc) và PDF để trình duyệt.')}
+                    >
+                      <div className="sug-icon-box pink">📑</div>
+                      <div className="sug-text-wrap">
+                        <b>Xuất báo cáo kỹ thuật</b>
+                        <span>Tải tệp Word (.docx) & PDF chuẩn ISO</span>
+                      </div>
+                    </div>
+                  </>
+                ) : activeSkill?.id === 'mua-sam' ? (
+                  <>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('So sánh giúp tôi 3 bảng báo giá thiết bị điều hòa VRV trung tâm.')}
+                    >
+                      <div className="sug-icon-box orange">🛒</div>
+                      <div className="sug-text-wrap">
+                        <b>Bóc tách 3 báo giá</b>
+                        <span>So sánh đơn giá & thông số kỹ thuật</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Phân tích chênh lệch đơn giá và đề xuất phương án đàm phán giảm 10-15%.')}
+                    >
+                      <div className="sug-icon-box blue">💰</div>
+                      <div className="sug-text-wrap">
+                        <b>Tối ưu chi phí đàm phán</b>
+                        <span>Đề xuất tiết kiệm 10-15% ngân sách</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Lập tờ trình phê duyệt lựa chọn nhà cung cấp chuẩn quy trình ISO.')}
+                    >
+                      <div className="sug-icon-box red">📝</div>
+                      <div className="sug-text-wrap">
+                        <b>Tờ trình mua sắm ISO</b>
+                        <span>Soạn thảo văn bản trình ban giám đốc</span>
+                      </div>
+                    </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => handleSend('Xuất bảng so sánh tổng hợp chi phí định dạng Excel (.xlsx).')}
+                    >
+                      <div className="sug-icon-box pink">📊</div>
+                      <div className="sug-text-wrap">
+                        <b>Xuất bảng tính Excel</b>
+                        <span>Báo cáo tài chính & biểu đồ so sánh</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => {
+                        if (onSelectSkill) {
+                          onSelectSkill({
+                            id: 'pccc',
+                            name: 'Nghiệm thu PCCC Tòa nhà',
+                            category: 'Kỹ thuật',
+                            status: 'Đã kích hoạt'
+                          });
+                        }
+                        handleSend('Anh kiểm tra giúp tôi hồ sơ nghiệm thu hệ thống PCCC này được không?');
+                      }}
+                    >
+                      <div className="sug-icon-box red">🔥</div>
+                      <div className="sug-text-wrap">
+                        <b>Kiểm tra hồ sơ PCCC</b>
+                        <span>Rà soát nghiệm thu theo QCVN 06:2026/BXD</span>
+                      </div>
+                    </div>
 
-                <div 
-                  className="welcome-suggestion-card"
-                  onClick={() => {
-                    if (onSelectSkill) {
-                      onSelectSkill({
-                        id: 'mua-sam',
-                        name: 'Bóc tách & So sánh Đa báo giá',
-                        category: 'Mua sắm',
-                        status: 'Đã kích hoạt'
-                      });
-                    }
-                    handleSend('So sánh giúp tôi 3 bảng báo giá thiết bị điều hòa VRV trung tâm.');
-                  }}
-                >
-                  <div className="sug-icon-box orange">🛒</div>
-                  <div className="sug-text-wrap">
-                    <b>Bóc tách báo giá</b>
-                    <span>So sánh đa nhà cung cấp và tối ưu chi phí</span>
-                  </div>
-                </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => {
+                        if (onSelectSkill) {
+                          onSelectSkill({
+                            id: 'mua-sam',
+                            name: 'Bóc tách & So sánh Đa báo giá',
+                            category: 'Mua sắm',
+                            status: 'Đã kích hoạt'
+                          });
+                        }
+                        handleSend('So sánh giúp tôi 3 bảng báo giá thiết bị điều hòa VRV trung tâm.');
+                      }}
+                    >
+                      <div className="sug-icon-box orange">🛒</div>
+                      <div className="sug-text-wrap">
+                        <b>Bóc tách báo giá</b>
+                        <span>So sánh đa nhà cung cấp và tối ưu chi phí</span>
+                      </div>
+                    </div>
 
-                <div 
-                  className="welcome-suggestion-card"
-                  onClick={() => {
-                    if (onSelectSkill) {
-                      onSelectSkill({
-                        id: 'kol-thoi-trang',
-                        name: 'KOL Thời Trang Siêu Thực (Ý Ngọc)',
-                        category: 'KOL AI',
-                        status: 'Đã kích hoạt'
-                      });
-                    }
-                    handleSend('Ý Ngọc + Áo dài trắng + Khách sạn cao cấp + Fashion Campaign + Commercial Photography + Giữ nhận diện nhân vật');
-                  }}
-                >
-                  <div className="sug-icon-box pink">✨</div>
-                  <div className="sug-text-wrap">
-                    <b>Lookbook KOL Thời Trang</b>
-                    <span>Sản xuất ảnh thời trang chuẩn 8K</span>
-                  </div>
-                </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => {
+                        if (onSelectSkill) {
+                          onSelectSkill({
+                            id: 'kol-thoi-trang',
+                            name: 'KOL Thời Trang Siêu Thực (Ý Ngọc)',
+                            category: 'KOL AI',
+                            status: 'Đã kích hoạt'
+                          });
+                        }
+                        handleSend('Ý Ngọc + Áo dài trắng + Khách sạn cao cấp + Fashion Campaign + Commercial Photography + Giữ nhận diện nhân vật');
+                      }}
+                    >
+                      <div className="sug-icon-box pink">✨</div>
+                      <div className="sug-text-wrap">
+                        <b>Lookbook KOL Thời Trang</b>
+                        <span>Sản xuất ảnh thời trang chuẩn 8K</span>
+                      </div>
+                    </div>
 
-                <div 
-                  className="welcome-suggestion-card"
-                  onClick={() => {
-                    if (onSelectSkill) {
-                      onSelectSkill({
-                        id: 'mep',
-                        name: 'Vận hành Kỹ thuật MEP & Cơ điện',
-                        category: 'Kỹ thuật',
-                        status: 'Đã kích hoạt'
-                      });
-                    }
-                    handleSend('Kiểm toán vận hành hệ thống cơ điện MEP và máy phát điện dự phòng.');
-                  }}
-                >
-                  <div className="sug-icon-box blue">⚙️</div>
-                  <div className="sug-text-wrap">
-                    <b>Vận hành kỹ thuật MEP</b>
-                    <span>Quy trình bảo trì và ứng phó sự cố tòa nhà</span>
-                  </div>
-                </div>
+                    <div 
+                      className="welcome-suggestion-card"
+                      onClick={() => {
+                        if (onSelectSkill) {
+                          onSelectSkill({
+                            id: 'mep',
+                            name: 'Vận hành Kỹ thuật MEP & Cơ điện',
+                            category: 'Kỹ thuật',
+                            status: 'Đã kích hoạt'
+                          });
+                        }
+                        handleSend('Kiểm toán vận hành hệ thống cơ điện MEP và máy phát điện dự phòng.');
+                      }}
+                    >
+                      <div className="sug-icon-box blue">⚙️</div>
+                      <div className="sug-text-wrap">
+                        <b>Vận hành kỹ thuật MEP</b>
+                        <span>Quy trình bảo trì và ứng phó sự cố tòa nhà</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
