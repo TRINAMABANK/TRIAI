@@ -48,7 +48,6 @@ export default function Sidebar({
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(3);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showQuickSkills, setShowQuickSkills] = useState(true);
   const [showAgents, setShowAgents] = useState(true);
 
   const navItems = [
@@ -60,18 +59,6 @@ export default function Sidebar({
     { id: 'files', label: 'Tài liệu & File', icon: Files },
     { id: 'history', label: 'Lịch sử hội thoại', icon: History },
     { id: 'settings', label: 'Cài đặt', icon: Settings },
-  ];
-
-  // 8 Skill Data chuẩn khớp màu sắc và icon 3D
-  const default8Skills = [
-    { id: 'mua-sam', name: 'Mua sắm', color: 'orange', icon: ShoppingCart },
-    { id: 'quan-tri-tai-san', name: 'Quản trị tài sản', color: 'purple', icon: Package },
-    { id: 'van-hanh-toa-nha', name: 'Vận hành tòa nhà', color: 'blue', icon: Building2 },
-    { id: 'mep', name: 'MEP', color: 'green', icon: Cpu },
-    { id: 'pccc', name: 'PCCC', color: 'red', icon: Flame },
-    { id: 'phap-ly', name: 'Pháp lý', color: 'gold', icon: Scale },
-    { id: 'ho-so-nghiem-thu', name: 'Hồ sơ nghiệm thu', color: 'cyan', icon: FileText },
-    { id: 'phan-tich-chi-phi', name: 'Phân tích chi phí', color: 'pink', icon: BarChart3 },
   ];
 
   return (
@@ -203,95 +190,6 @@ export default function Sidebar({
               );
             })}
           </nav>
-        </div>
-
-        {/* 5. KHO SKILL NHANH (HIỂN THỊ CÁC SKILL ĐÃ SỞ HỮU) */}
-        <div className="sidebar-section-box">
-          <div 
-            className="sidebar-section-header clickable-header"
-            onClick={() => setShowQuickSkills(!showQuickSkills)}
-          >
-            <div className="sidebar-section-title-wrap">
-              <span className="red-vertical-bar"></span>
-              <span className="sidebar-section-title">
-                {isAdmin ? 'Kho Skill nhanh' : `Skill sở hữu (${skills.length})`}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <button 
-                type="button" 
-                className="sidebar-link-btn" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setTab('skills');
-                }}
-              >
-                {isAdmin ? 'Xem tất cả' : 'Kho Skill'}
-              </button>
-              <ChevronDown size={14} className={`header-chevron ${showQuickSkills ? 'open' : ''}`} />
-            </div>
-          </div>
-
-          {showQuickSkills && (
-            <div className="sidebar-skills-grid">
-              {skills.slice(0, 8).map((s) => {
-                const isSelected = activeSkill.id === s.id;
-                const Icon = s.icon || (
-                  s.id?.includes('kol') ? Sparkles :
-                  s.id?.includes('pccc') ? Flame :
-                  s.id?.includes('mep') ? Cpu :
-                  s.id?.includes('mua') ? ShoppingCart :
-                  s.id?.includes('phap') ? Scale :
-                  s.id?.includes('tai-san') ? Package :
-                  s.id?.includes('van-hanh') ? Building2 :
-                  s.id?.includes('chi-phi') ? BarChart3 : FileText
-                );
-
-                return (
-                  <div 
-                    key={s.id} 
-                    className={`sidebar-skill-tile ${s.color || 'blue'} ${isSelected ? 'selected' : ''}`}
-                    onClick={() => {
-                      if (onSelectSkill) onSelectSkill(s);
-                    }}
-                    title={`Chọn ${s.name}`}
-                  >
-                    <Icon size={18} />
-                    <span className="tile-text">{s.name}</span>
-                    {isSelected && <span className="tile-dot-active" />}
-                  </div>
-                );
-              })}
-
-              {/* Nếu là khách hàng mua lẻ, thêm nút mua thêm Skill */}
-              {!isAdmin && onOpenStore && (
-                <button 
-                  type="button"
-                  className="sidebar-kol-pill sidebar-unlock-more-pill"
-                  onClick={() => onOpenStore()}
-                  title="Mở Cửa hàng để mua thêm Skill mới"
-                >
-                  <span>🛒 + Mua thêm Skill tại Store</span>
-                </button>
-              )}
-
-              {/* Nếu là Admin và có KOL Thời trang */}
-              {isAdmin && (
-                <button 
-                  type="button"
-                  className="sidebar-kol-pill"
-                  onClick={() => {
-                    const kol = skills.find(item => item.id === 'kol-thoi-trang');
-                    if (kol && onSelectSkill) onSelectSkill(kol);
-                  }}
-                  title="Kích hoạt Skill KOL Thời Trang (Ý Ngọc)"
-                >
-                  <span>✨ KOL Thời Trang (Ý Ngọc Lookbook)</span>
-                  {activeSkill.id === 'kol-thoi-trang' && <span className="kol-using-tag">✓ Đang dùng</span>}
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
