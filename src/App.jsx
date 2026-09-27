@@ -21,7 +21,12 @@ import StoreModal from './components/StoreModal';
 import AccountModal from './components/AccountModal';
 import AuthModal from './components/AuthModal';
 
-import { getLoadedSkills, addOrUpdateSkill } from './data/skillsData';
+import { 
+  getLoadedSkills, 
+  addOrUpdateSkill, 
+  getUserOwnedSkillIds, 
+  saveUserOwnedSkill 
+} from './data/skillsData';
 
 export default function App() {
   const [currentTab, setTab] = useState('chat');
@@ -30,14 +35,15 @@ export default function App() {
   const [activeSkill, setActiveSkill] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   
-  // User Authentication State (QUANG NHỰT TRÍ)
+  // User Authentication State (QUANG NHỰT TRÍ - Admin Mặc định)
   const DEFAULT_USER = {
     name: 'QUANG NHỰT TRÍ',
     email: 'triqnnamabank@gmail.com',
     avatar: '/assets/user_avatar.png',
     role: 'Chủ sở hữu',
-    plan: 'Gói Pro Vĩnh Viễn',
-    isLoggedIn: true
+    plan: 'Gói Admin Toàn Quyền (Full 33+ Skill)',
+    isLoggedIn: true,
+    isAdmin: true
   };
 
   const [user, setUser] = useState(() => {
@@ -58,6 +64,20 @@ export default function App() {
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Xác định quyền Admin
+  const isAdmin = user.isLoggedIn && (
+    user.email?.toLowerCase() === 'triqnnamabank@gmail.com' ||
+    user.role === 'Chủ sở hữu' ||
+    user.role === 'Admin' ||
+    user.isAdmin === true
+  );
+
+  // Danh sách Skill thuộc sở hữu của tài khoản hiện tại
+  const userOwnedSkillIds = getUserOwnedSkillIds(user.email, user.role);
+  const ownedSkills = (isAdmin || !userOwnedSkillIds) 
+    ? skills 
+    : skills.filter(s => userOwnedSkillIds.includes(s.id));
 
   const handleLogin = (userData) => {
     const updated = {
@@ -101,6 +121,15 @@ export default function App() {
     setActiveSkill(pccc);
   }, []);
 
+  // Tự động chuyển activeSkill sang Skill mà tài khoản sở hữu
+  useEffect(() => {
+    if (ownedSkills.length > 0) {
+      if (!activeSkill?.id || !ownedSkills.some(s => s.id === activeSkill.id)) {
+        setActiveSkill(ownedSkills[0]);
+      }
+    }
+  }, [user.email, skills, ownedSkills.length]);
+
   // Filter skills based on search
   const filteredSkills = searchTerm 
     ? skills.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || (s.desc && s.desc.toLowerCase().includes(searchTerm.toLowerCase())))
@@ -129,7 +158,14 @@ export default function App() {
       setSkills(updatedList);
     }
     
+    // Lưu quyền sở hữu Skill cho email người dùng hiện tại
+    if (user.email) {
+      saveUserOwnedSkill(user.email, matchedSkill.id);
+    }
+    
     setActiveSkill(matchedSkill);
+    setTab('chat');
+    setBannerMode('chat');
   };
 
   // Chuyển sang chat kèm tin nhắn gợi ý hoặc Agent
@@ -184,8 +220,10 @@ export default function App() {
         }} 
         onOpenSkillManager={() => setIsSkillManagerOpen(true)}
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
-        skills={filteredSkills}
+        skills={ownedSkills}
+        allSkillsCount={skills.length}
         activeSkill={activeSkill}
+        isAdmin={isAdmin}
         onSelectSkill={(s) => {
           setActiveSkill(s);
           setTab('chat');
@@ -270,10 +308,14 @@ export default function App() {
         {currentTab === 'skills' && (
           <SkillsView 
             skills={skills}
+            ownedSkills={ownedSkills}
+            isAdmin={isAdmin}
+            user={user}
             activeSkill={activeSkill}
             onSelectSkill={(s) => setActiveSkill(s)}
             onOpenSkillManager={() => setIsSkillManagerOpen(true)}
             onSwitchToChat={handleSwitchToChat}
+            onOpenStore={() => setTab('store')}
           />
         )}
 
@@ -298,7 +340,7 @@ export default function App() {
           <ProjectsView 
             onSwitchToChat={handleSwitchToChat}
             onSelectSkill={(s) => setActiveSkill(s)}
-            skills={skills}
+            skills={ownedSkills}
           />
         )}
 
@@ -336,6 +378,9 @@ export default function App() {
         isOpen={isSkillPickerOpen}
         onClose={() => setIsSkillPickerOpen(false)}
         skills={skills}
+        ownedSkills={ownedSkills}
+        isAdmin={isAdmin}
+        user={user}
         activeSkill={activeSkill}
         onSelectSkill={(s) => {
           setActiveSkill(s);
@@ -343,7 +388,7 @@ export default function App() {
           setBannerMode('chat');
         }}
         onOpenStore={() => setTab('store')}
-        onOpenSkillManager={() => setIsSkillManagerOpen(true)}
+        onOpenSkillManager={isAdmin ? () => setIsSkillManagerOpen(true) : null}
       />
 
       {/* 1. Quản lý & Nạp Skill mới */}

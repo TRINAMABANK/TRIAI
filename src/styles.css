@@ -8007,5 +8007,304 @@ body {
   background: #f1f5f9;
 }
 
+/* =============================================================================
+   MULTI-USER PERMISSIONS & TEST ACCOUNTS SWITCHER STYLES
+   ============================================================================= */
+
+.auth-test-accounts-section {
+  margin-bottom: 22px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.auth-test-sec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.test-sec-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.test-sec-icon-gold {
+  color: #f59e0b;
+}
+
+.test-sec-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.auth-test-accounts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.auth-test-account-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.auth-test-account-card:hover {
+  border-color: #2563eb;
+  background: #f0f7ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+.auth-test-account-card.active-test-card {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.test-acc-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.test-acc-icon {
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.test-acc-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.test-acc-top-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.test-acc-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.test-acc-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.test-acc-badge.admin-tag {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.test-acc-badge.customer-tag {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.test-acc-email {
+  font-size: 12px;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.test-acc-desc {
+  font-size: 11.5px;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.test-acc-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.test-acc-skill-tag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.test-acc-active-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.auth-manual-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+}
+
+.auth-manual-divider span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.auth-manual-divider hr {
+  flex: 1;
+  border: none;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* Locked Skill Tiles & Ownership Switcher */
+.picker-ownership-toggle-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ownership-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ownership-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.ownership-pill.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.picker-skill-tile.is-locked-tile {
+  background: #fbfcfe;
+  border: 1px dashed #cbd5e1;
+  opacity: 0.92;
+}
+
+.picker-skill-tile.is-locked-tile:hover {
+  border-color: #f59e0b;
+  background: #fffdfa;
+}
+
+.locked-icon-wrap {
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+}
+
+.tile-locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.tile-buy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #b45309;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tile-buy-btn:hover {
+  background: #fde68a;
+  color: #78350f;
+}
+
+.sidebar-unlock-more-pill {
+  background: linear-gradient(135deg, #eff6ff, #fef3c7) !important;
+  border: 1px dashed #93c5fd !important;
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
+}
+
+.sidebar-unlock-more-pill:hover {
+  background: linear-gradient(135deg, #dbeafe, #fde68a) !important;
+  border-color: #2563eb !important;
+}
+
+.skill-master-card.is-unowned-skill-card {
+  border: 1px dashed #cbd5e1;
+  background: #fbfcfe;
+}
+
+.skill-icon-bubble.unowned-bubble {
+  background: #f1f5f9 !important;
+  color: #64748b !important;
+}
+
+
 
 

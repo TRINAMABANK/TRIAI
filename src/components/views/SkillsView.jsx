@@ -31,7 +31,9 @@ import {
   Code2,
   Palette,
   Video,
-  AlertTriangle
+  AlertTriangle,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -63,14 +65,19 @@ const ICON_MAP = {
 };
 
 export default function SkillsView({ 
-  skills, 
-  activeSkill, 
+  skills = [], 
+  ownedSkills = [],
+  isAdmin = true,
+  user = {},
+  activeSkill = {}, 
   onSelectSkill, 
   onOpenSkillManager,
-  onSwitchToChat
+  onSwitchToChat,
+  onOpenStore
 }) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
+  const [ownershipFilter, setOwnershipFilter] = useState('all'); // 'all' | 'owned'
   const [toastMsg, setToastMsg] = useState('');
 
   const showToast = (msg) => {
@@ -78,10 +85,16 @@ export default function SkillsView({
     setTimeout(() => setToastMsg(''), 4500);
   };
 
-  // Trích xuất tự động danh mục từ toàn bộ 33 Skill
+  const effectiveOwnedSkills = isAdmin ? skills : ownedSkills;
+  const ownedCount = effectiveOwnedSkills.length;
+
+  // Trích xuất tự động danh mục từ toàn bộ Skill
   const categories = ['Tất cả', ...Array.from(new Set(skills.map(s => s.category).filter(Boolean)))];
 
   const filteredSkills = skills.filter(skill => {
+    const isOwned = isAdmin || ownedSkills.some(os => os.id === skill.id);
+    if (ownershipFilter === 'owned' && !isOwned) return false;
+
     const matchesSearch = skill.name.toLowerCase().includes(search.toLowerCase()) || 
                           skill.desc.toLowerCase().includes(search.toLowerCase()) ||
                           (skill.category && skill.category.toLowerCase().includes(search.toLowerCase()));
@@ -97,12 +110,12 @@ export default function SkillsView({
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    showToast(`✅ Đã xuất thành công gói Skill [${skill.name}] (.json) về máy của anh Trí!`);
+    showToast(`✅ Đã xuất thành công gói Skill [${skill.name}] (.json) về máy!`);
   };
 
   const handleUseInChat = (skill) => {
-    onSelectSkill(skill);
-    onSwitchToChat(skill.samplePrompt || `Kích hoạt năng lực chuyên môn từ Skill: ${skill.name}`);
+    if (onSelectSkill) onSelectSkill(skill);
+    if (onSwitchToChat) onSwitchToChat(skill.samplePrompt || `Kích hoạt năng lực chuyên môn từ Skill: ${skill.name}`);
   };
 
   return (
@@ -123,32 +136,80 @@ export default function SkillsView({
       {/* View Header */}
       <div className="view-header-bar">
         <div>
-          <div className="view-badge">Thư viện năng lực chuyên sâu</div>
+          <div className="view-badge">
+            {isAdmin ? '👑 Quản trị viên Toàn Quyền' : `👤 Khách hàng sở hữu ${ownedCount}/${skills.length} Skill`}
+          </div>
           <h1 className="view-title">Kho Skill Chuyên Ngành</h1>
-          <p className="view-desc">Quản lý, kích hoạt và tải các bộ kỹ năng trí tuệ nhân tạo chuyên biệt để bán hoặc áp dụng cho doanh nghiệp.</p>
+          <p className="view-desc">
+            {isAdmin 
+              ? 'Toàn bộ 33+ bộ kỹ năng trí tuệ nhân tạo chuyên sâu đã được mở khóa với đầy đủ mã nguồn & prompt độc quyền.'
+              : `Tài khoản ${user.email || 'của bạn'} đang sở hữu ${ownedCount} Skill. Các Skill khác có thể mở khóa tại Cửa Hàng.`
+            }
+          </p>
         </div>
+        
         <div className="view-actions-row">
-          <a 
-            href="/data/TRI-AI-SKILLS-V1.zip" 
-            download="TRI-AI-SKILLS-V1.zip"
-            className="btn-secondary" 
-            onClick={() => showToast('✅ Bắt đầu tải trọn bộ 33 Skill (.ZIP) về máy của anh Trí!')}
-            title="Tải trọn bộ 33 Skill độc quyền (file ZIP)"
-            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <Download size={16} /> Tải Trọn Bộ 33 Skill (.ZIP)
-          </a>
-          <button className="btn-secondary" onClick={() => onOpenSkillManager()}>
-            <Upload size={16} /> Nạp Skill từ File (.JSON)
-          </button>
-          <button className="btn-primary" onClick={() => onOpenSkillManager()}>
-            <Plus size={16} /> Tạo Skill mới
-          </button>
+          {isAdmin ? (
+            <>
+              <a 
+                href="/data/TRI-AI-SKILLS-V1.zip" 
+                download="TRI-AI-SKILLS-V1.zip"
+                className="btn-secondary" 
+                onClick={() => showToast('✅ Bắt đầu tải trọn bộ 33 Skill (.ZIP) về máy của anh Trí!')}
+                title="Tải trọn bộ 33 Skill độc quyền (file ZIP)"
+                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Download size={16} /> Tải Trọn Bộ 33 Skill (.ZIP)
+              </a>
+              {onOpenSkillManager && (
+                <>
+                  <button className="btn-secondary" onClick={() => onOpenSkillManager()}>
+                    <Upload size={16} /> Nạp Skill (.JSON)
+                  </button>
+                  <button className="btn-primary" onClick={() => onOpenSkillManager()}>
+                    <Plus size={16} /> Tạo Skill mới
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {onOpenStore && (
+                <button className="btn-primary" onClick={() => onOpenStore()}>
+                  <ShoppingCart size={16} /> Cửa Hàng Mở Khóa Skill
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
       {/* Filter and Search Bar */}
       <div className="view-controls-card">
+        {/* Ownership Toggle for non-admin */}
+        {!isAdmin && (
+          <div className="skills-view-ownership-tabs" style={{ marginBottom: '14px', display: 'flex', gap: '8px' }}>
+            <button 
+              type="button" 
+              className={`cat-pill ${ownershipFilter === 'owned' ? 'active' : ''}`}
+              onClick={() => setOwnershipFilter('owned')}
+              style={{ fontWeight: 600 }}
+            >
+              <Unlock size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+              Skill của tôi ({ownedCount})
+            </button>
+            <button 
+              type="button" 
+              className={`cat-pill ${ownershipFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setOwnershipFilter('all')}
+              style={{ fontWeight: 600 }}
+            >
+              <Layers size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+              Tất cả Skill ({skills.length})
+            </button>
+          </div>
+        )}
+
         <div className="view-search-box">
           <Search size={18} className="search-icon" />
           <input 
@@ -178,18 +239,26 @@ export default function SkillsView({
         {filteredSkills.map((skill) => {
           const IconComponent = ICON_MAP[skill.iconName] || Sparkles;
           const isActive = activeSkill?.id === skill.id;
+          const isOwned = isAdmin || ownedSkills.some(os => os.id === skill.id);
 
           return (
-            <div key={skill.id} className={`skill-master-card ${isActive ? 'is-active-skill' : ''}`}>
+            <div 
+              key={skill.id} 
+              className={`skill-master-card ${isActive ? 'is-active-skill' : ''} ${!isOwned ? 'is-unowned-skill-card' : ''}`}
+            >
               <div className="skill-card-top">
-                <div className={`skill-icon-bubble ${skill.color || 'blue'}`}>
+                <div className={`skill-icon-bubble ${skill.color || 'blue'} ${!isOwned ? 'unowned-bubble' : ''}`}>
                   <IconComponent size={22} />
                 </div>
                 <div className="skill-status-tag">
                   {isActive ? (
                     <span className="badge-active"><CheckCircle size={13} /> Đang chạy trong Chat</span>
+                  ) : isOwned ? (
+                    <span className="badge-installed">✓ Đã sở hữu</span>
                   ) : (
-                    <span className="badge-installed">Đã sẵn sàng</span>
+                    <span className="badge-locked" style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Lock size={12} /> Chưa mở khóa
+                    </span>
                   )}
                 </div>
               </div>
@@ -214,19 +283,31 @@ export default function SkillsView({
               </div>
 
               <div className="skill-card-actions">
-                <button 
-                  className={`btn-use-skill ${isActive ? 'active-btn' : ''}`}
-                  onClick={() => handleUseInChat(skill)}
-                >
-                  <Play size={15} /> {isActive ? 'Đang dùng (Vào Chat)' : 'Kích hoạt & Chat ngay'}
-                </button>
-                <button 
-                  className="btn-export-skill"
-                  onClick={() => handleExportSkillJson(skill)}
-                  title="Xuất gói Skill JSON để chia sẻ hoặc bán thương mại"
-                >
-                  <Download size={15} /> Xuất gói
-                </button>
+                {isOwned ? (
+                  <>
+                    <button 
+                      className={`btn-use-skill ${isActive ? 'active-btn' : ''}`}
+                      onClick={() => handleUseInChat(skill)}
+                    >
+                      <Play size={15} /> {isActive ? 'Đang dùng (Vào Chat)' : 'Kích hoạt & Chat ngay'}
+                    </button>
+                    <button 
+                      className="btn-export-skill"
+                      onClick={() => handleExportSkillJson(skill)}
+                      title="Xuất gói Skill JSON để chia sẻ hoặc lưu trữ"
+                    >
+                      <Download size={15} /> Xuất gói
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    className="btn-primary"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => onOpenStore && onOpenStore()}
+                  >
+                    <ShoppingCart size={15} /> Mở khóa tại Store
+                  </button>
+                )}
               </div>
             </div>
           );

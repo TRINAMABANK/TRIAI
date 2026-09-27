@@ -16,13 +16,18 @@ import {
   FileText,
   Zap,
   ArrowRight,
-  ShieldCheck
+  ShieldCheck,
+  Lock,
+  Unlock
 } from 'lucide-react';
 
 export default function SkillPickerModal({ 
   isOpen, 
   onClose, 
   skills = [], 
+  ownedSkills = [],
+  isAdmin = true,
+  user = {},
   activeSkill = {}, 
   onSelectSkill,
   onOpenStore,
@@ -30,20 +35,28 @@ export default function SkillPickerModal({
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [ownershipFilter, setOwnershipFilter] = useState('all'); // 'all' | 'owned'
 
   if (!isOpen) return null;
 
   // Categories list
   const categories = [
-    { id: 'all', label: 'Tất cả Skill' },
+    { id: 'all', label: 'Tất cả lĩnh vực' },
     { id: 'kythuat', label: 'Kỹ thuật & MEP/PCCC' },
     { id: 'quanly', label: 'Quản lý & Vận hành' },
     { id: 'marketing', label: 'KOL & Marketing' },
     { id: 'phaply', label: 'Pháp lý & Tài chính' }
   ];
 
+  const effectiveOwnedSkills = isAdmin ? skills : ownedSkills;
+  const ownedCount = effectiveOwnedSkills.length;
+
   // Filter skills
   const filteredSkills = skills.filter(skill => {
+    const isOwned = isAdmin || ownedSkills.some(os => os.id === skill.id);
+    
+    if (ownershipFilter === 'owned' && !isOwned) return false;
+
     const matchesSearch = !searchTerm || 
       skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (skill.desc && skill.desc.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -83,7 +96,14 @@ export default function SkillPickerModal({
     return FileText;
   };
 
-  const handlePick = (skill) => {
+  const handlePick = (skill, isOwned) => {
+    if (!isOwned) {
+      if (onOpenStore) {
+        onClose();
+        onOpenStore();
+      }
+      return;
+    }
     if (onSelectSkill) {
       onSelectSkill(skill);
     }
@@ -103,7 +123,11 @@ export default function SkillPickerModal({
             <div>
               <h3 className="picker-title">Chọn Bộ Kỹ Năng (Skill) Thực Thi</h3>
               <p className="picker-sub">
-                Đang có <b>{skills.length} Skill</b> sẵn sàng trong hệ sinh thái Trí AI của anh
+                {isAdmin ? (
+                  <>👑 Tài khoản <b>Quản trị viên</b>: Toàn quyền sở hữu trọn bộ <b>{skills.length} Skill</b></>
+                ) : (
+                  <>👤 Đang sở hữu <b>{ownedCount} / {skills.length} Skill</b> của hệ sinh thái Trí AI</>
+                )}
               </p>
             </div>
           </div>
@@ -114,6 +138,26 @@ export default function SkillPickerModal({
 
         {/* Modal Body */}
         <div className="skill-picker-body">
+          {/* Top Filter Tabs: Owned vs All */}
+          {!isAdmin && (
+            <div className="picker-ownership-toggle-row">
+              <button 
+                type="button" 
+                className={`ownership-pill ${ownershipFilter === 'owned' ? 'active' : ''}`}
+                onClick={() => setOwnershipFilter('owned')}
+              >
+                <Unlock size={14} /> Skill đã mua ({ownedCount})
+              </button>
+              <button 
+                type="button" 
+                className={`ownership-pill ${ownershipFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setOwnershipFilter('all')}
+              >
+                <Layers size={14} /> Tất cả Skill ({skills.length})
+              </button>
+            </div>
+          )}
+
           {/* Search Bar */}
           <div className="picker-search-bar">
             <Search size={16} className="picker-search-icon" />
@@ -150,26 +194,31 @@ export default function SkillPickerModal({
           <div className="picker-skills-grid">
             {filteredSkills.map(skill => {
               const isSelected = activeSkill.id === skill.id;
+              const isOwned = isAdmin || ownedSkills.some(os => os.id === skill.id);
               const IconComponent = getSkillIcon(skill);
 
               return (
                 <div 
                   key={skill.id}
-                  className={`picker-skill-tile ${isSelected ? 'is-active' : ''} ${skill.color || 'blue'}`}
-                  onClick={() => handlePick(skill)}
-                  title={`Chọn Skill ${skill.name}`}
+                  className={`picker-skill-tile ${isSelected ? 'is-active' : ''} ${!isOwned ? 'is-locked-tile' : ''} ${skill.color || 'blue'}`}
+                  onClick={() => handlePick(skill, isOwned)}
+                  title={isOwned ? `Chọn Skill ${skill.name}` : `Skill chưa mở khóa. Bấm để mua tại Store.`}
                 >
                   <div className="tile-top-row">
-                    <div className={`tile-icon-wrap ${skill.color || 'blue'}`}>
+                    <div className={`tile-icon-wrap ${skill.color || 'blue'} ${!isOwned ? 'locked-icon-wrap' : ''}`}>
                       <IconComponent size={20} />
                     </div>
                     {isSelected ? (
                       <span className="tile-active-badge">
                         <Check size={12} /> Đang dùng
                       </span>
-                    ) : (
+                    ) : isOwned ? (
                       <span className="tile-ready-badge">
-                        <ShieldCheck size={12} /> Đã kích hoạt
+                        <ShieldCheck size={12} /> Đã mở khóa
+                      </span>
+                    ) : (
+                      <span className="tile-locked-badge">
+                        <Lock size={12} /> Chưa mở khóa
                       </span>
                     )}
                   </div>
@@ -181,9 +230,22 @@ export default function SkillPickerModal({
 
                   <div className="tile-footer-row">
                     <span className="tile-cat-tag">{skill.category || 'Chuyên môn'}</span>
-                    <button type="button" className="tile-select-btn">
-                      {isSelected ? 'Đang chọn' : 'Áp dụng'}
-                    </button>
+                    {isOwned ? (
+                      <button type="button" className={`tile-select-btn ${isSelected ? 'is-curr' : ''}`}>
+                        {isSelected ? 'Đang chọn' : 'Áp dụng'}
+                      </button>
+                    ) : (
+                      <button 
+                        type="button" 
+                        className="tile-buy-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePick(skill, false);
+                        }}
+                      >
+                        <ShoppingCart size={12} /> Mua ngay
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -203,7 +265,7 @@ export default function SkillPickerModal({
         <div className="skill-picker-footer">
           <div className="picker-footer-left">
             <span className="footer-tip">
-              💡 <b>Mẹo:</b> Khi chọn Skill, Trí AI sẽ tự động áp dụng đúng kiến thức & quy chuẩn của lĩnh vực đó.
+              💡 <b>Mẹo:</b> Khi kích hoạt Skill, Trí AI sẽ áp dụng đúng kiến thức nghiệp vụ chuyên biệt của lĩnh vực đó.
             </span>
           </div>
           <div className="picker-footer-actions">
@@ -220,7 +282,7 @@ export default function SkillPickerModal({
                 <span>Mua thêm gói Skill</span>
               </button>
             )}
-            {onOpenSkillManager && (
+            {isAdmin && onOpenSkillManager && (
               <button 
                 type="button" 
                 className="btn-picker-manage"

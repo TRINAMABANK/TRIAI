@@ -122,3 +122,94 @@ export function exportSkillPack(skills) {
   downloadAnchor.click();
   downloadAnchor.remove();
 }
+
+// =============================================================================
+// PHÂN QUYỀN SỞ HỮU SKILL THEO TỪNG TÀI KHOẢN (MULTI-USER SKILL ACCESS)
+// =============================================================================
+
+// Danh sách cấu hình mẫu cho các tài khoản test
+export const USER_TEST_ACCOUNTS = [
+  {
+    name: 'QUANG NHỰT TRÍ',
+    email: 'triqnnamabank@gmail.com',
+    role: 'Chủ sở hữu',
+    plan: 'Gói Admin Toàn Quyền (Full 33+ Skill)',
+    avatar: '/assets/user_avatar.png',
+    isAdmin: true,
+    skillIds: null, // null nghĩa là ALL 33+ Skills
+    desc: 'Tài khoản Quản trị viên cao cấp nhất: Sở hữu 100% tất cả 33+ Skill, nạp/sửa/xóa Skill và full quyền tính năng.'
+  },
+  {
+    name: 'Khách Hàng KOL Thời Trang',
+    email: 'kol.fashion@gmail.com',
+    role: 'Khách hàng',
+    plan: 'Gói KOL Thời Trang (1 Skill)',
+    avatar: '/assets/agent_phaply.png',
+    isAdmin: false,
+    skillIds: ['kol-thoi-trang'],
+    desc: 'Tài khoản khách hàng chỉ mua 1 Skill chuyên biệt: KOL Thời Trang Siêu Thực (Ý Ngọc). Các Skill khác đều bị khóa.'
+  },
+  {
+    name: 'Kỹ Sư Nghiệm Thu Tòa Nhà',
+    email: 'kythuat.pccc@gmail.com',
+    role: 'Khách hàng',
+    plan: 'Gói Kỹ Thuật & Vận Hành (2 Skill)',
+    avatar: '/assets/agent_an.png',
+    isAdmin: false,
+    skillIds: ['pccc', 'mep'],
+    desc: 'Tài khoản khách hàng chỉ mua 2 Skill: Nghiệm thu PCCC Tòa nhà và Vận hành Kỹ thuật MEP.'
+  },
+  {
+    name: 'Chuyên Viên Mua Sắm & Pháp Lý',
+    email: 'muasam.phaply@gmail.com',
+    role: 'Khách hàng',
+    plan: 'Gói Mua Sắm & Hợp Đồng (2 Skill)',
+    avatar: '/assets/agent_muasam.png',
+    isAdmin: false,
+    skillIds: ['mua-sam', 'phap-ly'],
+    desc: 'Tài khoản khách hàng chỉ mua 2 Skill: Bóc tách so sánh Đa báo giá và Rà soát Hợp đồng Pháp lý.'
+  }
+];
+
+export function getUserOwnedSkillIds(userEmail, userRole) {
+  if (!userEmail) return ['pccc'];
+  const emailLower = userEmail.toLowerCase().trim();
+
+  // Admin hoặc Chủ sở hữu có full tất cả Skill
+  if (emailLower === 'triqnnamabank@gmail.com' || userRole === 'Chủ sở hữu' || userRole === 'Admin') {
+    return null; // Full all skills
+  }
+
+  // Đọc từ LocalStorage theo Email
+  const storageKey = `tri_ai_user_skills_${emailLower}`;
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+
+  // Kiểm tra tài khoản test mẫu
+  const matchedTest = USER_TEST_ACCOUNTS.find(acc => acc.email.toLowerCase() === emailLower);
+  if (matchedTest) {
+    return matchedTest.skillIds;
+  }
+
+  // Khách hàng mới đăng ký email bất kỳ: Mặc định cấp 1 Skill dùng thử ban đầu
+  return ['pccc'];
+}
+
+export function saveUserOwnedSkill(userEmail, skillId) {
+  if (!userEmail) return;
+  const emailLower = userEmail.toLowerCase().trim();
+  const current = getUserOwnedSkillIds(userEmail, '') || ['pccc'];
+  if (!current.includes(skillId)) {
+    const updated = [...current, skillId];
+    try {
+      localStorage.setItem(`tri_ai_user_skills_${emailLower}`, JSON.stringify(updated));
+    } catch (e) {}
+    return updated;
+  }
+  return current;
+}
