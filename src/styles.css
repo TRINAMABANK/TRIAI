@@ -8305,6 +8305,119 @@ body {
   color: #64748b !important;
 }
 
+/* =============================================================================
+   HEADER STORE (GIỎ HÀNG) & 15-MINUTE TRIAL LIVE COUNTDOWN STYLES
+   ============================================================================= */
 
+.header-store-wrapper {
+  display: flex;
+  align-items: center;
+}
 
+.header-store-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.header-store-button:hover {
+  background: #f8fafc;
+  border-color: #2563eb;
+  color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+.header-store-label {
+  white-space: nowrap;
+}
+
+/* Live Trial Countdown Badge in Header */
+.header-trial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: trialPulseGlow 2.5s infinite;
+}
+
+.header-trial-badge.active {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.header-trial-badge.active:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.header-trial-badge.expired {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  animation: none;
+}
+
+.trial-clock-icon {
+  flex-shrink: 0;
+}
+
+.trial-time-txt {
+  font-family: monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.5px;
+}
+
+.trial-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: trialDotBlink 1.2s infinite ease-in-out;
+}
+
+.trial-upgrade-btn {
+  background: #dc2626;
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  margin-left: 2px;
+}
+
+.btn-trial-15m:hover {
+  background: #dbeafe !important;
+  border-color: #2563eb !important;
+}
+
+@keyframes trialPulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+}
+
+@keyframes trialDotBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
 

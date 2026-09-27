@@ -13,7 +13,9 @@ import {
   ShieldCheck,
   LogOut,
   LogIn,
-  X
+  X,
+  ShoppingCart,
+  Clock
 } from 'lucide-react';
 
 export default function HeroBanner({ 
@@ -34,6 +36,8 @@ export default function HeroBanner({
   },
   activeSkill = {},
   isAdmin = true,
+  trialStatus = null,
+  onOpenStore,
   onOpenSkillManager,
   onOpenAccountModal,
   onOpenAuthModal,
@@ -121,6 +125,12 @@ export default function HeroBanner({
     { key: 'result', label: 'Kết quả thực tế', icon: CheckCircle2 }
   ];
 
+  const formatTrialTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="modern-hero-banner-wrap" id="hero-banner-cot2">
       {/* Toast Feedback */}
@@ -136,7 +146,7 @@ export default function HeroBanner({
         <div className="banner-glow-ambient glow-left" />
         <div className="banner-glow-ambient glow-right" />
 
-        {/* Top Row: AI Brand (Trái) + 2 TÍNH NĂNG CHUẨN MẪU (Phải): Chuông thông báo & Account Avatar */}
+        {/* Top Row: AI Brand (Trái) + CỬA HÀNG SKILL (GIỎ HÀNG) + Chuông thông báo + Account Avatar (Phải) */}
         <div className="banner-top-row">
           
           {/* Brand Left Unit */}
@@ -156,7 +166,7 @@ export default function HeroBanner({
                   {!isAdmin && activeSkill.name ? activeSkill.name : 'Trợ lý AI của bạn'}
                 </span>
                 <span className="b-version-tag">
-                  {!isAdmin ? 'ĐÃ MỞ KHÓA' : 'PRO B2B'}
+                  {!isAdmin ? (trialStatus?.hasTrial ? 'DÙNG THỬ 15 PHÚT' : 'BẢN QUYỀN ĐÃ MỞ') : 'PRO B2B'}
                 </span>
               </div>
               <p className="banner-desc-line">
@@ -167,10 +177,42 @@ export default function HeroBanner({
             </div>
           </div>
 
-          {/* Top-Right Header Actions: Chuông thông báo & Account Avatar */}
+          {/* Top-Right Header Actions: Cửa hàng Skill (Giỏ hàng) TRƯỚC Chuông thông báo & Account Avatar */}
           <div className="banner-top-right-actions">
+
+            {/* 0. LIVE TRIAL COUNTDOWN BADGE (NẾU ĐANG DÙNG THỬ) */}
+            {trialStatus?.hasTrial && (
+              <div 
+                className={`header-trial-badge ${trialStatus.isExpired ? 'expired' : 'active'}`}
+                onClick={onOpenStore}
+                title={trialStatus.isExpired ? "Hết hạn dùng thử. Bấm để nộp tiền mua bản quyền" : "Thời gian dùng thử 15 phút còn lại. Bấm để mua bản quyền chính thức"}
+              >
+                <Clock size={14} className="trial-clock-icon" />
+                <span className="trial-time-txt">
+                  {trialStatus.isExpired ? '⏰ Hết hạn dùng thử' : `⏳ Dùng thử: ${formatTrialTime(trialStatus.remainingSeconds)}`}
+                </span>
+                {trialStatus.isExpired ? (
+                  <span className="trial-upgrade-btn">Mua ngay</span>
+                ) : (
+                  <span className="trial-pulse-dot" />
+                )}
+              </div>
+            )}
+
+            {/* 1. NÚT CỬA HÀNG SKILL (HÌNH GIỎ HÀNG) TRƯỚC BIỂU TƯỢNG THÔNG BÁO */}
+            <div className="header-store-wrapper">
+              <button 
+                type="button"
+                className="header-store-button"
+                onClick={onOpenStore}
+                title="Mở Cửa Hàng Skill để chọn dùng thử 15 phút hoặc mua bản quyền"
+              >
+                <ShoppingCart size={18} />
+                <span className="header-store-label">Cửa Hàng Skill</span>
+              </button>
+            </div>
             
-            {/* 1. CHUÔNG THÔNG BÁO (Hình 1) */}
+            {/* 2. CHUÔNG THÔNG BÁO (Hình 1) */}
             <div className="header-bell-wrapper">
               <button 
                 type="button"

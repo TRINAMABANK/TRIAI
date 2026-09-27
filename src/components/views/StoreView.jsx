@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import PaymentQrModal from '../PaymentQrModal';
 
-export default function StoreView({ onActivateSkill, onSwitchToChat }) {
+export default function StoreView({ onActivateSkill, onSwitchToChat, onStartTrial }) {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [purchasedId, setPurchasedId] = useState(null);
   const [selectedPkgForPayment, setSelectedPkgForPayment] = useState(null);
@@ -226,21 +226,54 @@ export default function StoreView({ onActivateSkill, onSwitchToChat }) {
               </div>
 
               <div className="pkg-cta-area">
-                <button 
-                  className={`btn-buy-package ${isPurchased ? 'bought' : ''}`}
-                  onClick={() => handlePurchase(pkg)}
-                >
-                  {isPurchased ? 'Đã kích hoạt thành công!...' : 'Kích hoạt gói này'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', width: '100%', marginBottom: '8px' }}>
+                  <button 
+                    type="button"
+                    className="btn-trial-15m"
+                    onClick={() => {
+                      if (onStartTrial) {
+                        onStartTrial(pkg);
+                      }
+                    }}
+                    title={`Dùng thử miễn phí Skill ${pkg.name} trong 15 phút`}
+                    style={{
+                      flex: 1,
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      fontWeight: '700',
+                      background: '#eff6ff',
+                      color: '#1d4ed8',
+                      border: '1px solid #bfdbfe',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    🎁 Dùng thử 15p
+                  </button>
+
+                  <button 
+                    type="button"
+                    className={`btn-buy-package ${isPurchased ? 'bought' : ''}`}
+                    onClick={() => handlePurchase(pkg)}
+                    style={{ flex: 1.2 }}
+                  >
+                    {isPurchased ? '✓ Đã kích hoạt' : '💳 Mua bản quyền'}
+                  </button>
+                </div>
+
                 {pkg.downloadUrl ? (
                   <a 
                     href={pkg.downloadUrl}
                     download="TRI-AI-SKILLS-V1.zip"
                     className="btn-download-contract"
-                    style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', background: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe' }}
+                    style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', background: '#f8fafc', color: '#475569', borderColor: '#e2e8f0' }}
                     title="Tải trọn bộ file ZIP 33 Skill"
                   >
-                    <Download size={14} /> Tải file ZIP
+                    <Download size={14} /> Tải file ZIP Master
                   </a>
                 ) : (
                   <button 

@@ -25,7 +25,9 @@ import {
   getLoadedSkills, 
   addOrUpdateSkill, 
   getUserOwnedSkillIds, 
-  saveUserOwnedSkill 
+  saveUserOwnedSkill,
+  startSkillTrial,
+  getActiveTrial
 } from './data/skillsData';
 
 export default function App() {
@@ -73,8 +75,36 @@ export default function App() {
     user.isAdmin === true
   );
 
-  // Danh sách Skill thuộc sở hữu của tài khoản hiện tại
-  const userOwnedSkillIds = getUserOwnedSkillIds(user.email, user.role);
+  // Trial 15 phút state & Live Countdown Timer (mỗi 1 giây)
+  const [trialStatus, setTrialStatus] = useState(null);
+
+  useEffect(() => {
+    const checkTrial = () => {
+      if (user?.email && !isAdmin) {
+        const active = getActiveTrial(user.email);
+        setTrialStatus(active);
+      } else {
+        setTrialStatus(null);
+      }
+    };
+    checkTrial();
+    const timer = setInterval(checkTrial, 1000);
+    return () => clearInterval(timer);
+  }, [user?.email, isAdmin]);
+
+  // Danh sách Skill thuộc sở hữu của tài khoản hiện tại (kèm Skill đang dùng thử nếu còn hạn)
+  const baseOwnedSkillIds = getUserOwnedSkillIds(user.email, user.role);
+  const userOwnedSkillIds = React.useMemo(() => {
+    if (isAdmin || baseOwnedSkillIds === null) return null;
+    const list = [...baseOwnedSkillIds];
+    if (trialStatus && trialStatus.hasTrial && !trialStatus.isExpired && trialStatus.skillId) {
+      if (!list.includes(trialStatus.skillId)) {
+        list.push(trialStatus.skillId);
+      }
+    }
+    return list;
+  }, [isAdmin, baseOwnedSkillIds, trialStatus]);
+
   const ownedSkills = (isAdmin || !userOwnedSkillIds) 
     ? skills 
     : skills.filter(s => userOwnedSkillIds.includes(s.id));
@@ -121,7 +151,7 @@ export default function App() {
     setActiveSkill(pccc);
   }, []);
 
-  // Tự động chuyển activeSkill sang Skill mà tài khoản sở hữu
+  // Tự động chuyển activeSkill sang Skill mà tài khoản sở hữu hoặc đang dùng thử
   useEffect(() => {
     if (ownedSkills.length > 0) {
       if (!activeSkill?.id || !ownedSkills.some(s => s.id === activeSkill.id)) {
@@ -129,6 +159,47 @@ export default function App() {
       }
     }
   }, [user.email, skills, ownedSkills.length]);
+
+  // Xử lý khi bắt đầu dùng thử 15 phút từ Cửa Hàng
+  const handleStartTrial = (pkg) => {
+    const packageToSkillMap = {
+      'store-kol': 'kol-thoi-trang',
+      'kol-thoi-trang': 'kol-thoi-trang',
+      'store-pccc': 'pccc',
+      'pccc': 'pccc',
+      'store-muasam': 'mua-sam',
+      'store-mua-sam': 'mua-sam',
+      'mua-sam': 'mua-sam',
+      'store-mep': 'mep',
+      'mep': 'mep',
+      'store-phap-ly': 'phap-ly',
+      'phap-ly': 'phap-ly',
+      'store-van-hanh': 'van-hanh-toa-nha',
+      'van-hanh-toa-nha': 'van-hanh-toa-nha'
+    };
+
+    const targetSkillId = packageToSkillMap[pkg.id] || pkg.id;
+    const matchedSkill = skills.find(s => s.id === targetSkillId || s.id === pkg.id || s.name.toLowerCase() === pkg.name.toLowerCase()) || skills[0];
+
+    const currentEmail = user.email || 'khachhang.moi@gmail.com';
+    startSkillTrial(currentEmail, matchedSkill.id, 15);
+    setActiveSkill(matchedSkill);
+    setTab('chat');
+    setBannerMode('chat');
+
+    const trialMsg = {
+      id: Date.now(),
+      role: 'ai',
+      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      text: `🎁 BẠN ĐÃ KÍCH HOẠT DÙNG THỬ 15 PHÚT SKILL [${matchedSkill.name.toUpperCase()}] MIỄN PHÍ!\n\nBạn có trọn vẹn 15 phút trải nghiệm toàn bộ tính năng & tài liệu mẫu của ${matchedSkill.name}. Đồng hồ đếm ngược trực tiếp đang hiển thị ở góc trên bên phải (cạnh biểu tượng Cửa hàng và Chuông thông báo).\n\nSau 15 phút, bạn có thể nộp tiền quét mã QR để mở khóa bản quyền chính thức!`,
+      checklist: matchedSkill.checklist || [
+        { label: `Kích hoạt dùng thử: ${matchedSkill.name}`, status: 'pass' },
+        { label: 'Thời lượng: 15 phút miễn phí', status: 'pass' }
+      ],
+      files: matchedSkill.sampleFiles || []
+    };
+    setMessages(prev => [...prev, trialMsg]);
+  };
 
   // Filter skills based on search
   const filteredSkills = searchTerm 
@@ -327,6 +398,8 @@ export default function App() {
               user={user}
               activeSkill={activeSkill}
               isAdmin={isAdmin}
+              trialStatus={trialStatus}
+              onOpenStore={() => setIsStoreOpen(true)}
               onOpenSkillManager={() => setIsSkillManagerOpen(true)}
               onOpenAccountModal={() => setIsAccountModalOpen(true)}
               onOpenAuthModal={() => setIsAuthModalOpen(true)}
@@ -375,6 +448,7 @@ export default function App() {
         {currentTab === 'store' && (
           <StoreView 
             onActivateSkill={handleActivatePurchasedSkill}
+            onStartTrial={handleStartTrial}
             onSwitchToChat={handleSwitchToChat}
           />
         )}
@@ -462,6 +536,7 @@ export default function App() {
       <StoreModal 
         isOpen={isStoreOpen}
         onClose={() => setIsStoreOpen(false)}
+        onStartTrial={handleStartTrial}
         onActivateSkill={(s) => {
           handleActivatePurchasedSkill(s);
           setIsStoreOpen(false);

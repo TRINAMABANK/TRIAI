@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, ShoppingCart, Check, Sparkles, Flame, Building2, Scale, Package, ShieldCheck } from 'lucide-react';
 import PaymentQrModal from './PaymentQrModal';
 
-export default function StoreModal({ isOpen, onClose, onActivateSkill }) {
+export default function StoreModal({ isOpen, onClose, onActivateSkill, onStartTrial }) {
   const [selectedPkgForPayment, setSelectedPkgForPayment] = useState(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
@@ -147,15 +147,48 @@ export default function StoreModal({ isOpen, onClose, onActivateSkill }) {
 
                   <div className="pack-billing-note">{pack.billing}</div>
 
-                  <button 
-                    className="btn-activate-pack"
-                    onClick={() => {
-                      setSelectedPkgForPayment(pack);
-                      setIsPaymentOpen(true);
-                    }}
-                  >
-                    Kích hoạt Skill này
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                    <button 
+                      type="button"
+                      className="btn-trial-15m"
+                      onClick={() => {
+                        if (onStartTrial) {
+                          onStartTrial(pack);
+                        }
+                        onClose();
+                      }}
+                      title="Dùng thử miễn phí 15 phút"
+                      style={{
+                        flex: 1,
+                        padding: '9px 10px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        background: '#eff6ff',
+                        color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      🎁 Dùng thử 15p
+                    </button>
+
+                    <button 
+                      type="button"
+                      className="btn-activate-pack"
+                      onClick={() => {
+                        setSelectedPkgForPayment(pack);
+                        setIsPaymentOpen(true);
+                      }}
+                      style={{ flex: 1.3, marginTop: 0 }}
+                    >
+                      💳 Mua bản quyền
+                    </button>
+                  </div>
                 </div>
               );
             })}

@@ -253,6 +253,27 @@ export default function AuthModal({
                 </div>
                 {currentUser?.email === 'muasam.phaply@gmail.com' && <span className="active-dot">● Đang dùng</span>}
               </div>
+
+              {/* 5. Khách hàng mới (Chưa mua gói - Dùng thử 15 phút) */}
+              <div 
+                className={`auth-test-account-card ${currentUser?.email === 'khachhang.moi@gmail.com' ? 'active-user' : ''}`}
+                onClick={() => handleQuickSwitchAccount({
+                  name: 'Khách Hàng Mới',
+                  email: 'khachhang.moi@gmail.com',
+                  role: 'Khách hàng',
+                  plan: 'Chưa kích hoạt (Dùng thử 15 phút)',
+                  avatar: '/assets/user_avatar.png',
+                  isAdmin: false
+                })}
+              >
+                <div className="test-acc-icon">🎁</div>
+                <div className="test-acc-info">
+                  <div className="test-acc-name">Khách Hàng Mới <span className="customer-tag">Dùng thử</span></div>
+                  <div className="test-acc-email">khachhang.moi@gmail.com</div>
+                  <div className="test-acc-skill-tag trial-tag">0 Skill • Chọn Store để dùng thử 15 phút</div>
+                </div>
+                {currentUser?.email === 'khachhang.moi@gmail.com' && <span className="active-dot">● Đang dùng</span>}
+              </div>
             </div>
           </div>
 

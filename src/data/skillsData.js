@@ -168,11 +168,21 @@ export const USER_TEST_ACCOUNTS = [
     isAdmin: false,
     skillIds: ['mua-sam', 'phap-ly'],
     desc: 'Tài khoản khách hàng chỉ mua 2 Skill: Bóc tách so sánh Đa báo giá và Rà soát Hợp đồng Pháp lý.'
+  },
+  {
+    name: 'Khách Hàng Mới (Chưa Mua Gói)',
+    email: 'khachhang.moi@gmail.com',
+    role: 'Khách hàng',
+    plan: 'Chưa kích hoạt (Dùng thử 15 phút)',
+    avatar: '/assets/user_avatar.png',
+    isAdmin: false,
+    skillIds: [],
+    desc: 'Tài khoản khách hàng mới đăng nhập: Chưa sở hữu Skill nào, chọn Cửa Hàng để dùng thử 15 phút bất kỳ Skill nào.'
   }
 ];
 
 export function getUserOwnedSkillIds(userEmail, userRole) {
-  if (!userEmail) return ['pccc'];
+  if (!userEmail) return [];
   const emailLower = userEmail.toLowerCase().trim();
 
   // Admin hoặc Chủ sở hữu có full tất cả Skill
@@ -186,7 +196,7 @@ export function getUserOwnedSkillIds(userEmail, userRole) {
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {}
 
@@ -196,14 +206,14 @@ export function getUserOwnedSkillIds(userEmail, userRole) {
     return matchedTest.skillIds;
   }
 
-  // Khách hàng mới đăng ký email bất kỳ: Mặc định cấp 1 Skill dùng thử ban đầu
-  return ['pccc'];
+  // Khách hàng mới đăng ký email bất kỳ: Chưa sở hữu skill nào, cần vào Store chọn dùng thử hoặc mua
+  return [];
 }
 
 export function saveUserOwnedSkill(userEmail, skillId) {
   if (!userEmail) return;
   const emailLower = userEmail.toLowerCase().trim();
-  const current = getUserOwnedSkillIds(userEmail, '') || ['pccc'];
+  const current = getUserOwnedSkillIds(userEmail, '') || [];
   if (!current.includes(skillId)) {
     const updated = [...current, skillId];
     try {
@@ -212,4 +222,56 @@ export function saveUserOwnedSkill(userEmail, skillId) {
     return updated;
   }
   return current;
+}
+
+// =============================================================================
+// QUẢN LÝ DÙNG THỬ 15 PHÚT (15-MINUTE TRIAL MANAGEMENT)
+// =============================================================================
+
+export function startSkillTrial(userEmail, skillId, durationMinutes = 15) {
+  if (!userEmail || !skillId) return null;
+  const emailLower = userEmail.toLowerCase().trim();
+  const trialEndTime = Date.now() + durationMinutes * 60 * 1000;
+  try {
+    localStorage.setItem(`tri_ai_trial_${emailLower}_${skillId}`, trialEndTime.toString());
+    localStorage.setItem(`tri_ai_active_trial_${emailLower}`, skillId);
+  } catch (e) {}
+  return trialEndTime;
+}
+
+export function getSkillTrialStatus(userEmail, skillId) {
+  if (!userEmail || !skillId) return { hasTrial: false, remainingSeconds: 0, isExpired: false };
+  const emailLower = userEmail.toLowerCase().trim();
+  try {
+    const raw = localStorage.getItem(`tri_ai_trial_${emailLower}_${skillId}`);
+    if (!raw) return { hasTrial: false, remainingSeconds: 0, isExpired: false };
+    const trialEndTime = parseInt(raw, 10);
+    const now = Date.now();
+    const remainingSeconds = Math.max(0, Math.floor((trialEndTime - now) / 1000));
+    return {
+      hasTrial: true,
+      remainingSeconds,
+      isExpired: remainingSeconds <= 0,
+      trialEndTime
+    };
+  } catch (e) {
+    return { hasTrial: false, remainingSeconds: 0, isExpired: false };
+  }
+}
+
+export function getActiveTrial(userEmail) {
+  if (!userEmail) return null;
+  const emailLower = userEmail.toLowerCase().trim();
+  try {
+    const skillId = localStorage.getItem(`tri_ai_active_trial_${emailLower}`);
+    if (!skillId) return null;
+    const status = getSkillTrialStatus(userEmail, skillId);
+    if (!status.hasTrial) return null;
+    return {
+      skillId,
+      ...status
+    };
+  } catch (e) {
+    return null;
+  }
 }
