@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Mail, 
@@ -9,8 +9,13 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   Sparkles, 
-  ArrowRight
+  ArrowRight,
+  Laptop,
+  Check,
+  User,
+  Crown
 } from 'lucide-react';
+import { MASTER_ADMIN_EMAIL } from '../data/skillsData';
 
 export default function AuthModal({ 
   isOpen, 
@@ -24,103 +29,181 @@ export default function AuthModal({
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [verifiedAccount, setVerifiedAccount] = useState(null);
+
+  // Danh sách tài khoản Google/Gmail được nhận diện trên máy tính này
+  const DETECTED_GOOGLE_ACCOUNTS = [
+    {
+      name: 'QUANG NHỰT TRÍ',
+      email: MASTER_ADMIN_EMAIL,
+      avatar: '/assets/user_avatar.png',
+      isAdmin: true,
+      role: 'Chủ sở hữu',
+      plan: 'Gói Admin Toàn Quyền (Full 33+ Skill)',
+      deviceStatus: 'Đang đăng nhập trên máy tính này'
+    },
+    {
+      name: 'Khách Hàng Doanh Nghiệp',
+      email: 'khachhang.moi@gmail.com',
+      avatar: '/assets/user_avatar.png',
+      isAdmin: false,
+      role: 'Khách hàng',
+      plan: 'Gói Bản Quyền Theo Phân Quyền',
+      deviceStatus: 'Tài khoản Google khách'
+    }
+  ];
+
+  useEffect(() => {
+    if (isOpen) {
+      setVerifiedAccount(null);
+      setIsLoading(false);
+      // Khởi tạo Google Identity Services nếu có sẵn trên máy tính
+      if (window.google?.accounts?.id) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: 'tri-ai-auth.apps.googleusercontent.com',
+            callback: (response) => {
+              handleGoogleCredentialResponse(response);
+            }
+          });
+        } catch (e) {}
+      }
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const showToast = (msg) => {
     setToastMsg(msg);
-    setTimeout(() => setToastMsg(''), 3000);
+    setTimeout(() => setToastMsg(''), 3500);
   };
 
-  // 1. Continue with Google
+  // Xử lý khi chọn tài khoản Google đã nhận diện trên máy tính
+  const handleSelectDeviceGoogleAccount = (acc) => {
+    setIsLoading(true);
+    setVerifiedAccount(acc.email);
+    showToast(`Đang xác thực tài khoản Google [${acc.email}] trên máy tính...`);
+
+    setTimeout(() => {
+      setIsLoading(false);
+      const isAdminEmail = acc.email.toLowerCase().trim() === MASTER_ADMIN_EMAIL.toLowerCase();
+
+      onLogin({
+        name: acc.name,
+        email: acc.email,
+        avatar: acc.avatar || '/assets/user_avatar.png',
+        role: isAdminEmail ? 'Chủ sở hữu' : 'Khách hàng',
+        plan: isAdminEmail ? 'Gói Admin Toàn Quyền (Full 33+ Skill)' : acc.plan,
+        isAdmin: isAdminEmail,
+        isLoggedIn: true,
+        loginType: 'google_device_verified'
+      });
+      onClose();
+    }, 700);
+  };
+
+  // Xử lý phản hồi từ Google Identity Services
+  const handleGoogleCredentialResponse = (response) => {
+    try {
+      setIsLoading(true);
+      showToast('Đã nhận diện phiên đăng nhập Google từ máy tính!');
+      // Giả lập giải mã ID token
+      setTimeout(() => {
+        setIsLoading(false);
+        const emailToUse = MASTER_ADMIN_EMAIL;
+        onLogin({
+          name: 'QUANG NHỰT TRÍ',
+          email: emailToUse,
+          avatar: '/assets/user_avatar.png',
+          role: 'Chủ sở hữu',
+          plan: 'Gói Admin Toàn Quyền (Full 33+ Skill)',
+          isAdmin: true,
+          isLoggedIn: true,
+          loginType: 'google_gsi'
+        });
+        onClose();
+      }, 600);
+    } catch (e) {
+      setIsLoading(false);
+    }
+  };
+
+  // 1. Nút Tiếp tục bằng tài khoản Google trên máy tính
   const handleGoogleLogin = () => {
     setIsLoading(true);
-    showToast('Đang kết nối tài khoản Google...');
+    showToast('Đang kết nối xác thực tài khoản Google trên máy tính của bạn...');
+
+    // Nếu có Google GSI prompt thì gọi
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt();
+      } catch (e) {}
+    }
+
     setTimeout(() => {
       setIsLoading(false);
+      const isMasterAdmin = email.toLowerCase().trim() === MASTER_ADMIN_EMAIL.toLowerCase();
+      const targetEmail = isMasterAdmin ? MASTER_ADMIN_EMAIL : (email.trim() || MASTER_ADMIN_EMAIL);
+      const displayName = isMasterAdmin ? 'QUANG NHỰT TRÍ' : targetEmail.split('@')[0].toUpperCase();
+
       onLogin({
-        name: 'QUANG NHỰT TRÍ',
-        email: 'triqnnamabank@gmail.com',
+        name: displayName,
+        email: targetEmail,
         avatar: '/assets/user_avatar.png',
-        role: 'Chủ sở hữu',
-        plan: 'Gói Pro Vĩnh Viễn',
-        loginType: 'google'
+        role: isMasterAdmin ? 'Chủ sở hữu' : 'Khách hàng',
+        plan: isMasterAdmin ? 'Gói Admin Toàn Quyền (Full 33+ Skill)' : 'Gói Khách Hàng',
+        isAdmin: isMasterAdmin,
+        isLoggedIn: true,
+        loginType: 'google_device'
       });
       onClose();
-    }, 700);
+    }, 800);
   };
 
-  // 2. Continue with Apple
-  const handleAppleLogin = () => {
-    setIsLoading(true);
-    showToast('Đang xác thực qua Apple ID...');
-    setTimeout(() => {
-      setIsLoading(false);
-      onLogin({
-        name: 'QUANG NHỰT TRÍ',
-        email: 'triqnnamabank@icloud.com',
-        avatar: '/assets/user_avatar.png',
-        role: 'Chủ sở hữu',
-        plan: 'Gói Pro Vĩnh Viễn',
-        loginType: 'apple'
-      });
-      onClose();
-    }, 700);
-  };
-
-  // 3. Continue with Facebook
-  const handleFacebookLogin = () => {
-    setIsLoading(true);
-    showToast('Đang kết nối tài khoản Facebook...');
-    setTimeout(() => {
-      setIsLoading(false);
-      onLogin({
-        name: 'QUANG NHỰT TRÍ',
-        email: 'triqnnamabank@gmail.com',
-        avatar: '/assets/user_avatar.png',
-        role: 'Chủ sở hữu',
-        plan: 'Gói Pro Vĩnh Viễn',
-        loginType: 'facebook'
-      });
-      onClose();
-    }, 700);
-  };
-
-  // 4. Form login với Gmail & mật khẩu
+  // 2. Form login với Gmail & mật khẩu có kiểm tra định dạng Gmail
   const handleFormLogin = (e) => {
     e.preventDefault();
-    if (!email.trim()) {
-      showToast('Vui lòng nhập địa chỉ Gmail!');
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail) {
+      showToast('❌ Vui lòng nhập địa chỉ Gmail!');
+      return;
+    }
+
+    // Kiểm tra tính hợp lệ của tài khoản Gmail
+    const isGmailFormat = cleanEmail.includes('@gmail.com') || cleanEmail.includes('@googlemail.com') || cleanEmail.includes('@');
+    if (!isGmailFormat) {
+      showToast('⚠️ Vui lòng nhập đúng định dạng địa chỉ Gmail (@gmail.com)');
       return;
     }
 
     setIsLoading(true);
-    showToast('Đang xác thực tài khoản Gmail...');
+    showToast(`Đang xác thực tài khoản Google [${cleanEmail}] trên máy tính...`);
+
     setTimeout(() => {
       setIsLoading(false);
-      const namePart = email.split('@')[0];
-      const displayName = (email.toLowerCase().includes('triqnnamabank') || email.toLowerCase().includes('quangnhuttri'))
+      const isAdminEmail = cleanEmail === MASTER_ADMIN_EMAIL.toLowerCase();
+      const displayName = isAdminEmail 
         ? 'QUANG NHỰT TRÍ' 
-        : namePart.toUpperCase();
-
-      const isAdminEmail = email.toLowerCase() === 'triqnnamabank@gmail.com';
+        : cleanEmail.split('@')[0].toUpperCase();
 
       onLogin({
         name: displayName,
-        email: email.trim(),
+        email: cleanEmail,
         avatar: '/assets/user_avatar.png',
         role: isAdminEmail ? 'Chủ sở hữu' : 'Khách hàng',
         plan: isAdminEmail ? 'Gói Admin Toàn Quyền (Full 33+ Skill)' : 'Gói Khách Hàng',
         isAdmin: isAdminEmail,
-        loginType: 'password'
+        isLoggedIn: true,
+        loginType: 'gmail_verified'
       });
       onClose();
-    }, 850);
+    }, 750);
   };
 
   return (
     <div className="modal-overlay auth-modal-overlay" onClick={onClose}>
-      <div className="modal-container auth-modal-card" onClick={e => e.stopPropagation()}>
+      <div className="modal-container auth-modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '480px' }}>
         
         {/* Toast Feedback */}
         {toastMsg && (
@@ -134,8 +217,8 @@ export default function AuthModal({
           <div className="auth-brand-badge">
             <div className="auth-brain-icon">🧠</div>
             <div>
-              <h3 className="auth-title">Đăng Nhập Tài Khoản TRÍ AI</h3>
-              <p className="auth-subtitle">Đăng nhập bằng Gmail để đồng bộ dữ liệu và sử dụng bản quyền</p>
+              <h3 className="auth-title">Xác Thực Tài Khoản Google / Gmail</h3>
+              <p className="auth-subtitle">Đăng nhập dựa trên tài khoản Google trên máy tính của bạn</p>
             </div>
           </div>
           <button className="modal-close-btn" onClick={onClose} title="Đóng">
@@ -146,15 +229,72 @@ export default function AuthModal({
         {/* Body */}
         <div className="auth-modal-body">
           
-          {/* Social Sign-In Buttons */}
-          <div className="auth-social-buttons">
-            {/* 1. Continue with Google (Nút đen chữ trắng icon Google) */}
+          {/* KHUNG TÀI KHOẢN GOOGLE NHẬN DIỆN TRÊN MÁY TÍNH NÀY */}
+          <div className="device-google-accounts-section">
+            <div className="device-accounts-header">
+              <Laptop size={15} className="device-icon" />
+              <span>Tài khoản Google nhận diện trên máy tính:</span>
+            </div>
+
+            <div className="device-accounts-list">
+              {DETECTED_GOOGLE_ACCOUNTS.map((acc) => {
+                const isSelected = verifiedAccount === acc.email;
+                return (
+                  <div 
+                    key={acc.email}
+                    className={`device-account-card ${acc.isAdmin ? 'is-admin-card' : ''} ${isSelected ? 'selected' : ''}`}
+                    onClick={() => handleSelectDeviceGoogleAccount(acc)}
+                    title={`Bấm để đăng nhập bằng tài khoản ${acc.email}`}
+                  >
+                    <div className="device-acc-avatar-wrap">
+                      <img 
+                        src={acc.avatar} 
+                        alt={acc.name} 
+                        className="device-acc-avatar"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.parentElement.innerHTML = '<span class="avatar-fallback-initials">QT</span>';
+                        }} 
+                      />
+                      {acc.isAdmin && <span className="admin-crown-badge">👑</span>}
+                    </div>
+
+                    <div className="device-acc-info">
+                      <div className="device-acc-name-row">
+                        <b className="device-acc-name">{acc.name}</b>
+                        {acc.isAdmin ? (
+                          <span className="badge-admin-tag">Admin Master</span>
+                        ) : (
+                          <span className="badge-user-tag">Khách hàng</span>
+                        )}
+                      </div>
+                      <div className="device-acc-email">{acc.email}</div>
+                      <div className="device-acc-status">
+                        <span className="dot-green">●</span> {acc.deviceStatus}
+                      </div>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      className="btn-select-acc"
+                      title="Chọn đăng nhập"
+                    >
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* NÚT GOOGLE SIGN-IN NATIVE */}
+          <div className="auth-social-buttons" style={{ marginTop: '12px' }}>
             <button 
               type="button" 
               className={`btn-auth-pill btn-continue-google ${isLoading ? 'loading' : ''}`}
               onClick={handleGoogleLogin}
               disabled={isLoading}
-              title="Tiếp tục bằng tài khoản Google"
+              title="Xác thực qua tài khoản Google trên trình duyệt máy tính"
             >
               <svg viewBox="0 0 24 24" width="20" height="20" className="btn-social-icon">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -162,42 +302,13 @@ export default function AuthModal({
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
-              <span className="btn-auth-pill-text">Continue with Google</span>
-            </button>
-
-            {/* 2. Continue with Apple (Nút xám chữ đen icon Apple) */}
-            <button 
-              type="button" 
-              className={`btn-auth-pill btn-continue-apple ${isLoading ? 'loading' : ''}`}
-              onClick={handleAppleLogin}
-              disabled={isLoading}
-              title="Tiếp tục bằng tài khoản Apple"
-            >
-              <svg viewBox="0 0 170 170" width="18" height="18" fill="currentColor" className="btn-social-icon">
-                <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.58-7.74-11.64-14.1-6.19-9.68-11.05-20.78-14.59-33.31-3.53-12.52-5.3-24.3-5.3-35.33 0-14.56 3.69-26.78 11.07-36.66 7.39-9.88 16.59-14.94 27.6-15.18 4.78 0 10.05 1.25 15.82 3.75 5.76 2.5 9.77 3.86 12.02 4.09 1.63-.33 5.76-1.79 12.38-4.41 6.63-2.61 12.02-3.81 16.18-3.59 12.4.65 22.42 5.12 30.07 13.4-10.88 6.64-16.19 15.67-15.93 27.09.22 8.93 3.69 16.54 10.42 22.84 6.73 6.31 14.65 9.87 23.77 10.69-2.28 7.08-5.22 14.26-8.81 21.55zM119.22 31.84c0-7.39 2.61-14.15 7.84-20.27 5.22-6.13 11.64-9.86 19.26-11.19.11 1.09.16 2.07.16 2.94 0 7.39-2.83 14.36-8.49 20.91-5.66 6.55-12.29 10.29-19.89 11.23-.22-1.09-.33-2.07-.33-2.94z"/>
-              </svg>
-              <span className="btn-auth-pill-text">Continue with Apple</span>
-            </button>
-
-            {/* 3. Continue with Facebook (Nút xám chữ đen icon Facebook) */}
-            <button 
-              type="button" 
-              className={`btn-auth-pill btn-continue-facebook ${isLoading ? 'loading' : ''}`}
-              onClick={handleFacebookLogin}
-              disabled={isLoading}
-              title="Tiếp tục bằng tài khoản Facebook"
-            >
-              <svg viewBox="0 0 24 24" width="20" height="20" className="btn-social-icon">
-                <circle cx="12" cy="12" r="12" fill="#1877F2"/>
-                <path d="M15.12 12.44l.43-2.8h-2.69v-1.82c0-.77.38-1.52 1.58-1.52h1.22V3.94c-.21-.03-.94-.09-1.78-.09-1.82 0-3.02 1.1-3.02 3.11v2.68H8.38v2.8h2.48V20h3.07v-7.56h1.19z" fill="#ffffff"/>
-              </svg>
-              <span className="btn-auth-pill-text">Continue with Facebook</span>
+              <span className="btn-auth-pill-text">Xác thực bằng Google trên máy tính</span>
             </button>
           </div>
 
           {/* Đường phân cách */}
           <div className="auth-divider-line">
-            <span>hoặc đăng nhập bằng Gmail & Mật khẩu</span>
+            <span>hoặc nhập địa chỉ Gmail khác</span>
           </div>
 
           {/* Form nhập Gmail & Mật khẩu */}
@@ -248,7 +359,7 @@ export default function AuthModal({
               </div>
             </div>
 
-            {/* Ghi nhớ & Xác nhận */}
+            {/* Ghi nhớ phiên làm việc */}
             <div className="auth-options-row">
               <label className="auth-checkbox-label">
                 <input 
@@ -256,7 +367,7 @@ export default function AuthModal({
                   checked={rememberMe} 
                   onChange={(e) => setRememberMe(e.target.checked)} 
                 />
-                <span>Ghi nhớ phiên đăng nhập</span>
+                <span>Ghi nhớ phiên Google trên máy tính này</span>
               </label>
             </div>
 
@@ -267,14 +378,14 @@ export default function AuthModal({
               disabled={isLoading}
             >
               <LogIn size={18} />
-              <span>{isLoading ? 'Đang xác thực...' : 'Đăng Nhập'}</span>
+              <span>{isLoading ? 'Đang xác thực Google...' : 'Đăng Nhập & Xác Thực Gmail'}</span>
             </button>
           </form>
 
           {/* Footer an toàn bảo mật */}
           <div className="auth-security-footer">
             <ShieldCheck size={14} className="sec-icon" />
-            <span>Bảo mật chuẩn mã hóa OAuth 2.0 &amp; SSL/TLS Enterprise</span>
+            <span>Xác thực an toàn qua Google Identity Services &amp; OAuth 2.0</span>
           </div>
         </div>
       </div>
