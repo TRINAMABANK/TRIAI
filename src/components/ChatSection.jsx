@@ -1004,14 +1004,14 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
 
             <h3 className="voice-central-title">
               {isRecording 
-                ? 'Đang lắng nghe giọng của anh...' 
+                ? 'Đang lắng nghe giọng của bạn...' 
                 : isVoicePlaying 
                 ? 'Trí AI đang đọc tóm tắt...' 
-                : 'Trợ Lý Giọng Nói Trí AI Đã Sẵn Sàng'}
+                : 'Trợ Lý Giọng Nói Trí AI (Nói tiếng Việt tự nhiên)'}
             </h3>
             
             <p className="voice-central-desc">
-              Anh có thể nói tự nhiên bằng tiếng Việt hoặc bấm nút gọi lệnh bên dưới để Trí AI phản hồi ngay.
+              "Anh cứ nói, Trí AI sẽ lo phần còn lại." — Bấm micro hoặc nói trực tiếp để phân tích và thực thi quy trình chuyên môn.
             </p>
 
             <div className="voice-actions-quick-bar">
