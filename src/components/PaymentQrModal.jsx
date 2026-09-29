@@ -157,7 +157,7 @@ export default function PaymentQrModal({
               </div>
 
               <p className="success-congrats-text">
-                Chúc mừng anh Trí! Gói bản quyền đã được kích hoạt thành công vào hệ sinh thái Trí AI. Hệ thống đã mở khóa đầy đủ tài liệu, workflows và năng lực xử lý tự động.
+                Chúc mừng quý khách! Gói bản quyền đã được kích hoạt thành công vào hệ sinh thái Trí AI. Hệ thống đã tự động mở khóa Skill và kết nối Trợ lý Agent chuyên ngành tương ứng để phục vụ công việc của bạn ngay lập tức.
               </p>
 
               <button 
@@ -165,7 +165,7 @@ export default function PaymentQrModal({
                 className="btn-start-now-glow"
                 onClick={handleStartUsing}
               >
-                <span>Bắt đầu trải nghiệm ngay</span>
+                <span>Bắt đầu sử dụng Skill & Agent ngay</span>
                 <ArrowRight size={18} />
               </button>
             </div>

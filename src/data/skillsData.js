@@ -275,3 +275,201 @@ export function getActiveTrial(userEmail) {
     return null;
   }
 }
+
+// =============================================================================
+// HỆ THỐNG PHÊ DUYỆT & CẤP BẢN QUYỀN DUY NHẤT BỞI ADMIN (triqnnamabank@gmail.com)
+// =============================================================================
+
+export const MASTER_ADMIN_EMAIL = 'triqnnamabank@gmail.com';
+
+const REQUESTS_STORAGE_KEY = 'tri_ai_license_requests_v1';
+
+const DEFAULT_SAMPLE_REQUESTS = [
+  {
+    id: 'REQ-2026-001',
+    email: 'khachhang.moi@gmail.com',
+    userName: 'Tập Đoàn Xây Dựng Nam Á',
+    skillId: 'mep',
+    skillName: 'Gói Kỹ Sư Cơ Điện MEP',
+    type: 'purchase',
+    price: '299.000đ/tháng',
+    time: '29/09/2026 20:45',
+    status: 'pending', // Chờ Admin duyệt
+    phone: '0908.123.456',
+    notes: 'Đã chuyển khoản ngân hàng, chờ Admin kiểm tra và duyệt mở khóa'
+  },
+  {
+    id: 'REQ-2026-002',
+    email: 'doitac.bds@gmail.com',
+    userName: 'Công Ty Quản Lý Tòa Nhà Sunrise',
+    skillId: 'pccc',
+    skillName: 'Gói Chuyên Gia PCCC & Thẩm Duyệt',
+    type: 'trial',
+    price: 'Dùng thử 15 phút',
+    time: '29/09/2026 20:10',
+    status: 'pending',
+    phone: '0912.888.999',
+    notes: 'Đăng ký dùng thử tính năng rà soát QCVN 06:2026/BXD'
+  },
+  {
+    id: 'REQ-2026-003',
+    email: 'kol.fashion@gmail.com',
+    userName: 'Khách Hàng KOL Thời Trang',
+    skillId: 'kol-thoi-trang',
+    skillName: 'Gói KOL Thời Trang AI (Ý Ngọc Lookbook)',
+    type: 'purchase',
+    price: '399.000đ/tháng',
+    time: '29/09/2026 18:30',
+    status: 'approved',
+    approvedBy: MASTER_ADMIN_EMAIL,
+    approvedAt: '29/09/2026 18:32',
+    phone: '0988.777.666',
+    notes: 'Đã phê duyệt và cấp quyền sử dụng'
+  },
+  {
+    id: 'REQ-2026-004',
+    email: 'kythuat.pccc@gmail.com',
+    userName: 'Kỹ Sư Công Trình',
+    skillId: 'pccc',
+    skillName: 'Gói Chuyên Gia PCCC',
+    type: 'purchase',
+    price: '199.000đ/tháng',
+    time: '29/09/2026 17:15',
+    status: 'approved',
+    approvedBy: MASTER_ADMIN_EMAIL,
+    approvedAt: '29/09/2026 17:20',
+    phone: '0933.222.111',
+    notes: 'Đã phê duyệt và cấp quyền sử dụng'
+  }
+];
+
+export function getLicenseRequests() {
+  try {
+    const raw = localStorage.getItem(REQUESTS_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(REQUESTS_STORAGE_KEY, JSON.stringify(DEFAULT_SAMPLE_REQUESTS));
+      return DEFAULT_SAMPLE_REQUESTS;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return DEFAULT_SAMPLE_REQUESTS;
+    return parsed;
+  } catch (e) {
+    return DEFAULT_SAMPLE_REQUESTS;
+  }
+}
+
+export function saveLicenseRequests(requests) {
+  try {
+    localStorage.setItem(REQUESTS_STORAGE_KEY, JSON.stringify(requests));
+  } catch (e) {}
+}
+
+export function createLicenseRequest({ email, userName, skillId, skillName, type = 'purchase', price = '99.000đ', phone = '', notes = '' }) {
+  if (!email || !skillId) return null;
+  const requests = getLicenseRequests();
+  const newReq = {
+    id: `REQ-${Date.now().toString().slice(-6)}`,
+    email: email.toLowerCase().trim(),
+    userName: userName || email.split('@')[0],
+    skillId,
+    skillName: skillName || skillId,
+    type,
+    price,
+    phone: phone || '',
+    notes: notes || 'Yêu cầu kích hoạt chờ Admin triqnnamabank@gmail.com phê duyệt',
+    time: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+    status: 'pending'
+  };
+
+  const updated = [newReq, ...requests];
+  saveLicenseRequests(updated);
+  return newReq;
+}
+
+export function approveLicenseRequest(requestId, adminEmail) {
+  if (!adminEmail || adminEmail.toLowerCase().trim() !== MASTER_ADMIN_EMAIL) {
+    console.error('Chỉ có Admin triqnnamabank@gmail.com mới có quyền phê duyệt cấp bán Skill/Agent.');
+    return { success: false, message: 'Chỉ Admin triqnnamabank@gmail.com mới có quyền phê duyệt.' };
+  }
+
+  const requests = getLicenseRequests();
+  const index = requests.findIndex(r => r.id === requestId);
+  if (index < 0) return { success: false, message: 'Không tìm thấy yêu cầu này.' };
+
+  const req = requests[index];
+  req.status = 'approved';
+  req.approvedBy = MASTER_ADMIN_EMAIL;
+  req.approvedAt = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+  requests[index] = req;
+  saveLicenseRequests(requests);
+
+  // Tự động cấp quyền sở hữu Skill cho email khách hàng
+  saveUserOwnedSkill(req.email, req.skillId);
+
+  return { success: true, message: `Đã phê duyệt và cấp quyền Skill [${req.skillName}] cho tài khoản ${req.email}!`, request: req };
+}
+
+export function rejectLicenseRequest(requestId, adminEmail, reason = 'Chưa thanh toán hoặc không hợp lệ') {
+  if (!adminEmail || adminEmail.toLowerCase().trim() !== MASTER_ADMIN_EMAIL) {
+    return { success: false, message: 'Chỉ Admin triqnnamabank@gmail.com mới có quyền từ chối.' };
+  }
+
+  const requests = getLicenseRequests();
+  const index = requests.findIndex(r => r.id === requestId);
+  if (index < 0) return { success: false, message: 'Không tìm thấy yêu cầu này.' };
+
+  const req = requests[index];
+  req.status = 'rejected';
+  req.rejectedBy = MASTER_ADMIN_EMAIL;
+  req.rejectedReason = reason;
+  req.rejectedAt = new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+  requests[index] = req;
+  saveLicenseRequests(requests);
+
+  return { success: true, message: `Đã từ chối yêu cầu của tài khoản ${req.email}.`, request: req };
+}
+
+export function grantDirectLicense(customerEmail, skillId, skillName, adminEmail) {
+  if (!adminEmail || adminEmail.toLowerCase().trim() !== MASTER_ADMIN_EMAIL) {
+    return { success: false, message: 'Chỉ Admin triqnnamabank@gmail.com mới có quyền cấp bản quyền.' };
+  }
+
+  const emailLower = customerEmail.toLowerCase().trim();
+  saveUserOwnedSkill(emailLower, skillId);
+
+  // Tạo một bản ghi log đã cấp
+  const requests = getLicenseRequests();
+  const logReq = {
+    id: `REQ-DIRECT-${Date.now().toString().slice(-5)}`,
+    email: emailLower,
+    userName: emailLower.split('@')[0].toUpperCase(),
+    skillId,
+    skillName: skillName || skillId,
+    type: 'direct_grant',
+    price: 'Admin cấp trực tiếp',
+    time: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+    status: 'approved',
+    approvedBy: MASTER_ADMIN_EMAIL,
+    approvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
+    notes: 'Quản trị viên cấp quyền trực tiếp'
+  };
+  saveLicenseRequests([logReq, ...requests]);
+
+  return { success: true, message: `Đã cấp trực tiếp quyền Skill [${skillName || skillId}] cho ${customerEmail}!` };
+}
+
+export function revokeCustomerLicense(customerEmail, skillId, adminEmail) {
+  if (!adminEmail || adminEmail.toLowerCase().trim() !== MASTER_ADMIN_EMAIL) {
+    return { success: false, message: 'Chỉ Admin triqnnamabank@gmail.com mới có quyền thu hồi bản quyền.' };
+  }
+
+  const emailLower = customerEmail.toLowerCase().trim();
+  const current = getUserOwnedSkillIds(emailLower, '') || [];
+  const updated = current.filter(id => id !== skillId);
+  try {
+    localStorage.setItem(`tri_ai_user_skills_${emailLower}`, JSON.stringify(updated));
+  } catch (e) {}
+
+  return { success: true, message: `Đã thu hồi quyền Skill [${skillId}] của tài khoản ${customerEmail}.` };
+}
+

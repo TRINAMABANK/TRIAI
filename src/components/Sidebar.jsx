@@ -33,6 +33,8 @@ export default function Sidebar({
   setTab, 
   onOpenSkillManager, 
   onOpenAccountModal,
+  onOpenAdminApproval,
+  pendingApprovalCount = 0,
   skills = [],
   activeSkill = {},
   onSelectSkill,
@@ -189,6 +191,26 @@ export default function Sidebar({
                 </button>
               );
             })}
+
+            {/* NÚT DUYỆT CẤP BẢN QUYỀN RIÊNG CHO MASTER ADMIN triqnnamabank@gmail.com */}
+            {isAdmin && (
+              <button
+                type="button"
+                className="nav-btn admin-approval-nav-btn"
+                onClick={onOpenAdminApproval}
+                title="Mở Trung Tâm Phê Duyệt & Cấp Bản Quyền Khách Hàng"
+              >
+                <span className="admin-nav-crown-icon">👑</span>
+                <span className="admin-nav-btn-text">Duyệt Cấp Quyền</span>
+                {pendingApprovalCount > 0 ? (
+                  <span className="admin-pending-counter-badge" title={`${pendingApprovalCount} yêu cầu đang chờ duyệt`}>
+                    {pendingApprovalCount}
+                  </span>
+                ) : (
+                  <span className="admin-status-dot-ok" title="Đã duyệt toàn bộ">●</span>
+                )}
+              </button>
+            )}
           </nav>
         </div>
       </div>

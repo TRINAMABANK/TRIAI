@@ -48,7 +48,13 @@ export default function ChatSection({
   onChangeBannerMode, 
   onSelectSkill,
   activeAgent,
-  onSelectAgent
+  onSelectAgent,
+  user = {},
+  isAdmin = false,
+  ownedSkills = [],
+  trialStatus = null,
+  onOpenStore,
+  onOpenAuthModal
 }) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -139,6 +145,25 @@ export default function ChatSection({
     setIsAiTyping(true);
 
     setTimeout(() => {
+      // KIỂM TRA QUYỀN DUYỆT BẢN QUYỀN CỦA TÀI KHOẢN KHÁCH HÀNG
+      const hasAccess = isAdmin || (ownedSkills && ownedSkills.length > 0) || (trialStatus?.hasTrial && !trialStatus?.isExpired);
+      if (!hasAccess) {
+        setIsAiTyping(false);
+        const lockedMsg = {
+          id: Date.now() + 1,
+          role: 'ai',
+          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          text: `🔒 THÔNG BÁO TỪ HỆ THỐNG TRÍ AI:\n\nTài khoản (${user.email || 'của bạn'}) hiện chưa được Quản trị viên (triqnnamabank@gmail.com) phê duyệt cấp bản quyền Skill nào.\n\n📌 Hướng dẫn kích hoạt:\n1. Bấm vào "Cửa Hàng Skill" (biểu tượng giỏ hàng ở thanh trên) để chọn gói và gửi yêu cầu phê duyệt tới Admin.\n2. Hoặc kích hoạt "Dùng Thử 15 Phút Miễn Phí" để trải nghiệm trước.\n3. Nếu bạn là Quản trị viên, vui lòng đăng nhập bằng Gmail: triqnnamabank@gmail.com`,
+          checklist: [
+            { label: 'Quyền truy cập: Chưa được Admin phê duyệt', status: 'fail' },
+            { label: 'Người duyệt cấp quyền: Quản trị viên triqnnamabank@gmail.com', status: 'pass' }
+          ],
+          files: []
+        };
+        setMessages(prev => [...prev, lockedMsg]);
+        return;
+      }
+
       // Xác định Skill chính xác từ activeSkill hoặc ngữ cảnh truy vấn
       let skillId = (activeSkill?.id || '').toLowerCase();
       if (!skillId) {
@@ -532,32 +557,76 @@ Khởi tạo tự động bởi Hệ sinh thái Trí AI.
         <div className="chat-thread-container">
           {messages.length === 0 && (
             <div className="chat-welcome-empty-state">
-              <div className="welcome-brain-glow">
-                <img 
-                  src="/assets/brand_logo.png" 
-                  alt="Trí AI" 
-                  className="welcome-brand-img"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = '<span>🧠</span>';
-                  }}
-                />
-              </div>
-              {/* Tiêu đề và mô tả tùy biến theo Skill đã mua / kích hoạt */}
-              <h2 className="welcome-title">
-                {activeSkill?.id === 'kol-thoi-trang' ? 'Studio Sáng Tạo KOL Thời Trang Ý Ngọc' :
-                 activeSkill?.id === 'pccc' ? 'Chuyên Gia Nghiệm Thu & Thẩm Duyệt PCCC' :
-                 activeSkill?.id === 'mua-sam' ? 'Chuyên Viên Bóc Tách & Đa Báo Giá' :
-                 activeSkill?.id === 'mep' ? 'Chuyên Gia Vận Hành Kỹ Thuật MEP' :
-                 activeSkill?.name ? `Trí AI — Chuyên Môn ${activeSkill.name}` : 'Trí AI Đã Sẵn Sàng'}
-              </h2>
-              <p className="welcome-desc">
-                {activeSkill?.id === 'kol-thoi-trang' ? 'Không gian sản xuất bộ ảnh chiến dịch thời trang chuẩn 8K, khóa nhận diện gương mặt người mẫu Ý Ngọc và xuất bản tài liệu Lookbook.' :
-                 activeSkill?.id === 'pccc' ? 'Hệ thống đối soát 100% hồ sơ nghiệm thu, bản vẽ hoàn công và quy chuẩn QCVN 06:2026/BXD.' :
-                 activeSkill?.id === 'mua-sam' ? 'Hệ thống so sánh 3-5 báo giá nhà cung cấp, tối ưu đơn giá 10-15% và lập tờ trình mua sắm ISO.' :
-                 activeSkill?.id === 'mep' ? 'Hệ thống quản trị kỹ thuật cơ điện, vận hành HVAC, máy phát điện và ứng phó sự cố tòa nhà.' :
-                 activeSkill?.desc ? activeSkill.desc : 'Hãy chọn một thao tác nhanh bên dưới để bắt đầu làm việc ngay:'}
-              </p>
+              {/* NẾU KHÁCH HÀNG CHƯA ĐƯỢC DUYỆT BẢN QUYỀN VÀ KHÔNG CÓ TRIAL */}
+              {!isAdmin && (!ownedSkills || ownedSkills.length === 0) && (!trialStatus?.hasTrial || trialStatus?.isExpired) ? (
+                <div className="customer-unapproved-warning-box">
+                  <div className="warning-lock-icon">🔒</div>
+                  <h2 className="warning-title">Tài Khoản Chưa Được Phê Duyệt Bản Quyền</h2>
+                  <p className="warning-desc">
+                    Hệ sinh thái TRÍ AI thiết lập chế độ phân quyền nghiêm ngặt. Duy nhất Quản trị viên <b>triqnnamabank@gmail.com (QUANG NHỰT TRÍ)</b> là người duyệt và cấp quyền sử dụng các Skill & Agent cho khách hàng.
+                  </p>
+                  <div className="warning-meta-card">
+                    <div className="warning-meta-row">
+                      <span>Tài khoản hiện tại:</span>
+                      <b>{user?.email || 'Chưa đăng nhập'}</b>
+                    </div>
+                    <div className="warning-meta-row">
+                      <span>Trạng thái:</span>
+                      <span className="badge-pending-review">Chờ Quản trị viên phê duyệt</span>
+                    </div>
+                    <div className="warning-meta-row">
+                      <span>Quản trị viên cấp phép:</span>
+                      <b>triqnnamabank@gmail.com</b>
+                    </div>
+                  </div>
+
+                  <div className="warning-action-buttons">
+                    <button 
+                      type="button" 
+                      className="btn-warning-store"
+                      onClick={onOpenStore}
+                    >
+                      🛒 Mở Cửa Hàng Chọn Gói & Gửi Yêu Cầu Duyệt
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn-warning-auth"
+                      onClick={onOpenAuthModal}
+                    >
+                      🔑 Đổi Tài Khoản / Đăng Nhập Admin
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="welcome-brain-glow">
+                    <img 
+                      src="/assets/brand_logo.png" 
+                      alt="Trí AI" 
+                      className="welcome-brand-img"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<span>🧠</span>';
+                      }} 
+                    />
+                  </div>
+                  {/* Tiêu đề và mô tả tùy biến theo Skill đã mua / kích hoạt */}
+                  <h2 className="welcome-title">
+                    {activeSkill?.id === 'kol-thoi-trang' ? 'Studio Sáng Tạo KOL Thời Trang Ý Ngọc' :
+                     activeSkill?.id === 'pccc' ? 'Chuyên Gia Nghiệm Thu & Thẩm Duyệt PCCC' :
+                     activeSkill?.id === 'mua-sam' ? 'Chuyên Viên Bóc Tách & Đa Báo Giá' :
+                     activeSkill?.id === 'mep' ? 'Chuyên Gia Vận Hành Kỹ Thuật MEP' :
+                     activeSkill?.name ? `Trí AI — Chuyên Môn ${activeSkill.name}` : 'Trí AI Đã Sẵn Sàng'}
+                  </h2>
+                  <p className="welcome-desc">
+                    {activeSkill?.id === 'kol-thoi-trang' ? 'Không gian sản xuất bộ ảnh chiến dịch thời trang chuẩn 8K, khóa nhận diện gương mặt người mẫu Ý Ngọc và xuất bản tài liệu Lookbook.' :
+                     activeSkill?.id === 'pccc' ? 'Hệ thống đối soát 100% hồ sơ nghiệm thu, bản vẽ hoàn công và quy chuẩn QCVN 06:2026/BXD.' :
+                     activeSkill?.id === 'mua-sam' ? 'Hệ thống so sánh 3-5 báo giá nhà cung cấp, tối ưu đơn giá 10-15% và lập tờ trình mua sắm ISO.' :
+                     activeSkill?.id === 'mep' ? 'Hệ thống quản trị kỹ thuật cơ điện, vận hành HVAC, máy phát điện và ứng phó sự cố tòa nhà.' :
+                     activeSkill?.desc ? activeSkill.desc : 'Hãy chọn một thao tác nhanh bên dưới để bắt đầu làm việc ngay:'}
+                  </p>
+                </>
+              )}
 
               <div className="welcome-suggestions-grid">
                 {activeSkill?.id === 'kol-thoi-trang' ? (

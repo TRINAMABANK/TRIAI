@@ -37,6 +37,8 @@ export default function HeroBanner({
   activeSkill = {},
   isAdmin = true,
   trialStatus = null,
+  pendingApprovalCount = 0,
+  onOpenAdminApproval,
   onOpenStore,
   onOpenSkillManager,
   onOpenAccountModal,
@@ -179,6 +181,26 @@ export default function HeroBanner({
 
           {/* Top-Right Header Actions: Cửa hàng Skill (Giỏ hàng) TRƯỚC Chuông thông báo & Account Avatar */}
           <div className="banner-top-right-actions">
+
+            {/* -1. NÚT DUYỆT CẤP QUYỀN (CHỈ DÀNH CHO ADMIN triqnnamabank@gmail.com) */}
+            {isAdmin && (
+              <div className="header-admin-approval-wrapper">
+                <button
+                  type="button"
+                  className="header-admin-approval-button"
+                  onClick={onOpenAdminApproval}
+                  title="Trung Tâm Phê Duyệt & Cấp Bản Quyền Khách Hàng (triqnnamabank@gmail.com)"
+                >
+                  <span className="admin-btn-crown">👑</span>
+                  <span className="header-admin-label">Duyệt Cấp Quyền</span>
+                  {pendingApprovalCount > 0 && (
+                    <span className="header-admin-pending-badge">
+                      {pendingApprovalCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* 0. LIVE TRIAL COUNTDOWN BADGE (NẾU ĐANG DÙNG THỬ) */}
             {trialStatus?.hasTrial && (
