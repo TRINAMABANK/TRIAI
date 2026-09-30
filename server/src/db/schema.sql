@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS payments (
     payment_gateway TEXT DEFAULT 'vietqr',
     bank_name TEXT DEFAULT 'Ngân hàng TMCP Phương Đông (OCB)',
     account_number TEXT DEFAULT '0004100030588008',
-    account_name TEXT DEFAULT 'NGUYEN QUANG TRI',
+    account_name TEXT DEFAULT 'QUANG NHỰT TRÍ',
     status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'success' | 'failed'
     raw_response_json TEXT,
     created_at TEXT NOT NULL,

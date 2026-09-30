@@ -85,7 +85,7 @@ export class PaymentService {
   static generateVietQRUrl({ amount, orderCode }) {
     const bank = env.BANK_NAME || 'OCB';
     const acc = env.BANK_ACCOUNT_NUMBER || '0004100030588008';
-    const name = encodeURIComponent(env.BANK_ACCOUNT_HOLDER || 'NGUYEN QUANG TRI');
+    const name = encodeURIComponent(env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ');
     const memo = encodeURIComponent(orderCode || 'TRIAI');
     return `https://img.vietqr.io/image/${bank}-${acc}-compact2.png?amount=${amount}&addInfo=${memo}&accountName=${name}`;
   }

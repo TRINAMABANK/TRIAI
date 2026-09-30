@@ -22,7 +22,7 @@ export async function runSeeds() {
         'usr_master_admin',
         env.ADMIN_EMAIL,
         adminPasswordHash,
-        'TRÍ AI Master Admin (Quang Trí)',
+        'TRÍ AI Master Admin (Quang Nhựt Trí)',
         '/assets/user_avatar.png',
         'owner',
         'Gói Quản Trị Hệ Thống (Master)',

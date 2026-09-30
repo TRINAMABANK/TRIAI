@@ -35,7 +35,7 @@ export const env = {
   
   BANK_NAME: process.env.VIETQR_BANK_CODE || process.env.BANK_NAME || 'OCB',
   BANK_ACCOUNT_NUMBER: process.env.VIETQR_ACCOUNT_NUMBER || process.env.BANK_ACCOUNT_NUMBER || '0004100030588008',
-  BANK_ACCOUNT_HOLDER: process.env.VIETQR_ACCOUNT_NAME || process.env.BANK_ACCOUNT_HOLDER || 'NGUYEN QUANG TRI'
+  BANK_ACCOUNT_HOLDER: process.env.VIETQR_ACCOUNT_NAME || process.env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ'
 };
 
 export const config = env;

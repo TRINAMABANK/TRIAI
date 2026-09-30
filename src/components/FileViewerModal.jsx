@@ -82,7 +82,7 @@ export default function FileViewerModal({ file, onClose }) {
           {
             heading: 'IV. KẾT LUẬN VÀ KIẾN NGHỊ PHÊ DUYỆT',
             items: [
-              'Kính trình Chủ sở hữu hệ thống (Ông Nguyễn Quang Trí) phê duyệt phát hành chính thức bộ tài liệu Lookbook.',
+              'Kính trình Chủ sở hữu hệ thống (Ông Quang Nhựt Trí) phê duyệt phát hành chính thức bộ tài liệu Lookbook.',
               'Chuyển giao bộ phận truyền thông khai thác trên các kênh truyền thông số.'
             ]
           }
@@ -205,7 +205,7 @@ export default function FileViewerModal({ file, onClose }) {
               headers: ['Thông tin định danh', 'BÊN A (BÊN GIAO VIỆC / KHÁCH HÀNG)', 'BÊN B (BÊN THỰC HIỆN / TRÍ AI)'],
               rows: [
                 ['Tên đơn vị / Doanh nghiệp', 'CÔNG TY TNHH / DOANH NGHIỆP ĐỐI TÁC', 'NỀN TẢNG AI SAAS DOANH NGHIỆP TRÍ AI'],
-                ['Đại diện pháp luật', 'Ông / Bà: Đại Diện Khách Hàng', 'Ông: NGUYỄN QUANG TRÍ'],
+                ['Đại diện pháp luật', 'Ông / Bà: Đại Diện Khách Hàng', 'Ông: QUANG NHỰT TRÍ'],
                 ['Chức vụ', 'Tổng Giám Đốc / Giám Đốc', 'Chủ sở hữu & Giám Đốc Điều Hành'],
                 ['Mã số thuế / Số CCCD', '0315xxxxxx', '0004100030588008 (OCB Bank)'],
                 ['Địa chỉ trụ sở', 'Trụ sở chính Doanh nghiệp Bên A', 'Tòa nhà Công nghệ TRÍ AI, TP. Hồ Chí Minh'],
@@ -421,7 +421,7 @@ export default function FileViewerModal({ file, onClose }) {
                 <div style="font-weight: bold; font-size: 13pt;">NGƯỜI PHÊ DUYỆT / CHỦ SỞ HỮU</div>
                 <div style="font-size: 11pt; font-style: italic;">(Ký số điện tử và đóng dấu xác thực)</div>
                 <br/><br/><br/>
-                <div style="font-weight: bold; font-size: 14pt; color: #1c68e8;">NGUYỄN QUANG TRÍ</div>
+                <div style="font-weight: bold; font-size: 14pt; color: #1c68e8;">QUANG NHỰT TRÍ</div>
                 <div style="font-size: 11pt; color: #10b981;">[ĐÃ KÝ DUYỆT BẰNG CHỮ KÝ SỐ TRÍ AI]</div>
               </td>
             </tr>
@@ -825,7 +825,7 @@ export default function FileViewerModal({ file, onClose }) {
                   </div>
 
                   <div style={{ fontWeight: 'bold', fontSize: '13.5pt', color: '#1c68e8' }}>
-                    NGUYỄN QUANG TRÍ
+                    QUANG NHỰT TRÍ
                   </div>
                   <div style={{ fontSize: '10.5pt', color: '#64748b' }}>
                     Email: triqnnamabank@gmail.com
