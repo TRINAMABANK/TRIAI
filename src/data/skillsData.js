@@ -47,6 +47,26 @@ export const DEFAULT_SKILLS = masterSkills.map(skill => {
     };
   }
 
+  // Bổ sung dữ liệu giàu thông tin cho Pháp lý & Soạn thảo hợp đồng (File Word .docx chuẩn Times New Roman)
+  if (skill.id === 'soan-thao-van-ban' || skill.id === 'phap-ly' || skill.id === 'ra-soat-hop-dong') {
+    return {
+      ...skill,
+      samplePrompt: 'Hãy soạn thảo mẫu hợp đồng kinh tế và rà soát các điều khoản pháp lý trọng yếu giúp tôi.',
+      checklist: [
+        { label: 'Tư cách chủ thể & thẩm quyền ký: Đạt chuẩn 100%', status: 'pass' },
+        { label: 'Điều khoản thanh toán & bảo lãnh: Đúng quy định pháp luật', status: 'pass' },
+        { label: 'Phạt vi phạm & bồi thường thiệt hại: Tối ưu 8% theo Luật Thương mại', status: 'pass' },
+        { label: 'Cơ chế giải quyết tranh chấp: Trọng tài thương mại VIAC', status: 'pass' },
+        { label: 'Định dạng xuất bản: File Word (.docx) chuẩn Times New Roman Nghị định 30/2020/NĐ-CP', status: 'pass' }
+      ],
+      sampleFiles: [
+        { name: 'Mau_hop_dong_kinh_te_chuan.docx', size: '1.4 MB', type: 'word' },
+        { name: 'Bien_ban_thoa_thuan_phap_ly.docx', size: '850 KB', type: 'word' },
+        { name: 'Bao_cao_ra_soat_dieu_khoan.pdf', size: '2.1 MB', type: 'pdf' }
+      ]
+    };
+  }
+
   return skill;
 });
 
