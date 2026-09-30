@@ -17,8 +17,12 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Local Environment and Secrets
+.env
+.env.*
+!.env.example
+
+# Local SQLite Database and Uploads
+.data/
+uploads/
+
