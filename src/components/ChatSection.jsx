@@ -37,6 +37,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { AGENTS_DATA } from '../data/agentsData';
+import { exportToWordDocument } from '../utils/documentExporter';
 
 export default function ChatSection({ 
   activeSkill, 
@@ -164,18 +165,46 @@ export default function ChatSection({
         return;
       }
 
-      // Xác định Skill chính xác từ activeSkill hoặc ngữ cảnh truy vấn
+      // 1. ƯU TIÊN HÀNG ĐẦU: Nhận diện yêu cầu TẠO ẢNH / HÌNH ẢNH / LOOKBOOK / Ý NGỌC / VISUAL AI
+      const lowerQuery = query.toLowerCase();
+      const isImageRequest = (
+        lowerQuery.includes('tạo ảnh') ||
+        lowerQuery.includes('tao anh') ||
+        lowerQuery.includes('tạo hình') ||
+        lowerQuery.includes('chụp ảnh') ||
+        lowerQuery.includes('chup anh') ||
+        lowerQuery.includes('ảnh') ||
+        lowerQuery.includes('hình ảnh') ||
+        lowerQuery.includes('vẽ ảnh') ||
+        lowerQuery.includes('lookbook') ||
+        lowerQuery.includes('ý ngọc') ||
+        lowerQuery.includes('y ngoc') ||
+        lowerQuery.includes('áo dài') ||
+        lowerQuery.includes('ao dai') ||
+        lowerQuery.includes('người mẫu') ||
+        lowerQuery.includes('nguoi mau') ||
+        lowerQuery.includes('visual') ||
+        lowerQuery.includes('fashion') ||
+        lowerQuery.includes('haute couture') ||
+        lowerQuery.includes('kol') ||
+        activeCompanionAgent?.id === 'tro-ly-kol' ||
+        activeSkill?.id === 'kol-thoi-trang'
+      );
+
+      // 2. Xác định Skill chính xác từ truy vấn hoặc activeSkill
       let skillId = (activeSkill?.id || '').toLowerCase();
-      if (!skillId) {
-        if (query.toLowerCase().includes('ngọc') || query.toLowerCase().includes('áo dài') || query.toLowerCase().includes('lookbook') || query.toLowerCase().includes('kol')) {
-          skillId = 'kol-thoi-trang';
-        } else if (query.toLowerCase().includes('báo giá') || query.toLowerCase().includes('mua sắm') || query.toLowerCase().includes('đấu thầu')) {
+      if (isImageRequest) {
+        skillId = 'kol-thoi-trang';
+      } else if (!skillId || skillId === 'pccc' || skillId === 'phap-ly') {
+        if (lowerQuery.includes('báo giá') || lowerQuery.includes('mua sắm') || lowerQuery.includes('đấu thầu')) {
           skillId = 'mua-sam';
-        } else if (query.toLowerCase().includes('mep') || query.toLowerCase().includes('cơ điện') || query.toLowerCase().includes('bảo trì')) {
+        } else if (lowerQuery.includes('mep') || lowerQuery.includes('cơ điện') || lowerQuery.includes('bảo trì') || lowerQuery.includes('hvac')) {
           skillId = 'mep';
-        } else if (query.toLowerCase().includes('hợp đồng') || query.toLowerCase().includes('pháp lý')) {
+        } else if (lowerQuery.includes('hợp đồng') || lowerQuery.includes('pháp lý') || lowerQuery.includes('pháp chế') || lowerQuery.includes('soạn thảo')) {
           skillId = 'phap-ly';
-        } else {
+        } else if (lowerQuery.includes('tài chính') || lowerQuery.includes('dự toán') || lowerQuery.includes('ngân sách') || lowerQuery.includes('capex')) {
+          skillId = 'tai-chinh';
+        } else if (lowerQuery.includes('pccc') || lowerQuery.includes('chữa cháy') || lowerQuery.includes('nghiệm thu')) {
           skillId = 'pccc';
         }
       }
@@ -412,36 +441,65 @@ export default function ChatSection({
     }
   };
 
-  // Xuất báo cáo Word (.doc tải về thực tế)
+  // Xuất báo cáo Word (.doc / .docx tải về thực tế chuẩn Times New Roman & Nghị định 30)
   const handleExportWord = () => {
-    const reportContent = `
-CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
-Độc lập - Tự do - Hạnh phúc
-----------------------------
-BÁO CÁO KẾT QUẢ KIỂM TRA HỒ SƠ CHUYÊN MÔN
-Hệ thống: ${activeSkill.name || 'PCCC'}
-Chủ sở hữu hệ thống: Anh Trí (TRÍ AI)
-Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}
+    let title = 'BÁO CÁO KẾT QUẢ KIỂM TRA HỒ SƠ CHUYÊN MÔN';
+    let subTitle = `V/v: Đối soát và phê duyệt dữ liệu chuyên ngành ${activeSkill?.name || 'TRÍ AI'}`;
+    let department = 'HỆ THỐNG TRÍ TUỆ NHÂN TẠO TRÍ AI';
+    let sections = [
+      {
+        heading: 'I. KẾT QUẢ RÀ SOÁT TỔNG THỂ',
+        items: [
+          'Thành phần hồ sơ: Đầy đủ theo quy định và tiêu chuẩn chuyên ngành (Đạt 100%).',
+          'Biểu mẫu: Đúng theo quy định hành chính và quy chuẩn kỹ thuật hiện hành.',
+          'Nội dung kỹ thuật: Phù hợp với thiết kế và mục tiêu công việc được phê duyệt.',
+          'Các hạng mục cần lưu ý: Đã đối soát và xác thực tính đồng bộ dữ liệu.'
+        ]
+      },
+      {
+        heading: 'II. BẢNG SỐ LIỆU ĐỐI SOÁT CHI TIẾT',
+        table: {
+          headers: ['STT', 'Hạng mục kiểm tra', 'Tiêu chuẩn đối chiếu', 'Kết quả'],
+          rows: [
+            ['1', 'Cơ sở dữ liệu đầu vào', 'Đầy đủ, chính xác', 'Đạt 100%'],
+            ['2', 'Tính khả thi & Logic', 'Tuân thủ quy chuẩn ngành', 'Đạt chuẩn'],
+            ['3', 'Tiến độ thực hiện', 'Tối ưu hóa thời gian thực thi', 'Vượt tiến độ']
+          ]
+        }
+      },
+      {
+        heading: 'III. ĐỀ XUẤT THỰC HIỆN TIẾP THEO',
+        items: [
+          'Kính trình Chủ sở hữu hệ thống (Ông QUANG NHỰT TRÍ) phê duyệt hồ sơ chính thức.',
+          'Chuyển giao tài liệu cho các bộ phận chuyên môn liên quan để triển khai.'
+        ]
+      }
+    ];
 
-1. KẾT QUẢ RÀ SOÁT TỔNG THỂ:
-- Thành phần hồ sơ: Đầy đủ theo quy định (100%).
-- Biểu mẫu: Đúng theo Nghị định 136/2020/NĐ-CP & QCVN 06:2026/BXD.
-- Nội dung kỹ thuật: Phù hợp với thiết kế được phê duyệt.
-- Các hạng mục cần lưu ý: 2 điểm kỹ thuật (Van xả tràn & Sơ đồ hoàn công).
+    if (activeSkill?.id?.includes('pccc')) {
+      title = 'BÁO CÁO KẾT QUẢ THẨM TRA & RÀ SOÁT HỒ SƠ NGHIỆM THU PCCC';
+      subTitle = 'V/v: Đối chiếu hồ sơ thi công nghiệm thu phòng cháy chữa cháy theo QCVN 06:2026/BXD';
+      department = 'BAN KỸ THUẬT & AN TOÀN CÔNG TRÌNH';
+    } else if (activeSkill?.id?.includes('mua-sam')) {
+      title = 'TỜ TRÌNH BÓC TÁCH & SO SÁNH ĐA BÁO GIÁ NHÀ CUNG CẤP';
+      subTitle = 'V/v: Lựa chọn nhà cung cấp tối ưu chi phí và chất lượng thiết bị công trình';
+      department = 'PHÒNG MUA SẮM & QUẢN LÝ ĐẤU THẦU';
+    } else if (activeSkill?.id?.includes('kol') || activeSkill?.id?.includes('thoi-trang')) {
+      title = 'TỜ TRÌNH XUẤT BẢN CHIẾN DỊCH VISUAL AI & LOOKBOOK THỜI TRANG';
+      subTitle = 'V/v: Phê duyệt bộ ảnh Lookbook 8K và tài liệu chiến dịch Người mẫu Ý Ngọc';
+      department = 'STUDIO SÁNG TẠO & VISUAL AI Ý NGỌC';
+    }
 
-2. ĐỀ XUẤT THỰC HIỆN:
-- Bổ sung biên bản thử nghiệm áp lực hệ thống báo cháy tự động.
-- Cập nhật sơ đồ hoàn công vào hồ sơ bàn giao.
-
-Khởi tạo tự động bởi Hệ sinh thái Trí AI.
-    `;
-    const blob = new Blob([reportContent], { type: 'application/msword;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Bao_cao_kiem_tra_${activeSkill.id || 'PCCC'}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportToWordDocument({
+      title,
+      subTitle,
+      department,
+      code: `01/BC-${(activeSkill?.id || 'TRIAI').toUpperCase()}`,
+      sections,
+      approverName: 'QUANG NHỰT TRÍ',
+      approverTitle: 'CHỦ SỞ HỮU & MASTER ADMIN',
+      fileName: `Bao_cao_${activeSkill?.id || 'TriAI'}_TimesNewRoman.doc`
+    });
   };
 
   // Kích hoạt Micro

@@ -207,7 +207,7 @@ export default function FileViewerModal({ file, onClose }) {
                 ['Tên đơn vị / Doanh nghiệp', 'CÔNG TY TNHH / DOANH NGHIỆP ĐỐI TÁC', 'NỀN TẢNG AI SAAS DOANH NGHIỆP TRÍ AI'],
                 ['Đại diện pháp luật', 'Ông / Bà: Đại Diện Khách Hàng', 'Ông: QUANG NHỰT TRÍ'],
                 ['Chức vụ', 'Tổng Giám Đốc / Giám Đốc', 'Chủ sở hữu & Giám Đốc Điều Hành'],
-                ['Mã số thuế / Số CCCD', '0315xxxxxx', '0004100030588008 (OCB Bank)'],
+                ['Mã số thuế / Số CCCD', '0315xxxxxx', '0982441446 (OCB Bank)'],
                 ['Địa chỉ trụ sở', 'Trụ sở chính Doanh nghiệp Bên A', 'Tòa nhà Công nghệ TRÍ AI, TP. Hồ Chí Minh'],
                 ['Email / Điện thoại', 'khachhang@doanhnghiep.vn', 'triqnnamabank@gmail.com']
               ]
@@ -224,7 +224,7 @@ export default function FileViewerModal({ file, onClose }) {
             heading: 'ĐIỀU 2: GIÁ TRỊ HỢP ĐỒNG VÀ PHƯƠNG THỨC THANH TOÁN',
             items: [
               'Tổng giá trị hợp đồng trước thuế: Được quy định theo từng gói giải pháp lựa chọn.',
-              'Phương thức thanh toán: Chuyển khoản ngân hàng qua cổng thanh toán tự động VietQR Napas 247 (Ngân hàng TMCP Phương Đông - OCB, STK: 0004100030588008, Chủ TK: NGUYEN QUANG TRI).',
+              'Phương thức thanh toán: Chuyển khoản ngân hàng qua cổng thanh toán tự động VietQR Napas 247 (Ngân hàng TMCP Phương Đông - OCB, STK: 0982441446, Chủ TK: QUANG NHỰT TRÍ).',
               'Tiến độ thanh toán: Tạm ứng 30% sau khi ký hợp đồng, 70% còn lại sau khi nghiệm thu bàn giao và cấp bản quyền chính thức.'
             ]
           },
