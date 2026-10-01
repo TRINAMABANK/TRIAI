@@ -486,3 +486,25 @@ export function revokeCustomerLicense(customerEmail, skillId, adminEmail) {
   return { success: true, message: `Đã thu hồi quyền Skill [${skillId}] của tài khoản ${customerEmail}.` };
 }
 
+export function deleteCustomerLicenseRequest(requestId, customerEmail, skillId, adminEmail) {
+  // 1. Xóa quyền trong kho skill của khách hàng
+  if (customerEmail) {
+    const emailLower = customerEmail.toLowerCase().trim();
+    const current = getUserOwnedSkillIds(emailLower, '') || [];
+    const updated = current.filter(id => id !== skillId && id !== 'master-33');
+    try {
+      localStorage.setItem(`tri_ai_user_skills_${emailLower}`, JSON.stringify(updated));
+    } catch (e) {}
+  }
+
+  // 2. Xóa bản ghi trong danh sách yêu cầu
+  const requests = getLicenseRequests();
+  const updatedRequests = requests.filter(r => r.id !== requestId);
+  saveLicenseRequests(updatedRequests);
+
+  return { 
+    success: true, 
+    message: `Đã xóa vĩnh viễn quyền và bản ghi của tài khoản ${customerEmail || 'này'}.` 
+  };
+}
+

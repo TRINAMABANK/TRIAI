@@ -28,6 +28,7 @@ import {
   rejectLicenseRequest, 
   grantDirectLicense, 
   revokeCustomerLicense,
+  deleteCustomerLicenseRequest,
   MASTER_ADMIN_EMAIL 
 } from '../data/skillsData';
 
@@ -124,6 +125,20 @@ export default function AdminApprovalModal({
         showToast(`🔒 ${res.message}`);
         loadData();
         if (onLicenseChanged) onLicenseChanged();
+      }
+    }
+  };
+
+  // Xử lý xóa quyền vĩnh viễn
+  const handleDeletePermission = (requestId, customerEmail, skillId, skillName) => {
+    if (window.confirm(`Anh có chắc chắn muốn XÓA VĨNH VIỄN quyền Skill [${skillName || skillId}] của tài khoản ${customerEmail}?`)) {
+      const res = deleteCustomerLicenseRequest(requestId, customerEmail, skillId, adminUser.email);
+      if (res.success) {
+        showToast(`🗑️ ${res.message}`);
+        loadData();
+        if (onLicenseChanged) onLicenseChanged();
+      } else {
+        showToast(`❌ ${res.message}`);
       }
     }
   };
@@ -278,49 +293,59 @@ export default function AdminApprovalModal({
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                      <button
-                        type="button"
-                        onClick={() => handleApprove(req.id)}
-                        disabled={!isAdmin}
-                        style={{
-                          background: '#16a34a',
-                          color: '#ffffff',
-                          border: 'none',
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          fontSize: '12.5px',
-                          fontWeight: 700,
-                          cursor: isAdmin ? 'pointer' : 'not-allowed',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)'
-                        }}
-                      >
-                        <CheckCircle2 size={16} /> Duyệt &amp; Cấp Quyền
-                      </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end', flexShrink: 0 }}>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <span style={{ fontSize: '10.5px', background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #fde68a' }}>
+                          Payment: PENDING
+                        </span>
+                        <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
+                          License: PENDING
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleApprove(req.id)}
+                          disabled={!isAdmin}
+                          style={{
+                            background: '#16a34a',
+                            color: '#ffffff',
+                            border: 'none',
+                            padding: '8px 14px',
+                            borderRadius: '8px',
+                            fontSize: '12.5px',
+                            fontWeight: 700,
+                            cursor: isAdmin ? 'pointer' : 'not-allowed',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)'
+                          }}
+                        >
+                          <CheckCircle2 size={16} /> XÁC NHẬN THANH TOÁN
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleReject(req.id)}
-                        disabled={!isAdmin}
-                        style={{
-                          background: '#fef2f2',
-                          color: '#dc2626',
-                          border: '1px solid #fecaca',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          fontSize: '12.5px',
-                          fontWeight: 600,
-                          cursor: isAdmin ? 'pointer' : 'not-allowed',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <XCircle size={15} /> Từ chối
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleReject(req.id)}
+                          disabled={!isAdmin}
+                          style={{
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            fontSize: '12.5px',
+                            fontWeight: 600,
+                            cursor: isAdmin ? 'pointer' : 'not-allowed',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <XCircle size={15} /> Từ chối
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -339,39 +364,66 @@ export default function AdminApprovalModal({
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <b style={{ fontSize: '14px', color: '#0f172a' }}>{req.userName}</b>
-                      <span style={{ fontSize: '11px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                        ✓ Đang hoạt động
+                      <span style={{ fontSize: '10.5px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        Payment: PAID
+                      </span>
+                      <span style={{ fontSize: '10.5px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                        License: ACTIVE
                       </span>
                     </div>
                     <div style={{ fontSize: '12.5px', color: '#475569', fontFamily: 'monospace', marginTop: '2px' }}>
                       📧 {req.email}
                     </div>
                     <div style={{ fontSize: '12.5px', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
-                      Skill đã cấp: <b>{req.skillName}</b> (Duyệt bởi: {req.approvedBy || MASTER_ADMIN_EMAIL})
+                      Skill đã mở khóa: <b>{req.skillName}</b> (Duyệt bởi: {req.approvedBy || MASTER_ADMIN_EMAIL})
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleRevoke(req.email, req.skillId)}
-                    disabled={!isAdmin}
-                    title="Thu hồi / Khóa bản quyền Skill này của khách hàng"
-                    style={{
-                      background: '#fef2f2',
-                      color: '#dc2626',
-                      border: '1px solid #fecaca',
-                      padding: '6px 10px',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: isAdmin ? 'pointer' : 'not-allowed',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <UserX size={14} /> Thu hồi quyền
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleRevoke(req.email, req.skillId)}
+                      disabled={!isAdmin}
+                      title="Thu hồi / Khóa bản quyền Skill này của khách hàng"
+                      style={{
+                        background: '#fef2f2',
+                        color: '#dc2626',
+                        border: '1px solid #fecaca',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: isAdmin ? 'pointer' : 'not-allowed',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <UserX size={14} /> Thu hồi quyền
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePermission(req.id, req.email, req.skillId, req.skillName)}
+                      disabled={!isAdmin}
+                      title="Xóa vĩnh viễn quyền và bản ghi khỏi hệ thống"
+                      style={{
+                        background: '#fff1f2',
+                        color: '#be123c',
+                        border: '1px solid #fecdd3',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: isAdmin ? 'pointer' : 'not-allowed',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Trash2 size={14} /> Xóa quyền
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
