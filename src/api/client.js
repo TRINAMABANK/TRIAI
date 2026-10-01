@@ -155,6 +155,11 @@ export const api = {
     getById: (id) => request(`/orders/${id}`)
   },
   payments: {
+    submitProof: ({ orderId, orderCode, transactionRef, note }) =>
+      request('/payments/submit-proof', {
+        method: 'POST',
+        body: JSON.stringify({ orderId, orderCode, transactionRef, note })
+      }),
     confirm: ({ orderId, orderCode, transactionRef }) =>
       request('/payments/confirm', {
         method: 'POST',
@@ -172,6 +177,21 @@ export const api = {
         body: JSON.stringify(data)
       }),
     getOrders: () => request('/admin/orders'),
+    verifyPayment: (orderId, data = {}) =>
+      request(`/admin/orders/${orderId}/verify-payment`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
+    rejectPayment: (orderId, data = {}) =>
+      request(`/admin/orders/${orderId}/reject-payment`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      }),
+    getNotifications: () => request('/admin/notifications'),
+    markNotificationRead: (id) =>
+      request(`/admin/notifications/${id}/read`, {
+        method: 'PUT'
+      }),
     getLicenses: () => request('/admin/licenses'),
     grantLicense: (data) =>
       request('/admin/licenses/grant', {

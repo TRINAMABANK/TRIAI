@@ -98,14 +98,15 @@ export default function PaymentQrModal({
     setIsVerifying(true);
     try {
       if (packageData) {
-        await api.payments.confirm({
+        await api.payments.submitProof({
           orderCode: transferContent,
           orderId: packageData.id,
-          transactionRef: `TXN_${Date.now()}`
+          transactionRef: `TXN_${Date.now()}`,
+          note: `Khách chuyển khoản ${formattedAmount} cho ${packageData.name || packageData.id}`
         }).catch(() => null);
       }
     } catch (e) {
-      console.warn('Payment API notice:', e);
+      console.warn('Payment submission notice:', e);
     }
 
     if (onPaymentSubmitted && packageData) {

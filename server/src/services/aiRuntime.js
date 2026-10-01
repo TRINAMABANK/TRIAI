@@ -48,7 +48,7 @@ export class AIRuntime {
           return {
             success: false,
             restricted: true,
-            reason: accessStatus.reason,
+            reason: accessStatus.reason === 'no_license' ? 'license_required' : (accessStatus.reason || 'license_required'),
             message: accessStatus.message,
             canTrial: accessStatus.canTrial || false,
             skill: { id: skill.id, name: skill.name, price: skill.priceMonth }

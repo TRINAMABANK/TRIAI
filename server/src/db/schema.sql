@@ -244,6 +244,20 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TEXT NOT NULL
 );
 
+-- 17. NOTIFICATIONS TABLE
+CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    type TEXT NOT NULL DEFAULT 'payment_pending',
+    order_id TEXT,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    data_json TEXT,
+    is_read INTEGER NOT NULL DEFAULT 0,
+    read_at TEXT,
+    created_at TEXT NOT NULL
+);
+
 -- INDEXES
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_licenses_user_skill ON licenses(user_id, skill_id);
@@ -251,3 +265,5 @@ CREATE INDEX IF NOT EXISTS idx_trials_user_skill ON trials(user_id, skill_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_order ON notifications(order_id);

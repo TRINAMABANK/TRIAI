@@ -32,6 +32,8 @@ import {
   MASTER_ADMIN_EMAIL 
 } from '../data/skillsData';
 
+import api from '../api/client';
+
 export default function AdminApprovalModal({ 
   isOpen, 
   onClose, 
@@ -54,9 +56,17 @@ export default function AdminApprovalModal({
     setTimeout(() => setToastMsg(''), 4000);
   };
 
-  const loadData = () => {
+  const loadData = async () => {
     const data = getLicenseRequests();
     setRequests(data);
+
+    // Sync from backend orders if available
+    try {
+      const ordersRes = await api.admin.getOrders().catch(() => null);
+      if (ordersRes && ordersRes.orders) {
+        // Log or integrate if needed
+      }
+    } catch (e) {}
   };
 
   useEffect(() => {
@@ -73,7 +83,11 @@ export default function AdminApprovalModal({
   const approvedRequests = requests.filter(r => r.status === 'approved');
 
   // Xử lý phê duyệt
-  const handleApprove = (requestId) => {
+  const handleApprove = async (requestId) => {
+    try {
+      await api.admin.verifyPayment(requestId, { transactionRef: `VERIFIED_${Date.now()}` }).catch(() => null);
+    } catch (e) {}
+
     const res = approveLicenseRequest(requestId, adminUser.email);
     if (res.success) {
       showToast(`✅ ${res.message}`);
@@ -85,7 +99,11 @@ export default function AdminApprovalModal({
   };
 
   // Xử lý từ chối
-  const handleReject = (requestId) => {
+  const handleReject = async (requestId) => {
+    try {
+      await api.admin.rejectPayment(requestId, { reason: 'Admin từ chối đơn hàng' }).catch(() => null);
+    } catch (e) {}
+
     const res = rejectLicenseRequest(requestId, adminUser.email);
     if (res.success) {
       showToast(`⚠️ ${res.message}`);
@@ -256,6 +274,18 @@ export default function AdminApprovalModal({
           {/* TAB 1: YÊU CẦU CHỜ DUYỆT */}
           {activeTab === 'pending' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {pendingRequests.length > 0 && (
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '20px' }}>🔔</span>
+                    <div>
+                      <b style={{ color: '#92400e', fontSize: '13.5px' }}>Thông báo: Có {pendingRequests.length} yêu cầu thanh toán mới</b>
+                      <div style={{ fontSize: '12px', color: '#b45309' }}>Quản trị viên kiểm tra tiền thực tế tại ngân hàng trước khi bấm Xác nhận thanh toán.</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {pendingRequests.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '36px 20px', background: '#ffffff', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
                   <CheckCircle2 size={36} color="#16a34a" style={{ margin: '0 auto 10px' }} />
@@ -274,16 +304,22 @@ export default function AdminApprovalModal({
                       </div>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', background: '#0f172a', color: '#ffffff', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, fontFamily: 'monospace' }}>
+                            {req.id}
+                          </span>
                           <b style={{ fontSize: '14px', color: '#0f172a' }}>{req.userName}</b>
                           <span style={{ fontSize: '11px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                            {req.type === 'trial' ? '🎁 Xin Dùng thử 15p' : '💳 Mua Bản Quyền'}
+                            {req.type === 'trial' ? '🎁 Dùng thử 15p' : '💳 Mua Bản Quyền'}
                           </span>
                         </div>
                         <div style={{ fontSize: '12.5px', color: '#2563eb', fontFamily: 'monospace', marginTop: '2px' }}>
                           📧 {req.email} {req.phone && `• 📞 ${req.phone}`}
                         </div>
                         <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
-                          Gói yêu cầu: <span style={{ color: '#0284c7' }}>{req.skillName}</span> ({req.price})
+                          Skill: <span style={{ color: '#0284c7' }}>{req.skillName}</span> • Số tiền: <b style={{ color: '#dc2626' }}>{req.price}</b>
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
+                          🏦 PTTT: <b>VietQR / OCB (0982441446)</b> • Ref: <code style={{ color: '#4338ca', fontWeight: 700 }}>{req.id}</code>
                         </div>
                         {req.notes && (
                           <div style={{ fontSize: '11.5px', color: '#64748b', fontStyle: 'italic', marginTop: '2px' }}>
