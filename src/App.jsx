@@ -149,11 +149,24 @@ export default function App() {
 
   const handleLogin = (userData, token) => {
     if (token) setAuthToken(token);
+    const isUserAdmin = userData.role === 'owner' || userData.role === 'admin' || userData.role === 'Chủ sở hữu';
+    
     setUser({
       ...userData,
       isLoggedIn: true,
-      isAdmin: userData.role === 'owner' || userData.role === 'admin' || userData.role === 'Chủ sở hữu'
+      isAdmin: isUserAdmin
     });
+
+    // Nếu là Admin -> Điều hướng sang /admin và mở Trung Tâm Quản Trị
+    // Nếu là User thường -> Giữ ở hệ thống User
+    if (isUserAdmin) {
+      window.history.pushState(null, '', '/admin');
+      setIsAdminApprovalOpen(true);
+    } else {
+      window.history.pushState(null, '', '/');
+      setIsAdminApprovalOpen(false);
+      setTab('chat');
+    }
   };
 
   const handleLogout = () => {
@@ -161,8 +174,25 @@ export default function App() {
     setAuthToken('');
     setUser({ isLoggedIn: false });
     setTrialStatus(null);
+    setIsAdminApprovalOpen(false);
+    window.history.pushState(null, '', '/');
     setTab('chat');
   };
+
+  // Kiểm tra đường dẫn /admin khi người dùng truy cập trực tiếp
+  useEffect(() => {
+    if (window.location.pathname === '/admin') {
+      if (!user?.isLoggedIn) {
+        openAuth('login');
+      } else if (isAdmin) {
+        setIsAdminApprovalOpen(true);
+      } else {
+        alert('Bạn không có quyền truy cập khu vực Quản trị Admin.');
+        window.history.pushState(null, '', '/');
+        setIsAdminApprovalOpen(false);
+      }
+    }
+  }, [user?.isLoggedIn, isAdmin]);
 
   const openAuth = (mode = 'login') => {
     setAuthModalInitialMode(mode);
@@ -714,7 +744,10 @@ export default function App() {
       {/* 7. TRUNG TÂM PHÊ DUYỆT & CẤP BẢN QUYỀN (CHỈ DÀNH CHO ADMIN) */}
       <AdminApprovalModal 
         isOpen={isAdminApprovalOpen}
-        onClose={() => setIsAdminApprovalOpen(false)}
+        onClose={() => {
+          setIsAdminApprovalOpen(false);
+          window.history.pushState(null, '', '/');
+        }}
         skills={skills}
         adminUser={user}
         onLicenseChanged={() => setLicenseChangeTick(prev => prev + 1)}

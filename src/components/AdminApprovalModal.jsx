@@ -66,7 +66,7 @@ export default function AdminApprovalModal({
 
   if (!isOpen) return null;
 
-  const isAdmin = adminUser.email?.toLowerCase().trim() === MASTER_ADMIN_EMAIL;
+  const isAdmin = adminUser.role === 'owner' || adminUser.role === 'admin' || adminUser.isAdmin || adminUser.role === 'Chủ sở hữu';
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
   const approvedRequests = requests.filter(r => r.status === 'approved');
