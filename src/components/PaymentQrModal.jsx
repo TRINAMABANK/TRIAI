@@ -11,7 +11,8 @@ import {
   Sparkles, 
   ArrowRight, 
   RefreshCw, 
-  Zap 
+  Zap,
+  Hourglass
 } from 'lucide-react';
 import api from '../api/client';
 
@@ -20,15 +21,15 @@ export default function PaymentQrModal({
   onClose, 
   packageData, 
   billingCycle = 'monthly',
-  onPaymentSuccess 
+  onPaymentSubmitted 
 }) {
   const [copiedField, setCopiedField] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [isPaidSuccess, setIsPaidSuccess] = useState(false);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
   const [timeLeft, setTimeLeft] = useState(900); // 15:00 đếm ngược
   const [imgError, setImgError] = useState(false);
 
-  // Thông tin tài khoản ngân hàng OCB theo yêu cầu của người dùng
+  // Thông tin tài khoản ngân hàng OCB duy nhất
   const BANK_INFO = {
     bankName: 'Ngân hàng TMCP Phương Đông (OCB)',
     bankCode: 'OCB',
@@ -62,7 +63,7 @@ export default function PaymentQrModal({
         .slice(0, 8);
       const rand = Math.floor(1000 + Math.random() * 9000);
       setTransferContent(`TRIAI ${code} ${rand}`);
-      setIsPaidSuccess(false);
+      setIsPendingApproval(false);
       setIsVerifying(false);
       setTimeLeft(900);
       setImgError(false);
@@ -71,12 +72,12 @@ export default function PaymentQrModal({
 
   // Đếm ngược thời gian phiên giao dịch
   useEffect(() => {
-    if (!isOpen || isPaidSuccess) return;
+    if (!isOpen || isPendingApproval) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(timer);
-  }, [isOpen, isPaidSuccess]);
+  }, [isOpen, isPendingApproval]);
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
@@ -106,17 +107,21 @@ export default function PaymentQrModal({
     } catch (e) {
       console.warn('Payment API notice:', e);
     }
+
+    if (onPaymentSubmitted && packageData) {
+      onPaymentSubmitted({
+        packageData,
+        billingCycle,
+        transferContent,
+        amountNumber,
+        formattedAmount
+      });
+    }
+
     setTimeout(() => {
       setIsVerifying(false);
-      setIsPaidSuccess(true);
-    }, 1200);
-  };
-
-  const handleStartUsing = () => {
-    if (onPaymentSuccess && packageData) {
-      onPaymentSuccess(packageData);
-    }
-    onClose();
+      setIsPendingApproval(true);
+    }, 1000);
   };
 
   if (!isOpen || !packageData) return null;
@@ -133,11 +138,11 @@ export default function PaymentQrModal({
             </div>
             <div>
               <h3 className="payment-heading">
-                {isPaidSuccess ? 'Kích Hoạt Bản Quyền Thành Công' : 'Thanh Toán & Kích Hoạt Gói Skill'}
+                {isPendingApproval ? 'Đã Ghi Nhận Yêu Cầu Chuyển Khoản' : 'Thanh Toán & Kích Hoạt Gói Skill'}
               </h3>
               <p className="payment-sub">
-                {isPaidSuccess 
-                  ? 'Gói năng lực AI đã sẵn sàng phục vụ công việc của anh'
+                {isPendingApproval 
+                  ? 'Yêu cầu đang chờ Quản trị viên QUANG NHỰT TRÍ đối soát và phê duyệt'
                   : 'Quét mã VietQR 24/7 hoặc chuyển khoản chính xác nội dung bên dưới'}
               </p>
             </div>
@@ -149,35 +154,37 @@ export default function PaymentQrModal({
 
         {/* MODAL BODY */}
         <div className="payment-modal-body">
-          {isPaidSuccess ? (
-            /* MÀN HÌNH THÀNH CÔNG RỰC RỠ */
-            <div className="payment-success-screen">
-              <div className="success-icon-wrapper">
-                <CheckCircle2 size={68} className="success-check-pulse" />
-                <span className="success-glow-ring" />
+          {isPendingApproval ? (
+            /* MÀN HÌNH CHỜ ADMIN PHÊ DUYỆT */
+            <div className="payment-success-screen" style={{ textAlign: 'center', padding: '24px 16px' }}>
+              <div className="success-icon-wrapper" style={{ background: '#fef3c7', color: '#d97706' }}>
+                <Hourglass size={56} className="success-check-pulse" />
               </div>
               
-              <h2 className="success-title">Thanh Toán Thành Công!</h2>
-              <div className="success-package-card">
+              <h2 className="success-title" style={{ color: '#b45309', marginTop: '12px' }}>
+                Đang Chờ Admin Phê Duyệt!
+              </h2>
+              <div className="success-package-card" style={{ maxWidth: '420px', margin: '14px auto', textAlign: 'left' }}>
                 <div className="success-pkg-name">✨ {packageData.name}</div>
                 <div className="success-pkg-meta">
                   <span>Kỳ hạn: <b>{billingCycle === 'monthly' ? 'Theo tháng' : 'Theo năm'}</b></span>
                   <span>Số tiền: <b className="success-amount">{formattedAmount}</b></span>
-                  <span>Ngân hàng: <b>OCB (Phương Đông)</b></span>
+                  <span>Nội dung CK: <b>{transferContent}</b></span>
+                  <span>Người duyệt: <b>QUANG NHỰT TRÍ (triqnnamabank@gmail.com)</b></span>
                 </div>
               </div>
 
-              <p className="success-congrats-text">
-                Chúc mừng quý khách! Gói bản quyền đã được kích hoạt thành công vào hệ sinh thái Trí AI. Hệ thống đã tự động mở khóa Skill và kết nối Trợ lý Agent chuyên ngành tương ứng để phục vụ công việc của bạn ngay lập tức.
+              <p className="success-congrats-text" style={{ maxWidth: '440px', margin: '0 auto 18px', color: '#475569', fontSize: '13.5px', lineHeight: '1.6' }}>
+                Hệ thống đã gửi thông tin giao dịch tới <b>Quản trị viên (QUANG NHỰT TRÍ)</b> để đối soát tài khoản OCB. Ngay sau khi Admin kiểm tra và bấm phê duyệt, Skill sẽ tự động được mở khóa trên tài khoản của bạn.
               </p>
 
               <button 
                 type="button" 
-                className="btn-start-now-glow"
-                onClick={handleStartUsing}
+                className="btn-primary"
+                onClick={onClose}
+                style={{ padding: '10px 24px', borderRadius: '10px', fontWeight: '700', fontSize: '14px' }}
               >
-                <span>Bắt đầu sử dụng Skill & Agent ngay</span>
-                <ArrowRight size={18} />
+                <span>Đã hiểu & Đóng</span>
               </button>
             </div>
           ) : (
@@ -219,35 +226,33 @@ export default function PaymentQrModal({
                     <Clock size={14} className="clock-icon" />
                     <span>Mã QR có hiệu lực trong: <b>{formatTime(timeLeft)}</b></span>
                   </div>
+                </div>
 
-                  <div className="qr-scan-instruction">
-                    Mở ứng dụng Mobile Banking của <b>bất kỳ ngân hàng nào</b> (OCB, VCB, MB, Techcombank, Momo, VNPay...) và chọn <b>Quét QR</b>.
-                  </div>
+                <div className="qr-helper-text">
+                  Mở ứng dụng Mobile Banking của <b>bất kỳ ngân hàng nào</b> (OCB, VCB, MB, Techcombank, Momo, VNPay...) và chọn <b>Quét QR</b>.
                 </div>
               </div>
 
               {/* CỘT PHẢI: THÔNG TIN CHUYỂN KHOẢN & SAO CHÉP NHANH */}
               <div className="payment-info-column">
                 
-                {/* Thông tin đơn hàng tóm tắt */}
-                <div className="order-summary-box">
-                  <div className="order-summary-header">
-                    <span className="order-label">Gói Skill lựa chọn:</span>
-                    <span className="order-cycle-tag">
-                      {billingCycle === 'monthly' ? 'Gói Tháng' : 'Gói Năm (-20%)'}
-                    </span>
+                {/* Header thông tin gói */}
+                <div className="package-summary-strip">
+                  <div className="pkg-summary-top">
+                    <span className="pkg-label-small">Gói Skill lựa chọn:</span>
+                    <span className="pkg-cycle-pill">{billingCycle === 'monthly' ? 'Gói Tháng' : 'Gói Năm (Ưu đãi)'}</span>
                   </div>
-                  <div className="order-pkg-title">{packageData.name}</div>
-                  <div className="order-total-price">
-                    <span className="total-label">Tổng thanh toán:</span>
-                    <span className="total-val">{formattedAmount}</span>
+                  <h4 className="pkg-chosen-name">{packageData.name}</h4>
+                  <div className="pkg-total-price">
+                    <span>Tổng thanh toán:</span>
+                    <b className="total-highlight">{formattedAmount}</b>
                   </div>
                 </div>
 
-                {/* Danh sách thông tin tài khoản OCB chi tiết có nút Copy */}
-                <div className="transfer-details-card">
-                  <div className="details-card-title">
-                    <CreditCard size={15} />
+                {/* Chi tiết tài khoản ngân hàng */}
+                <div className="bank-details-card">
+                  <div className="bank-card-title">
+                    <CreditCard size={16} />
                     <span>Thông tin chuyển khoản ngân hàng</span>
                   </div>
 
@@ -255,17 +260,17 @@ export default function PaymentQrModal({
                   <div className="transfer-field-row">
                     <span className="field-lbl">Ngân hàng:</span>
                     <div className="field-val-wrap">
-                      <b className="field-val highlight-bank">{BANK_INFO.bankName}</b>
+                      <b className="field-val text-brand">{BANK_INFO.bankName}</b>
                     </div>
                   </div>
 
-                  {/* 2. Số tài khoản OCB */}
+                  {/* 2. Số tài khoản */}
                   <div className="transfer-field-row">
                     <span className="field-lbl">Số tài khoản:</span>
                     <div className="field-val-wrap">
-                      <b className="field-val acc-num">{BANK_INFO.accountNumber}</b>
+                      <b className="field-val account-number-styled">{BANK_INFO.accountNumber}</b>
                       <button 
-                        type="button"
+                        type="button" 
                         className={`btn-copy-field ${copiedField === 'acc' ? 'copied' : ''}`}
                         onClick={() => handleCopy(BANK_INFO.accountNumber, 'acc')}
                         title="Sao chép số tài khoản"
@@ -276,7 +281,7 @@ export default function PaymentQrModal({
                     </div>
                   </div>
 
-                  {/* 3. Tên chủ tài khoản */}
+                  {/* 3. Chủ tài khoản */}
                   <div className="transfer-field-row">
                     <span className="field-lbl">Chủ tài khoản:</span>
                     <div className="field-val-wrap">
@@ -323,7 +328,7 @@ export default function PaymentQrModal({
                 <div className="payment-security-note">
                   <ShieldCheck size={16} className="shield-icon" />
                   <span>
-                    Vui lòng giữ nguyên <b>nội dung chuyển khoản</b> để hệ thống tự động đối soát và kích hoạt Skill tức thì.
+                    Vui lòng giữ nguyên <b>nội dung chuyển khoản</b> để Quản trị viên đối soát chính xác và phê duyệt mở khóa Skill.
                   </span>
                 </div>
 
@@ -345,7 +350,7 @@ export default function PaymentQrModal({
                     {isVerifying ? (
                       <>
                         <RefreshCw size={16} className="spin-icon" />
-                        <span>Đang đối soát OCB Napas...</span>
+                        <span>Đang gửi thông tin đối soát...</span>
                       </>
                     ) : (
                       <>

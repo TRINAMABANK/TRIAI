@@ -278,13 +278,14 @@ export default function App() {
     ? skills.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || (s.desc && s.desc.toLowerCase().includes(searchTerm.toLowerCase())))
     : skills;
 
-  // Xử lý khi mua / kích hoạt gói Skill trong Store
-  const handleActivatePurchasedSkill = (purchasedPkg) => {
+  // Xử lý khi khách hàng gửi xác nhận đã chuyển khoản VietQR OCB (Chờ Admin phê duyệt)
+  const handleRequestSkillPurchase = (paymentInfo) => {
     if (!user?.isLoggedIn) {
       openAuth('login');
       return;
     }
 
+    const { packageData, billingCycle, transferContent, formattedAmount } = paymentInfo;
     const packageToSkillMap = {
       'store-kol': 'kol-thoi-trang',
       'kol-thoi-trang': 'kol-thoi-trang',
@@ -303,110 +304,49 @@ export default function App() {
       'store-enterprise': 'master-33'
     };
 
-    const skillToAgentMap = {
-      'kol-thoi-trang': 'tro-ly-kol',
-      'pccc': 'anh-an',
-      'mua-sam': 'tro-ly-muasam',
-      'mep': 'anh-an',
-      'phap-ly': 'tro-ly-phaply',
-      'van-hanh-toa-nha': 'anh-an'
-    };
-
-    const targetSkillId = packageToSkillMap[purchasedPkg.id] || purchasedPkg.id;
-    const isMasterAll = targetSkillId === 'master-33' || purchasedPkg.id === 'store-master-33' || purchasedPkg.id === 'store-enterprise';
-
-    let matchedSkill = isMasterAll 
-      ? (skills.find(s => s.id === 'kol-thoi-trang') || skills[0])
-      : skills.find(s => s.id === targetSkillId || s.id === purchasedPkg.id || s.name?.toLowerCase() === purchasedPkg.name?.toLowerCase());
-
-    if (!matchedSkill) {
-      matchedSkill = {
-        id: targetSkillId || 'skill-' + Date.now(),
-        name: purchasedPkg.name,
-        category: purchasedPkg.category || 'Gói đã mua',
-        desc: purchasedPkg.desc || 'Bộ kỹ năng chuyên môn đã kích hoạt bản quyền.',
-        color: purchasedPkg.color || 'blue',
-        price: purchasedPkg.price || 'Đã mua',
-        systemRole: `Chuyên gia ${purchasedPkg.name}`,
-        samplePrompt: `Thực thi quy trình chuyên môn ${purchasedPkg.name}`,
-        checklist: [
-          { label: 'Kích hoạt bản quyền thương mại: Thành công', status: 'pass' },
-          { label: 'Quy trình đối soát dữ liệu: Sẵn sàng 100%', status: 'pass' }
-        ]
-      };
-      const updatedList = addOrUpdateSkill(matchedSkill);
-      setSkills(updatedList);
-    }
-
-    const skillName = matchedSkill?.name || purchasedPkg.name;
+    const targetSkillId = packageToSkillMap[packageData.id] || packageData.id;
+    const isMasterAll = targetSkillId === 'master-33' || packageData.id === 'store-master-33' || packageData.id === 'store-enterprise';
+    const skillName = isMasterAll ? 'Trọn Bộ 33 Skill Master & Agent' : packageData.name;
     const userEmail = (user?.email || 'khachhang@example.com').toLowerCase().trim();
-    const userName = user?.name || 'Khách hàng';
+    const userName = user?.name || userEmail.split('@')[0];
 
-    // 1. CẤP QUYỀN SỞ HỮU SKILL CHO TÀI KHOẢN KHÁCH HÀNG
-    if (isMasterAll) {
-      skills.forEach(s => saveUserOwnedSkill(userEmail, s.id));
-    } else if (matchedSkill?.id) {
-      saveUserOwnedSkill(userEmail, matchedSkill.id);
-    }
+    // Tạo yêu cầu bản quyền ở trạng thái "pending" (Chờ Admin duyệt)
+    createLicenseRequest({
+      email: userEmail,
+      userName: userName,
+      skillId: isMasterAll ? 'master-33' : targetSkillId,
+      skillName: skillName,
+      type: 'purchase_qr',
+      price: formattedAmount || packageData.priceMonth || packageData.price || '99.000đ',
+      notes: `Khách hàng đã chuyển khoản VietQR OCB (Mã: ${transferContent}). Đang chờ Admin đối soát và phê duyệt.`
+    });
 
-    // 2. GÁN AGENT TƯƠNG ỨNG VỚI SKILL ĐÃ MUA
-    const targetAgentId = skillToAgentMap[matchedSkill?.id] || (matchedSkill?.id === 'kol-thoi-trang' ? 'tro-ly-kol' : 'anh-an');
-    const matchedAgent = AGENTS_DATA.find(a => a.id === targetAgentId) || AGENTS_DATA[0];
-    setSelectedAgent(matchedAgent);
+    setLicenseChangeTick(prev => prev + 1);
 
-    // 3. GHI NHẬN GIAO DỊCH
-    try {
-      const allReqs = getLicenseRequests();
-      const autoApprovedLog = {
-        id: `REQ-PAY-${Date.now().toString().slice(-6)}`,
-        email: userEmail,
-        userName: userName,
-        skillId: isMasterAll ? 'master-33' : matchedSkill.id,
-        skillName: isMasterAll ? 'Trọn Bộ 33 Skill Master & Agent' : skillName,
-        type: 'purchase_qr',
-        price: purchasedPkg.priceMonth || purchasedPkg.price || 'Đã thanh toán VietQR OCB',
-        time: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-        status: 'approved',
-        approvedBy: 'Hệ thống Quét VietQR OCB (Tự động)',
-        approvedAt: new Date().toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }),
-        phone: '',
-        notes: `Khách hàng quét mã VietQR OCB thành công. Hệ thống tự động mở khóa Skill [${skillName}] & Trợ lý [${matchedAgent.name}].`
-      };
-      saveLicenseRequests([autoApprovedLog, ...allReqs]);
-      setLicenseChangeTick(prev => prev + 1);
-    } catch (e) {}
-
-    // 4. CẬP NHẬT THÔNG TIN TÀI KHOẢN
-    const updatedUser = {
-      ...user,
-      plan: isMasterAll ? 'Trọn Gói 33 Skill VIP Toàn Quyền' : `Gói ${skillName} & ${matchedAgent.name} (Đã thanh toán QR)`
-    };
-    setUser(updatedUser);
-
-    // 5. KÍCH HOẠT SKILL VÀ CHUYỂN NGAY VÀO KHÔNG GIAN CHAT
-    setActiveSkill(matchedSkill);
+    // Chuyển về màn hình chat và thông báo trạng thái Chờ phê duyệt
     setTab('chat');
     setBannerMode('chat');
 
-    // 6. THÔNG BÁO CHÚC MỪNG
-    const celebrationMsg = {
+    const pendingMsg = {
       id: Date.now(),
       role: 'ai',
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      text: `🎉 XÁC NHẬN THANH TOÁN VIETQR THÀNH CÔNG! HỆ THỐNG ĐÃ KÍCH HOẠT SKILL VÀ AGENT CHO BẠN!\n\n` +
-            `• ✨ Skill đã kích hoạt: [${isMasterAll ? 'TRỌN BỘ 33 SKILL MASTER' : skillName.toUpperCase()}]\n` +
-            `• 🤖 Trợ lý Agent đồng hành: ${matchedAgent.name} (${matchedAgent.role})\n` +
-            `• 📧 Cấp quyền cho tài khoản: ${userEmail}\n` +
-            `• 👑 Đối soát thanh toán: Đã xác thực thành công qua VietQR OCB (STK: 0982441446 - QUANG NHỰT TRÍ)\n\n` +
-            `"${matchedAgent.greeting}"\n\nToàn bộ năng lực xử lý, tài liệu và prompt mẫu đã được mở khóa 100%. Bạn có thể bắt đầu ngay!`,
-      checklist: matchedSkill.checklist || [
-        { label: `Kích hoạt năng lực: ${skillName}`, status: 'pass' },
-        { label: `Kết nối Trợ lý Agent: ${matchedAgent.name}`, status: 'pass' },
-        { label: 'Bản quyền thương mại VietQR: Đã xác thực thành công 100%', status: 'pass' }
+      text: `⏳ ĐÃ GỬI YÊU CẦU ĐĂNG KÝ BẢN QUYỀN [${skillName.toUpperCase()}]:\n\n` +
+            `• 📦 Gói đăng ký: ${skillName}\n` +
+            `• 💰 Số tiền chuyển khoản: ${formattedAmount || packageData.priceMonth || packageData.price}\n` +
+            `• 📝 Mã giao dịch CK: ${transferContent}\n` +
+            `• 👤 Tài khoản nhận: ${userEmail}\n` +
+            `• 👑 Quản trị viên phê duyệt: QUANG NHỰT TRÍ (triqnnamabank@gmail.com)\n\n` +
+            `📌 TRẠNG THÁI: ĐANG CHỜ ADMIN XÁC NHẬN.\n` +
+            `Sau khi Quản trị viên kiểm tra và xác nhận chuyển khoản ngân hàng OCB thành công, Skill sẽ được mở khóa toàn quyền cho tài khoản của bạn!`,
+      checklist: [
+        { label: `Gửi thông tin giao dịch: ${skillName}`, status: 'pass' },
+        { label: 'Trạng thái: Chờ Quản trị viên đối soát OCB', status: 'pending' },
+        { label: 'Mở khóa Skill: Sau khi Admin phê duyệt', status: 'pending' }
       ],
-      files: matchedSkill.sampleFiles || []
+      files: []
     };
-    setMessages(prev => [...prev, celebrationMsg]);
+    setMessages(prev => [...prev, pendingMsg]);
   };
 
   // Chuyển sang chat kèm tin nhắn gợi ý hoặc Agent
@@ -625,7 +565,7 @@ export default function App() {
         {/* TAB 4: Cửa hàng Skill */}
         {currentTab === 'store' && (
           <StoreView 
-            onActivateSkill={handleActivatePurchasedSkill}
+            onRequestPurchase={handleRequestSkillPurchase}
             onStartTrial={handleStartTrial}
             onSwitchToChat={handleSwitchToChat}
             user={user}
@@ -717,8 +657,8 @@ export default function App() {
         isOpen={isStoreOpen}
         onClose={() => setIsStoreOpen(false)}
         onStartTrial={handleStartTrial}
-        onActivateSkill={(s) => {
-          handleActivatePurchasedSkill(s);
+        onRequestPurchase={(info) => {
+          handleRequestSkillPurchase(info);
           setIsStoreOpen(false);
           setTab('chat');
         }}

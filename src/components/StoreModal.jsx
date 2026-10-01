@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, ShoppingCart, Check, Sparkles, Flame, Building2, Scale, Package, ShieldCheck } from 'lucide-react';
 import PaymentQrModal from './PaymentQrModal';
 
-export default function StoreModal({ isOpen, onClose, onActivateSkill, onStartTrial }) {
+export default function StoreModal({ isOpen, onClose, onRequestPurchase, onStartTrial }) {
   const [selectedPkgForPayment, setSelectedPkgForPayment] = useState(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
 
@@ -201,14 +201,9 @@ export default function StoreModal({ isOpen, onClose, onActivateSkill, onStartTr
           onClose={() => setIsPaymentOpen(false)}
           packageData={selectedPkgForPayment}
           billingCycle="monthly"
-          onPaymentSuccess={(pkg) => {
-            if (onActivateSkill) {
-              onActivateSkill({
-                id: pkg.id,
-                name: pkg.name,
-                category: pkg.category || 'Chuyên ngành',
-                desc: pkg.desc || ''
-              });
+          onPaymentSubmitted={(paymentInfo) => {
+            if (onRequestPurchase) {
+              onRequestPurchase(paymentInfo);
             }
             onClose();
           }}

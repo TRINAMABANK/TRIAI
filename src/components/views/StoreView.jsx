@@ -17,7 +17,7 @@ import {
 import PaymentQrModal from '../PaymentQrModal';
 
 export default function StoreView({ 
-  onActivateSkill, 
+  onRequestPurchase, 
   onSwitchToChat, 
   onStartTrial,
   user = { isLoggedIn: false },
@@ -141,17 +141,11 @@ export default function StoreView({
     setIsPaymentModalOpen(true);
   };
 
-  const handlePaymentSuccess = (pkg) => {
-    setPurchasedId(pkg.id);
-    onActivateSkill({
-      id: pkg.id,
-      name: pkg.name,
-      category: pkg.category,
-      desc: pkg.desc
-    });
-    setTimeout(() => {
-      onSwitchToChat(`Tôi vừa thanh toán và kích hoạt thành công ${pkg.name}. Hãy hướng dẫn tôi cách sử dụng hiệu quả nhất!`);
-    }, 400);
+  const handlePaymentSubmitted = (paymentInfo) => {
+    setPurchasedId(paymentInfo.packageData?.id);
+    if (onRequestPurchase) {
+      onRequestPurchase(paymentInfo);
+    }
   };
 
   const handleDownloadContract = (pkg) => {
@@ -310,7 +304,7 @@ export default function StoreView({
         onClose={() => setIsPaymentModalOpen(false)}
         packageData={selectedPkgForPayment}
         billingCycle={billingCycle}
-        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentSubmitted={handlePaymentSubmitted}
       />
     </div>
   );
