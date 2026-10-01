@@ -5,11 +5,16 @@ import LicenseEngine from './licenseEngine.js';
 
 export class PaymentService {
   /**
-   * Create an order for skills or packages (Status = 'pending', NEVER auto-activated)
+   * Create an order on server-side
+   * Backend strictly resolves skill prices and calculates totalAmount.
    */
   static async createOrder({ userId, items = [], note = '' }) {
     if (!items || items.length === 0) {
       throw new Error('Đơn hàng cần ít nhất 1 sản phẩm.');
+    }
+
+    if (!userId) {
+      throw new Error('Vui lòng đăng nhập để tạo đơn hàng.');
     }
 
     const orderId = `ord_${uuidv4().substring(0, 8)}`;
@@ -21,14 +26,17 @@ export class PaymentService {
 
     for (const item of items) {
       const skill = await db.get('SELECT * FROM skills WHERE id = ?', [item.skillId]);
-      if (!skill) continue;
+      if (!skill) {
+        throw new Error(`Skill ${item.skillId} không tồn tại trong hệ thống.`);
+      }
 
       let price = 199000;
       if (item.period === 'yearly') {
-        price = 1990000;
+        const cleanedYearPrice = parseInt(String(skill.price_year || '1990000').replace(/\D/g, ''), 10);
+        price = !isNaN(cleanedYearPrice) && cleanedYearPrice > 0 ? cleanedYearPrice : 1990000;
       } else {
-        const cleanedPrice = parseInt(String(skill.price_month || '199000').replace(/\D/g, ''), 10);
-        if (!isNaN(cleanedPrice) && cleanedPrice > 0) price = cleanedPrice;
+        const cleanedMonthPrice = parseInt(String(skill.price_month || '199000').replace(/\D/g, ''), 10);
+        price = !isNaN(cleanedMonthPrice) && cleanedMonthPrice > 0 ? cleanedMonthPrice : 199000;
       }
 
       totalAmount += price;
@@ -42,9 +50,9 @@ export class PaymentService {
       });
     }
 
-    // Lấy thông tin user để lưu vào notification
+    // Lấy thông tin user để lưu snapshot và notification
     const user = await db.get('SELECT id, email, full_name FROM users WHERE id = ?', [userId]);
-    const userEmail = user?.email || 'Khách vãng lai';
+    const userEmail = user?.email || 'Khách hàng';
     const userName = user?.full_name || 'Khách hàng';
 
     await db.transaction(async () => {
@@ -55,12 +63,12 @@ export class PaymentService {
         [orderId, userId, orderCode, totalAmount, note, now, now]
       );
 
-      // 2. Insert Order Items
+      // 2. Insert Order Items with snapshot price
       for (const item of resolvedItems) {
         await db.run(
-          `INSERT INTO order_items (id, order_id, skill_id, plan_duration, unit_price, total_price, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [item.id, orderId, item.skillId, item.period, item.price, item.price, now]
+          `INSERT INTO order_items (id, order_id, skill_id, skill_name, plan_duration, unit_price, total_price, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [item.id, orderId, item.skillId, item.skillName, item.period, item.price, item.price, now]
         );
       }
 
@@ -79,13 +87,13 @@ export class PaymentService {
       });
 
       await db.run(
-        `INSERT INTO notifications (id, user_id, type, order_id, title, message, data_json, is_read, created_at)
-         VALUES (?, 'usr_master_admin', 'payment_pending', ?, ?, ?, ?, 0, ?)`,
+        `INSERT INTO notifications (id, user_id, type, title, message, resource_type, resource_id, data_json, is_read, created_at)
+         VALUES (?, 'usr_master_admin', 'payment_pending', ?, ?, 'order', ?, ?, 0, ?)`,
         [
           notifId,
-          orderId,
           `🔔 Có đơn hàng mới: ${orderCode} (${totalAmount.toLocaleString('vi-VN')} đ)`,
-          `Khách hàng ${userName} (${userEmail}) yêu cầu mua Skill [${skillNames}]. Đang chờ xác nhận chuyển khoản.`,
+          `Khách hàng ${userName} (${userEmail}) vừa tạo đơn mua Skill [${skillNames}].`,
+          orderId,
           notifData,
           now
         ]
@@ -101,12 +109,15 @@ export class PaymentService {
       orderId,
       orderCode,
       totalAmount,
+      formattedAmount: totalAmount.toLocaleString('vi-VN') + ' đ',
       status: 'pending',
       bankInfo: {
-        bankName: env.BANK_NAME || 'Ngân hàng TMCP Phương Đông (OCB)',
+        bankName: env.BANK_NAME || 'OCB',
+        bankFullName: 'Ngân hàng TMCP Phương Đông (OCB)',
         accountNumber: env.BANK_ACCOUNT_NUMBER || '0982441446',
         accountHolder: env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ'
       },
+      transferContent: orderCode,
       qrUrl,
       items: resolvedItems,
       createdAt: now
@@ -114,55 +125,99 @@ export class PaymentService {
   }
 
   /**
-   * Customer submits payment notification / transaction reference
-   * Status remains 'pending', DOES NOT ACTIVATE LICENSE.
+   * Customer submits payment request after transferring money (POST /api/orders/:orderId/payment-request)
+   * - Must be the owner of the order
+   * - Sets payment to pending
+   * - Writes audit log
+   * - Creates Admin notification
+   * - DOES NOT GRANT LICENSE
    */
-  static async submitPaymentProof({ orderId, orderCode, transactionRef, note, userId }) {
-    const target = orderId || orderCode;
-    if (!target) {
+  static async requestPayment({ orderId, userId, transactionRef = '', note = '' }) {
+    if (!orderId) {
       throw new Error('Thiếu mã đơn hàng.');
     }
 
-    const order = await db.get('SELECT * FROM orders WHERE id = ? OR order_code = ?', [target, target]);
+    const order = await db.get('SELECT * FROM orders WHERE id = ? OR order_code = ?', [orderId, orderId]);
     if (!order) {
-      throw new Error('Không tìm thấy đơn hàng tương ứng.');
+      const err = new Error('Không tìm thấy đơn hàng tương ứng.');
+      err.status = 404;
+      throw err;
     }
 
-    if (order.status === 'completed') {
+    if (order.user_id !== userId) {
+      const err = new Error('Bạn không có quyền gửi yêu cầu thanh toán cho đơn hàng này.');
+      err.status = 403;
+      throw err;
+    }
+
+    if (order.status === 'completed' || order.status === 'paid') {
       return {
         success: true,
         status: 'completed',
-        message: 'Đơn hàng này đã được Admin xác nhận thanh toán trước đó.'
+        message: 'Đơn hàng này đã được xác nhận thanh toán trước đó.'
       };
     }
 
     const now = new Date().toISOString();
-    const txnRef = transactionRef || `REF_${Date.now()}`;
+    const txnRef = transactionRef || `REF_${order.order_code}`;
 
     await db.transaction(async () => {
-      // 1. Update order note or reference
-      await db.run(
-        `UPDATE orders SET note = COALESCE(?, note), updated_at = ? WHERE id = ?`,
-        [note ? `${order.note ? order.note + ' | ' : ''}${note}` : null, now, order.id]
-      );
+      // 1. Update order note
+      if (note) {
+        await db.run(
+          `UPDATE orders SET note = ?, updated_at = ? WHERE id = ?`,
+          [order.note ? `${order.note} | ${note}` : note, now, order.id]
+        );
+      }
 
-      // 2. Insert or update pending payment record
+      // 2. Insert or update payments table as 'pending'
       const existingPay = await db.get('SELECT * FROM payments WHERE order_id = ?', [order.id]);
       if (existingPay) {
         await db.run(
-          `UPDATE payments SET transaction_ref = ?, status = 'pending', raw_response_json = ? WHERE id = ?`,
-          [txnRef, JSON.stringify({ customerSubmitted: true, at: now, note }), existingPay.id]
+          `UPDATE payments SET transaction_ref = ?, status = 'pending', raw_response_json = ?, updated_at = ? WHERE id = ?`,
+          [txnRef, JSON.stringify({ customerSubmitted: true, at: now, note }), now, existingPay.id]
         );
       } else {
         const paymentId = `pay_${uuidv4().substring(0, 8)}`;
         await db.run(
-          `INSERT INTO payments (id, order_id, user_id, transaction_ref, amount, currency, payment_gateway, status, raw_response_json, created_at)
-           VALUES (?, ?, ?, ?, ?, 'VND', 'vietqr', 'pending', ?, ?)`,
-          [paymentId, order.id, order.user_id, txnRef, order.total_amount, JSON.stringify({ customerSubmitted: true, at: now }), now]
+          `INSERT INTO payments (id, order_id, user_id, transaction_ref, amount, currency, payment_gateway, bank_name, account_number, account_name, status, raw_response_json, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 'VND', 'vietqr', ?, ?, ?, 'pending', ?, ?, ?)`,
+          [
+            paymentId,
+            order.id,
+            order.user_id,
+            txnRef,
+            order.total_amount,
+            env.BANK_NAME || 'OCB',
+            env.BANK_ACCOUNT_NUMBER || '0982441446',
+            env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ',
+            JSON.stringify({ customerSubmitted: true, at: now }),
+            now,
+            now
+          ]
         );
       }
 
-      // 3. Create or update notification for Admin
+      // 3. Insert Audit Log
+      const auditId = `aud_${uuidv4().substring(0, 8)}`;
+      await db.run(
+        `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, details_json, created_at)
+         VALUES (?, ?, 'payment_request', 'order', ?, ?, ?)`,
+        [
+          auditId,
+          userId,
+          order.id,
+          JSON.stringify({
+            orderCode: order.order_code,
+            amount: order.total_amount,
+            transactionRef: txnRef,
+            note
+          }),
+          now
+        ]
+      );
+
+      // 4. Create Notification for Admin
       const notifId = `notif_${uuidv4().substring(0, 8)}`;
       const user = await db.get('SELECT email, full_name FROM users WHERE id = ?', [order.user_id]);
       const notifData = JSON.stringify({
@@ -176,13 +231,13 @@ export class PaymentService {
       });
 
       await db.run(
-        `INSERT INTO notifications (id, user_id, type, order_id, title, message, data_json, is_read, created_at)
-         VALUES (?, 'usr_master_admin', 'payment_pending', ?, ?, ?, ?, 0, ?)`,
+        `INSERT INTO notifications (id, user_id, type, title, message, resource_type, resource_id, data_json, is_read, created_at)
+         VALUES (?, 'usr_master_admin', 'payment_pending', ?, ?, 'order', ?, ?, 0, ?)`,
         [
           notifId,
+          `🔔 Khách hàng vừa gửi yêu cầu thanh toán`,
+          `Khách hàng ${user?.email || ''} báo đã chuyển khoản ${order.total_amount.toLocaleString('vi-VN')} đ cho đơn ${order.order_code}. Vui lòng đối soát thực tế.`,
           order.id,
-          `🔔 Khách đã chuyển tiền: Đơn ${order.order_code}`,
-          `Khách hàng ${user?.email || ''} báo đã chuyển khoản ${order.total_amount.toLocaleString('vi-VN')} đ (Ref: ${txnRef}). Vui lòng kiểm tra tài khoản và xác nhận.`,
           notifData,
           now
         ]
@@ -194,13 +249,12 @@ export class PaymentService {
       status: 'pending',
       orderId: order.id,
       orderCode: order.order_code,
-      message: 'Thông tin thanh toán đã được gửi. Vui lòng chờ Quản trị viên đối soát thực tế để kích hoạt bản quyền.'
+      message: 'Đã gửi yêu cầu. Đang chờ Admin đối soát.'
     };
   }
 
   /**
-   * Admin verifies payment and activates license
-   * ONLY ADMIN CAN CALL THIS METHOD.
+   * Admin verifies actual bank transaction and activates licenses
    */
   static async adminVerifyPayment({ orderId, adminUserId, adminEmail, transactionRef }) {
     const order = await db.get('SELECT * FROM orders WHERE id = ? OR order_code = ?', [orderId, orderId]);
@@ -208,7 +262,7 @@ export class PaymentService {
       throw new Error('Không tìm thấy đơn hàng cần phê duyệt.');
     }
 
-    if (order.status === 'completed') {
+    if (order.status === 'completed' || order.status === 'paid') {
       return {
         success: true,
         message: 'Đơn hàng đã được phê duyệt và kích hoạt trước đó.',
@@ -229,19 +283,33 @@ export class PaymentService {
         [now, order.id]
       );
 
-      // 2. Update or insert payment record as 'success'
+      // 2. Update or insert payment record as 'verified'
       const existingPayment = await db.get('SELECT * FROM payments WHERE order_id = ?', [order.id]);
       if (existingPayment) {
         await db.run(
-          `UPDATE payments SET status = 'success', transaction_ref = ?, raw_response_json = ? WHERE id = ?`,
-          [finalTxnRef, JSON.stringify({ verifiedBy: verifier, at: now }), existingPayment.id]
+          `UPDATE payments SET status = 'verified', transaction_ref = ?, verified_at = ?, verified_by = ?, raw_response_json = ?, updated_at = ? WHERE id = ?`,
+          [finalTxnRef, now, verifier, JSON.stringify({ verifiedBy: verifier, at: now }), now, existingPayment.id]
         );
       } else {
         const paymentId = `pay_${uuidv4().substring(0, 8)}`;
         await db.run(
-          `INSERT INTO payments (id, order_id, user_id, transaction_ref, amount, currency, payment_gateway, status, raw_response_json, created_at)
-           VALUES (?, ?, ?, ?, ?, 'VND', 'vietqr', 'success', ?, ?)`,
-          [paymentId, order.id, order.user_id, finalTxnRef, order.total_amount, JSON.stringify({ verifiedBy: verifier, at: now }), now]
+          `INSERT INTO payments (id, order_id, user_id, transaction_ref, amount, currency, payment_gateway, bank_name, account_number, account_name, status, verified_at, verified_by, raw_response_json, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 'VND', 'vietqr', ?, ?, ?, 'verified', ?, ?, ?, ?, ?)`,
+          [
+            paymentId,
+            order.id,
+            order.user_id,
+            finalTxnRef,
+            order.total_amount,
+            env.BANK_NAME || 'OCB',
+            env.BANK_ACCOUNT_NUMBER || '0982441446',
+            env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ',
+            now,
+            verifier,
+            JSON.stringify({ verifiedBy: verifier, at: now }),
+            now,
+            now
+          ]
         );
       }
 
@@ -254,7 +322,7 @@ export class PaymentService {
           skillId: item.skill_id,
           licenseType: item.plan_duration === 'yearly' ? 'yearly' : 'monthly',
           durationDays,
-          grantedBy: `admin:${verifier}`
+          grantedBy: verifier
         });
       }
 
@@ -279,8 +347,22 @@ export class PaymentService {
 
       // 5. Mark notifications for this order as read
       await db.run(
-        `UPDATE notifications SET is_read = 1, read_at = ? WHERE order_id = ?`,
-        [now, order.id]
+        `UPDATE notifications SET is_read = 1, read_at = ? WHERE resource_id = ? OR resource_id = ?`,
+        [now, order.id, order.order_code]
+      );
+
+      // 6. Create Notification for Customer
+      const custNotifId = `notif_${uuidv4().substring(0, 8)}`;
+      await db.run(
+        `INSERT INTO notifications (id, user_id, type, title, message, resource_type, resource_id, is_read, created_at)
+         VALUES (?, ?, 'payment_verified', 'Thanh toán đã được xác nhận', ?, 'order', ?, 0, ?)`,
+        [
+          custNotifId,
+          order.user_id,
+          `Đơn hàng ${order.order_code} của bạn đã được Admin xác nhận thanh toán. Bản quyền Skill đã được kích hoạt thành công!`,
+          order.id,
+          now
+        ]
       );
     });
 
@@ -297,9 +379,8 @@ export class PaymentService {
 
   /**
    * Admin rejects payment request
-   * ONLY ADMIN CAN CALL THIS METHOD.
    */
-  static async adminRejectPayment({ orderId, adminUserId, adminEmail, reason = 'Chưa nhận được chuyển khoản hoặc thông tin không khớp' }) {
+  static async adminRejectPayment({ orderId, adminUserId, adminEmail, reason = 'Không tìm thấy giao dịch ngân hàng khớp' }) {
     const order = await db.get('SELECT * FROM orders WHERE id = ? OR order_code = ?', [orderId, orderId]);
     if (!order) {
       throw new Error('Không tìm thấy đơn hàng cần từ chối.');
@@ -309,16 +390,16 @@ export class PaymentService {
     const rejector = adminEmail || env.ADMIN_EMAIL;
 
     await db.transaction(async () => {
-      // 1. Update order status to 'rejected'
+      // 1. Update order status to 'cancelled'
       await db.run(
-        `UPDATE orders SET status = 'rejected', updated_at = ? WHERE id = ?`,
+        `UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?`,
         [now, order.id]
       );
 
       // 2. Update payment status to 'failed'
       await db.run(
-        `UPDATE payments SET status = 'failed', raw_response_json = ? WHERE order_id = ?`,
-        [JSON.stringify({ rejectedBy: rejector, reason, at: now }), order.id]
+        `UPDATE payments SET status = 'failed', raw_response_json = ?, updated_at = ? WHERE order_id = ?`,
+        [JSON.stringify({ rejectedBy: rejector, reason, at: now }), now, order.id]
       );
 
       // 3. Record Audit Log
@@ -340,10 +421,24 @@ export class PaymentService {
         ]
       );
 
-      // 4. Mark notifications as read
+      // 4. Mark admin notifications as read
       await db.run(
-        `UPDATE notifications SET is_read = 1, read_at = ? WHERE order_id = ?`,
-        [now, order.id]
+        `UPDATE notifications SET is_read = 1, read_at = ? WHERE resource_id = ? OR resource_id = ?`,
+        [now, order.id, order.order_code]
+      );
+
+      // 5. Notify customer
+      const custNotifId = `notif_${uuidv4().substring(0, 8)}`;
+      await db.run(
+        `INSERT INTO notifications (id, user_id, type, title, message, resource_type, resource_id, is_read, created_at)
+         VALUES (?, ?, 'payment_rejected', 'Yêu cầu thanh toán không được phê duyệt', ?, 'order', ?, 0, ?)`,
+        [
+          custNotifId,
+          order.user_id,
+          `Đơn hàng ${order.order_code} của bạn bị từ chối: ${reason}. Vui lòng liên hệ Admin để được hỗ trợ.`,
+          order.id,
+          now
+        ]
       );
     });
 
@@ -352,15 +447,15 @@ export class PaymentService {
       message: `Đã từ chối đơn hàng ${order.order_code}.`,
       orderId: order.id,
       orderCode: order.order_code,
-      status: 'rejected'
+      status: 'cancelled'
     };
   }
 
   /**
-   * Generate VietQR image URL
+   * Generate VietQR Quick Link
    */
   static generateVietQRUrl({ amount, orderCode }) {
-    const bank = env.BANK_NAME_CODE || 'OCB';
+    const bank = env.BANK_NAME || 'OCB';
     const acc = env.BANK_ACCOUNT_NUMBER || '0982441446';
     const name = encodeURIComponent(env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ');
     const memo = encodeURIComponent(orderCode || 'TRIAI');

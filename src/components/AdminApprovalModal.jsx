@@ -247,7 +247,7 @@ export default function AdminApprovalModal({
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
             >
               <Clock size={15} /> 
-              Yêu Cầu Chờ Duyệt ({pendingRequests.length})
+              PAYMENT PENDING ({pendingRequests.length})
             </button>
 
             <button
@@ -358,7 +358,7 @@ export default function AdminApprovalModal({
                             boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)'
                           }}
                         >
-                          <CheckCircle2 size={16} /> XÁC NHẬN THANH TOÁN
+                          <CheckCircle2 size={16} /> Duyệt thanh toán
                         </button>
 
                         <button

@@ -1,11 +1,11 @@
 import express from 'express';
 import http from 'http';
-import paymentRoutes from './src/routes/paymentRoutes.js';
-import adminRoutes from './src/routes/adminRoutes.js';
-import chatRoutes from './src/routes/chatRoutes.js';
-import { generateToken } from './src/utils/security.js';
-import db from './src/db/index.js';
-import { errorHandler } from './src/middleware/errorHandler.js';
+import paymentRoutes from '../src/routes/paymentRoutes.js';
+import adminRoutes from '../src/routes/adminRoutes.js';
+import chatRoutes from '../src/routes/chatRoutes.js';
+import { generateToken } from '../src/utils/security.js';
+import db from '../src/db/index.js';
+import { errorHandler } from '../src/middleware/errorHandler.js';
 
 async function runRouteSecurityTests() {
   console.log('--- STARTING ROUTE-LEVEL SECURITY TESTS (VIA FETCH) ---');

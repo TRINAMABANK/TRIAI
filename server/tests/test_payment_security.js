@@ -1,9 +1,9 @@
-import db from './src/db/index.js';
-import runMigrations from './src/db/migrations.js';
-import { runSeeds } from './src/db/seeds.js';
-import PaymentService from './src/services/paymentService.js';
-import LicenseEngine from './src/services/licenseEngine.js';
-import { generateToken } from './src/utils/security.js';
+import db from '../src/db/index.js';
+import runMigrations from '../src/db/migrations.js';
+import { runSeeds } from '../src/db/seeds.js';
+import PaymentService from '../src/services/paymentService.js';
+import LicenseEngine from '../src/services/licenseEngine.js';
+import { generateToken } from '../src/utils/security.js';
 
 async function runTests() {
   console.log('--- STARTING PAYMENT SECURITY & ADMIN VERIFICATION TESTS ---');
@@ -42,14 +42,14 @@ async function runTests() {
   }
 
   // Check notification created
-  const notif = await db.get('SELECT * FROM notifications WHERE order_id = ?', [orderRes.orderId]);
+  const notif = await db.get('SELECT * FROM notifications WHERE resource_id = ?', [orderRes.orderId]);
   console.log(`-> Notification in DB: title="${notif?.title}", is_read=${notif?.is_read}`);
   if (!notif) {
     throw new Error('FAILED: Admin notification was not created!');
   }
 
-  console.log(`\n[TEST 2] Customer submits payment proof...`);
-  const proofRes = await PaymentService.submitPaymentProof({
+  console.log(`\n[TEST 2] Customer submits payment proof via requestPayment...`);
+  const proofRes = await PaymentService.requestPayment({
     orderId: orderRes.orderId,
     transactionRef: 'FT240982441446',
     note: 'Đã chuyển khoản OCB',
@@ -79,8 +79,8 @@ async function runTests() {
   console.log(`-> Order status in DB: ${updatedOrder.status}`);
   console.log(`-> Payment status in DB: ${updatedPayment.status}`);
 
-  if (updatedOrder.status !== 'completed' || updatedPayment.status !== 'success') {
-    throw new Error('FAILED: DB order and payment must be completed/success!');
+  if (updatedOrder.status !== 'completed' || (updatedPayment.status !== 'success' && updatedPayment.status !== 'verified')) {
+    throw new Error('FAILED: DB order and payment must be completed/verified!');
   }
 
   // Check License access

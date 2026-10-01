@@ -6,7 +6,7 @@ import db from '../db/index.js';
 const router = express.Router();
 
 /**
- * POST /api/orders (Create an order for skills)
+ * POST /api/orders (Create an order for skills - Server calculates price & generates real VietQR)
  */
 router.post('/', requireAuth, async (req, res, next) => {
   try {
@@ -18,6 +18,26 @@ router.post('/', requireAuth, async (req, res, next) => {
     });
 
     res.status(201).json({ success: true, order });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/orders/:orderId/payment-request
+ * Customer notifies that they transferred money (STATUS = PENDING, NO LICENSE ACTIVATED)
+ */
+router.post('/:orderId/payment-request', requireAuth, async (req, res, next) => {
+  try {
+    const { transactionRef, note } = req.body;
+    const result = await PaymentService.requestPayment({
+      orderId: req.params.orderId,
+      userId: req.user.id,
+      transactionRef,
+      note
+    });
+
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -45,8 +65,8 @@ router.get('/', requireAuth, async (req, res, next) => {
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
     const order = await db.get(
-      `SELECT * FROM orders WHERE id = ? AND (user_id = ? OR ? = 1)`,
-      [req.params.id, req.user.id, req.user.role === 'owner' ? 1 : 0]
+      `SELECT * FROM orders WHERE (id = ? OR order_code = ?) AND (user_id = ? OR ? = 1)`,
+      [req.params.id, req.params.id, req.user.id, req.user.role === 'owner' ? 1 : 0]
     );
 
     if (!order) {

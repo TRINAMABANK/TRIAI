@@ -151,6 +151,11 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ items, note })
       }),
+    requestPayment: (orderId, { transactionRef, note } = {}) =>
+      request(`/orders/${orderId}/payment-request`, {
+        method: 'POST',
+        body: JSON.stringify({ transactionRef, note })
+      }),
     getAll: () => request('/orders'),
     getById: (id) => request(`/orders/${id}`)
   },
@@ -167,7 +172,16 @@ export const api = {
       })
   },
 
-  // 8. Admin Center
+  // 8. Notifications
+  notifications: {
+    getAll: () => request('/notifications'),
+    markRead: (id) =>
+      request(`/notifications/${id}/read`, {
+        method: 'POST'
+      })
+  },
+
+  // 9. Admin Center
   admin: {
     getStats: () => request('/admin/stats'),
     getUsers: () => request('/admin/users'),

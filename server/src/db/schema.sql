@@ -159,11 +159,14 @@ CREATE TABLE IF NOT EXISTS payments (
     currency TEXT DEFAULT 'VND',
     payment_gateway TEXT DEFAULT 'vietqr',
     bank_name TEXT DEFAULT 'Ngân hàng TMCP Phương Đông (OCB)',
-    account_number TEXT DEFAULT '0004100030588008',
+    account_number TEXT DEFAULT '0982441446',
     account_name TEXT DEFAULT 'QUANG NHỰT TRÍ',
-    status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'success' | 'failed'
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'verified' | 'success' | 'failed' | 'rejected'
+    verified_at TEXT,
+    verified_by TEXT,
     raw_response_json TEXT,
     created_at TEXT NOT NULL,
+    updated_at TEXT,
     FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
 
@@ -247,11 +250,12 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- 17. NOTIFICATIONS TABLE
 CREATE TABLE IF NOT EXISTS notifications (
     id TEXT PRIMARY KEY,
-    user_id TEXT,
+    user_id TEXT NOT NULL,
     type TEXT NOT NULL DEFAULT 'payment_pending',
-    order_id TEXT,
     title TEXT NOT NULL,
     message TEXT NOT NULL,
+    resource_type TEXT DEFAULT 'order',
+    resource_id TEXT,
     data_json TEXT,
     is_read INTEGER NOT NULL DEFAULT 0,
     read_at TEXT,
@@ -266,4 +270,4 @@ CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_order ON notifications(order_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_resource ON notifications(resource_id);
