@@ -16,7 +16,13 @@ import {
 } from 'lucide-react';
 import PaymentQrModal from '../PaymentQrModal';
 
-export default function StoreView({ onActivateSkill, onSwitchToChat, onStartTrial }) {
+export default function StoreView({ 
+  onActivateSkill, 
+  onSwitchToChat, 
+  onStartTrial,
+  user = { isLoggedIn: false },
+  onOpenAuthModal 
+}) {
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [purchasedId, setPurchasedId] = useState(null);
   const [selectedPkgForPayment, setSelectedPkgForPayment] = useState(null);
@@ -127,6 +133,10 @@ export default function StoreView({ onActivateSkill, onSwitchToChat, onStartTria
   ];
 
   const handlePurchase = (pkg) => {
+    if (!user?.isLoggedIn) {
+      if (onOpenAuthModal) onOpenAuthModal('login');
+      return;
+    }
     setSelectedPkgForPayment(pkg);
     setIsPaymentModalOpen(true);
   };
@@ -231,6 +241,10 @@ export default function StoreView({ onActivateSkill, onSwitchToChat, onStartTria
                     type="button"
                     className="btn-trial-15m"
                     onClick={() => {
+                      if (!user?.isLoggedIn) {
+                        if (onOpenAuthModal) onOpenAuthModal('login');
+                        return;
+                      }
                       if (onStartTrial) {
                         onStartTrial(pkg);
                       }

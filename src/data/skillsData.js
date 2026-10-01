@@ -205,8 +205,8 @@ export function getUserOwnedSkillIds(userEmail, userRole) {
   if (!userEmail) return [];
   const emailLower = userEmail.toLowerCase().trim();
 
-  // Admin hoặc Chủ sở hữu có full tất cả Skill
-  if (emailLower === 'triqnnamabank@gmail.com' || userRole === 'Chủ sở hữu' || userRole === 'Admin') {
+  // Chỉ khi role được backend xác nhận là owner hoặc admin mới có full quyền tất cả Skill
+  if (userRole === 'owner' || userRole === 'admin' || userRole === 'Chủ sở hữu' || userRole === 'Admin') {
     return null; // Full all skills
   }
 
@@ -220,13 +220,6 @@ export function getUserOwnedSkillIds(userEmail, userRole) {
     }
   } catch (e) {}
 
-  // Kiểm tra tài khoản test mẫu
-  const matchedTest = USER_TEST_ACCOUNTS.find(acc => acc.email.toLowerCase() === emailLower);
-  if (matchedTest) {
-    return matchedTest.skillIds;
-  }
-
-  // Khách hàng mới đăng ký email bất kỳ: Chưa sở hữu skill nào, cần vào Store chọn dùng thử hoặc mua
   return [];
 }
 

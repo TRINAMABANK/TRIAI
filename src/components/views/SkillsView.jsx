@@ -67,8 +67,8 @@ const ICON_MAP = {
 export default function SkillsView({ 
   skills = [], 
   ownedSkills = [],
-  isAdmin = true,
-  user = {},
+  isAdmin = false,
+  user = { isLoggedIn: false },
   activeSkill = {}, 
   onSelectSkill, 
   onOpenSkillManager,

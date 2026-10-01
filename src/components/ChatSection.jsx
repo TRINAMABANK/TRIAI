@@ -127,6 +127,12 @@ export default function ChatSection({
     const query = typeof textToSend === 'string' ? textToSend : input;
     if (!query.trim()) return;
 
+    // Yêu cầu đăng nhập nếu người dùng chưa đăng nhập
+    if (!user?.isLoggedIn) {
+      if (onOpenAuthModal) onOpenAuthModal('login');
+      return;
+    }
+
     // Đánh dấu đã gọi lệnh cho chế độ tương ứng
     if (bannerMode === 'result') setHasCalledResultCommand(true);
     if (bannerMode === 'file') setHasCalledFileCommand(true);
@@ -1634,30 +1640,28 @@ export default function ChatSection({
       {/* 1. KHI CHỌN NÓI GIỌNG NÓI: CHỈ HIỂN THỊ CỘT 5 DOCK ÂM THANH CHUYÊN BIỆT */}
       {bannerMode === 'voice' && (
         <div className={`composer-dock-capsule ${isDockCollapsed ? 'dock-collapsed' : 'dock-expanded'}`}>
-          {/* Thanh điều khiển trên Cột 5: Thu xuống / Thu lên & Đóng giọng nói */}
+          {/* Thanh điều khiển Nói giọng nói: Thu xuống / Thu lên & Đóng giọng nói */}
           <div className="dock-drag-toggle-bar">
             <button 
               type="button"
               className="btn-dock-toggle-handle"
               onClick={() => setIsDockCollapsed(!isDockCollapsed)}
-              title={isDockCollapsed ? "Nhấn để thu lên (Mở rộng Micro & Bảng giọng nói Cột 5)" : "Nhấn để thu xuống (Thu gọn thanh công cụ Cột 5)"}
+              title={isDockCollapsed ? "Nhấn để thu lên (Mở rộng Micro & Bảng giọng nói)" : "Nhấn để thu xuống (Thu gọn thanh công cụ)"}
             >
               {isDockCollapsed ? (
                 <>
                   <ChevronUp size={14} className="toggle-chevron" />
                   <span className="toggle-text">Thu lên (Mở rộng Micro & Sóng âm)</span>
-                  <span className="badge-col5-hint">Cột 5</span>
                 </>
               ) : (
                 <>
                   <ChevronDown size={14} className="toggle-chevron" />
                   <span className="toggle-text">Thu xuống (Ẩn sóng âm micro)</span>
-                  <span className="badge-col5-hint">Cột 5</span>
                 </>
               )}
             </button>
 
-            {/* Nút Đóng Cột 5 để quay về Chat văn bản */}
+            {/* Nút Đóng giọng nói để quay về Chat văn bản */}
             <button 
               type="button"
               className="btn-close-col5-voice"
@@ -1882,7 +1886,7 @@ export default function ChatSection({
               type="button"
               className="btn-switch-to-voice-col5"
               onClick={() => onChangeBannerMode && onChangeBannerMode('voice')}
-              title="Bật chế độ Nói giọng nói (Cột 5)"
+              title="Bật chế độ Nói giọng nói"
             >
               <Mic size={15} className="voice-mic-icon" />
               <span>Nói giọng nói</span>

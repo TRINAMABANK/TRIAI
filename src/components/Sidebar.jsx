@@ -42,8 +42,8 @@ export default function Sidebar({
   onOpenStore,
   searchTerm = '',
   setSearchTerm,
-  user = { name: 'QUANG NHỰT TRÍ', email: 'triqnnamabank@gmail.com', avatar: '/assets/user_avatar.png', role: 'Chủ sở hữu', plan: 'Gói Pro Vĩnh Viễn', isLoggedIn: true },
-  isAdmin = true,
+  user = { isLoggedIn: false },
+  isAdmin = false,
   onOpenAuthModal,
   onLogout
 }) {

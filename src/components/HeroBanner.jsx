@@ -26,16 +26,9 @@ export default function HeroBanner({
   onTriggerSkillSelect, 
   onScrollToResult,
   onFocusChat,
-  user = { 
-    name: 'QUANG NHỰT TRÍ', 
-    email: 'triqnnamabank@gmail.com', 
-    avatar: '/assets/user_avatar.png', 
-    role: 'Chủ sở hữu', 
-    plan: 'Gói Pro Vĩnh Viễn', 
-    isLoggedIn: true 
-  },
+  user = { isLoggedIn: false },
   activeSkill = {},
-  isAdmin = true,
+  isAdmin = false,
   trialStatus = null,
   pendingApprovalCount = 0,
   onOpenAdminApproval,
@@ -292,84 +285,130 @@ export default function HeroBanner({
               )}
             </div>
 
-            {/* 3. BIỂU TƯỢNG ACCOUNT AVATAR (Hình 1) */}
-            <div className="header-avatar-wrapper">
-              <div 
-                className={`header-avatar-circle-btn ${user.isLoggedIn ? 'is-auth' : 'is-guest'}`}
-                onClick={() => {
-                  setShowProfileMenu(!showProfileMenu);
-                  setShowNotifications(false);
-                }}
-                title={user.isLoggedIn ? `Tài khoản: ${user.name}` : 'Bấm để đăng nhập'}
-              >
-                {user.isLoggedIn ? (
-                  <>
-                    <img 
-                      src={user.avatar || "/assets/user_avatar.png"} 
-                      alt={user.name} 
-                      className="header-avatar-img"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = '<span class="avatar-fallback-initials">QT</span>';
-                      }}
-                    />
-                    <span className="header-online-status-dot" />
-                  </>
-                ) : (
-                  <User size={18} className="guest-icon" />
-                )}
+            {/* 3. BIỂU TƯỢNG ACCOUNT AVATAR & NÚT ĐĂNG NHẬP / ĐĂNG KÝ */}
+            {!user?.isLoggedIn ? (
+              <div className="header-auth-buttons" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn-header-login"
+                  onClick={() => onOpenAuthModal && onOpenAuthModal('login')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #2563eb',
+                    background: '#ffffff',
+                    color: '#2563eb',
+                    fontWeight: '700',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <LogIn size={14} /> Đăng nhập
+                </button>
+                <button
+                  type="button"
+                  className="btn-header-register"
+                  onClick={() => onOpenAuthModal && onOpenAuthModal('register')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    fontWeight: '700',
+                    fontSize: '13px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Đăng ký
+                </button>
               </div>
+            ) : (
+              <div className="header-avatar-wrapper">
+                <div 
+                  className="header-avatar-circle-btn is-auth"
+                  onClick={() => {
+                    setShowProfileMenu(!showProfileMenu);
+                    setShowNotifications(false);
+                  }}
+                  title={`Tài khoản: ${user.name}`}
+                >
+                  <img 
+                    src={user.avatar || "/assets/user_avatar.png"} 
+                    alt={user.name} 
+                    className="header-avatar-img"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.innerHTML = '<span class="avatar-fallback-initials">QT</span>';
+                    }}
+                  />
+                  <span className="header-online-status-dot" />
+                </div>
 
-              {/* Dropdown Menu tài khoản: Nền trắng, chữ đen */}
-              {showProfileMenu && (
-                <div className="profile-popup-menu header-profile-dropdown">
-                  <div className="popup-user-card-head">
-                    <div className="popup-avatar-small">
-                      <img 
-                        src={user.avatar || "/assets/user_avatar.png"} 
-                        alt={user.name}
-                        onError={(e) => { e.target.style.display = 'none'; }}
-                      />
+                {/* Dropdown Menu tài khoản */}
+                {showProfileMenu && (
+                  <div className="profile-popup-menu header-profile-dropdown">
+                    <div className="popup-user-card-head">
+                      <div className="popup-avatar-small">
+                        <img 
+                          src={user.avatar || "/assets/user_avatar.png"} 
+                          alt={user.name}
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+                      <div className="popup-user-meta">
+                        <div className="popup-user-name">{user.name}</div>
+                        <div className="popup-user-email">{user.email}</div>
+                      </div>
+                      <button 
+                        type="button" 
+                        className="notif-close-x-btn" 
+                        onClick={() => setShowProfileMenu(false)}
+                        title="Đóng"
+                        style={{ marginLeft: 'auto' }}
+                      >
+                        <X size={15} />
+                      </button>
                     </div>
-                    <div className="popup-user-meta">
-                      <div className="popup-user-name">{user.name}</div>
-                      <div className="popup-user-email">{user.email || 'triqnnamabank@gmail.com'}</div>
+
+                    <div className="popup-user-plan">
+                      <ShieldCheck size={13} /> {user.plan || (isAdmin ? 'Gói Quản Trị Hệ Thống (Master)' : 'Gói Khách Hàng')}
                     </div>
+
+                    <hr />
+
+                    {isAdmin && (
+                      <button 
+                        onClick={() => { 
+                          if (onOpenAdminApproval) onOpenAdminApproval(); 
+                          setShowProfileMenu(false); 
+                        }}
+                        style={{ color: '#2563eb', fontWeight: '700' }}
+                      >
+                        👑 Trung Tâm Phê Duyệt & Cấp Quyền
+                      </button>
+                    )}
+                    {isAdmin && (
+                      <button onClick={() => { if (onOpenSkillManager) onOpenSkillManager(); setShowProfileMenu(false); }}>
+                        ⚙ Quản lý &amp; Nạp Skill
+                      </button>
+                    )}
+                    <button onClick={() => { if (onOpenAccountModal) onOpenAccountModal(); setShowProfileMenu(false); }}>
+                      💎 Thông tin bản quyền
+                    </button>
                     <button 
-                      type="button" 
-                      className="notif-close-x-btn" 
-                      onClick={() => setShowProfileMenu(false)}
-                      title="Đóng (CLOSE)"
-                      style={{ marginLeft: 'auto' }}
+                      className="btn-popup-logout"
+                      onClick={() => { if (onLogout) onLogout(); setShowProfileMenu(false); }}
                     >
-                      <X size={15} />
+                      <LogOut size={14} /> Đăng xuất tài khoản
                     </button>
                   </div>
-
-                  <div className="popup-user-plan">
-                    <ShieldCheck size={13} /> {user.plan || 'Gói Pro Vĩnh Viễn'}
-                  </div>
-
-                  <hr />
-
-                  <button onClick={() => { if (onOpenSkillManager) onOpenSkillManager(); setShowProfileMenu(false); }}>
-                    ⚙ Quản lý &amp; Nạp Skill
-                  </button>
-                  <button onClick={() => { if (onOpenAccountModal) onOpenAccountModal(); setShowProfileMenu(false); }}>
-                    💎 Thông tin bản quyền
-                  </button>
-                  <button onClick={() => { if (onOpenAuthModal) onOpenAuthModal(); setShowProfileMenu(false); }}>
-                    🔄 Đổi tài khoản Gmail khác
-                  </button>
-                  <button 
-                    className="btn-popup-logout"
-                    onClick={() => { if (onLogout) onLogout(); setShowProfileMenu(false); }}
-                  >
-                    <LogOut size={14} /> Đăng xuất tài khoản
-                  </button>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
           </div>
         </div>

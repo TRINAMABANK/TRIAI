@@ -37,6 +37,8 @@ import {
   MASTER_ADMIN_EMAIL
 } from './data/skillsData';
 
+import { api, setAuthToken } from './api/client';
+
 export default function App() {
   const [currentTab, setTab] = useState('chat');
   const [bannerMode, setBannerMode] = useState('chat');
@@ -44,43 +46,58 @@ export default function App() {
   const [activeSkill, setActiveSkill] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   
-  // User Authentication State (QUANG NHỰT TRÍ - Admin Mặc định)
-  const DEFAULT_USER = {
-    name: 'QUANG NHỰT TRÍ',
-    email: MASTER_ADMIN_EMAIL,
-    avatar: '/assets/user_avatar.png',
-    role: 'Chủ sở hữu',
-    plan: 'Gói Admin Toàn Quyền (Full 33+ Skill)',
-    isLoggedIn: true,
-    isAdmin: true
-  };
-
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('tri_ai_user_session');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.email === 'quangnhuttri@gmail.com') {
-          parsed.email = MASTER_ADMIN_EMAIL;
-          localStorage.setItem('tri_ai_user_session', JSON.stringify(parsed));
-        }
-        return parsed;
-      }
-      return DEFAULT_USER;
-    } catch (e) {
-      return DEFAULT_USER;
-    }
+  // 1. User Authentication State: BẮT ĐẦU MẶC ĐỊNH CHƯA ĐĂNG NHẬP
+  const [user, setUser] = useState({
+    isLoggedIn: false,
+    name: '',
+    email: '',
+    role: '',
+    plan: '',
+    avatar: ''
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalInitialMode, setAuthModalInitialMode] = useState('login');
   const [isAdminApprovalOpen, setIsAdminApprovalOpen] = useState(false);
   const [licenseChangeTick, setLicenseChangeTick] = useState(0);
 
-  // Xác định quyền Admin: CHỈ DUY NHẤT email triqnnamabank@gmail.com
+  // 2. Xác định quyền Admin: DỰA TRÊN ROLE ĐÃ ĐƯỢC BACKEND XÁC THỰC
   const isAdmin = Boolean(
     user?.isLoggedIn && 
-    user?.email?.toLowerCase().trim() === MASTER_ADMIN_EMAIL.toLowerCase()
+    (user?.role === 'owner' || user?.role === 'admin' || user?.role === 'Chủ sở hữu' || user?.role === 'Admin')
   );
+
+  // 3. XÁC THỰC PHIÊN LÀM VIỆC TỪ SERVER KHI KHỞI ĐỘNG ỨNG DỤNG (KHÔNG TIN LOCALSTORAGE RAW)
+  useEffect(() => {
+    const verifySession = async () => {
+      const token = localStorage.getItem('triai_token');
+      if (token) {
+        try {
+          const res = await api.auth.getMe();
+          if (res && res.success && res.user) {
+            setUser({
+              id: res.user.id,
+              name: res.user.full_name || res.user.name || res.user.email.split('@')[0],
+              email: res.user.email,
+              role: res.user.role,
+              plan: res.user.plan || (res.user.role === 'owner' ? 'Gói Quản Trị Hệ Thống (Master)' : 'Gói Khách Hàng'),
+              avatar: res.user.avatar_url || '/assets/user_avatar.png',
+              isLoggedIn: true,
+              isAdmin: res.user.role === 'owner' || res.user.role === 'admin'
+            });
+            return;
+          }
+        } catch (e) {
+          console.warn('Phiên đăng nhập hết hạn hoặc không hợp lệ:', e);
+        }
+      }
+      // Nếu không có token hoặc token không hợp lệ -> Reset sạch về trạng thái CHƯA ĐĂNG NHẬP
+      setAuthToken('');
+      setUser({ isLoggedIn: false });
+    };
+
+    verifySession();
+  }, []);
 
   // Số lượng yêu cầu đang chờ Admin duyệt
   const pendingApprovalCount = React.useMemo(() => {
@@ -98,7 +115,7 @@ export default function App() {
 
   useEffect(() => {
     const checkTrial = () => {
-      if (user?.email && !isAdmin) {
+      if (user?.isLoggedIn && user?.email && !isAdmin) {
         const active = getActiveTrial(user.email);
         setTrialStatus(active);
       } else {
@@ -108,11 +125,12 @@ export default function App() {
     checkTrial();
     const timer = setInterval(checkTrial, 1000);
     return () => clearInterval(timer);
-  }, [user?.email, isAdmin]);
+  }, [user?.isLoggedIn, user?.email, isAdmin]);
 
   // Danh sách Skill thuộc sở hữu của tài khoản hiện tại (kèm Skill đang dùng thử nếu còn hạn)
-  const baseOwnedSkillIds = getUserOwnedSkillIds(user.email, user.role);
+  const baseOwnedSkillIds = user?.isLoggedIn ? getUserOwnedSkillIds(user.email, user.role) : [];
   const userOwnedSkillIds = React.useMemo(() => {
+    if (!user?.isLoggedIn) return [];
     if (isAdmin || baseOwnedSkillIds === null) return null;
     const list = [...baseOwnedSkillIds];
     if (trialStatus && trialStatus.hasTrial && !trialStatus.isExpired && trialStatus.skillId) {
@@ -121,33 +139,34 @@ export default function App() {
       }
     }
     return list;
-  }, [isAdmin, baseOwnedSkillIds, trialStatus]);
+  }, [user?.isLoggedIn, isAdmin, baseOwnedSkillIds, trialStatus]);
 
-  const ownedSkills = (isAdmin || !userOwnedSkillIds) 
-    ? skills 
-    : skills.filter(s => userOwnedSkillIds.includes(s.id));
+  const ownedSkills = !user?.isLoggedIn
+    ? []
+    : (isAdmin || !userOwnedSkillIds)
+      ? skills 
+      : skills.filter(s => userOwnedSkillIds.includes(s.id));
 
-  const handleLogin = (userData) => {
-    const updated = {
-      ...DEFAULT_USER,
+  const handleLogin = (userData, token) => {
+    if (token) setAuthToken(token);
+    setUser({
       ...userData,
-      isLoggedIn: true
-    };
-    setUser(updated);
-    try {
-      localStorage.setItem('tri_ai_user_session', JSON.stringify(updated));
-    } catch (e) {}
+      isLoggedIn: true,
+      isAdmin: userData.role === 'owner' || userData.role === 'admin' || userData.role === 'Chủ sở hữu'
+    });
   };
 
   const handleLogout = () => {
-    const loggedOut = {
-      ...user,
-      isLoggedIn: false
-    };
-    setUser(loggedOut);
-    try {
-      localStorage.setItem('tri_ai_user_session', JSON.stringify(loggedOut));
-    } catch (e) {}
+    api.auth.logout();
+    setAuthToken('');
+    setUser({ isLoggedIn: false });
+    setTrialStatus(null);
+    setTab('chat');
+  };
+
+  const openAuth = (mode = 'login') => {
+    setAuthModalInitialMode(mode);
+    setIsAuthModalOpen(true);
   };
 
   // Modals state
@@ -161,7 +180,7 @@ export default function App() {
   // Khởi tạo sạch để bắt đầu sử dụng từ đầu
   const [messages, setMessages] = useState([]);
 
-  // Load skills from local storage on mount
+  // Load skills on mount
   useEffect(() => {
     const loaded = getLoadedSkills();
     setSkills(loaded);
@@ -171,15 +190,20 @@ export default function App() {
 
   // Tự động chuyển activeSkill sang Skill mà tài khoản sở hữu hoặc đang dùng thử
   useEffect(() => {
-    if (ownedSkills.length > 0) {
+    if (user?.isLoggedIn && ownedSkills.length > 0) {
       if (!activeSkill?.id || !ownedSkills.some(s => s.id === activeSkill.id)) {
         setActiveSkill(ownedSkills[0]);
       }
     }
-  }, [user.email, skills, ownedSkills.length]);
+  }, [user?.isLoggedIn, user?.email, skills, ownedSkills.length]);
 
   // Xử lý khi bắt đầu dùng thử 15 phút từ Cửa Hàng
   const handleStartTrial = (pkg) => {
+    if (!user?.isLoggedIn) {
+      openAuth('login');
+      return;
+    }
+
     const packageToSkillMap = {
       'store-kol': 'kol-thoi-trang',
       'kol-thoi-trang': 'kol-thoi-trang',
@@ -199,7 +223,7 @@ export default function App() {
     const targetSkillId = packageToSkillMap[pkg.id] || pkg.id;
     const matchedSkill = skills.find(s => s.id === targetSkillId || s.id === pkg.id || s.name.toLowerCase() === pkg.name.toLowerCase()) || skills[0];
 
-    const currentEmail = user.email || 'khachhang.moi@gmail.com';
+    const currentEmail = user.email || 'khachhang@example.com';
     startSkillTrial(currentEmail, matchedSkill.id, 15);
     setActiveSkill(matchedSkill);
     setTab('chat');
@@ -209,7 +233,7 @@ export default function App() {
       id: Date.now(),
       role: 'ai',
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      text: `🎁 BẠN ĐÃ KÍCH HOẠT DÙNG THỬ 15 PHÚT SKILL [${matchedSkill.name.toUpperCase()}] MIỄN PHÍ!\n\nBạn có trọn vẹn 15 phút trải nghiệm toàn bộ tính năng & tài liệu mẫu của ${matchedSkill.name}. Đồng hồ đếm ngược trực tiếp đang hiển thị ở góc trên bên phải (cạnh biểu tượng Cửa hàng và Chuông thông báo).\n\nSau 15 phút, bạn có thể nộp tiền quét mã QR để mở khóa bản quyền chính thức!`,
+      text: `🎁 BẠN ĐÃ KÍCH HOẠT DÙNG THỬ 15 PHÚT SKILL [${matchedSkill.name.toUpperCase()}] MIỄN PHÍ!\n\nBạn có trọn vẹn 15 phút trải nghiệm toàn bộ tính năng & tài liệu mẫu của ${matchedSkill.name}. Đồng hồ đếm ngược trực tiếp đang hiển thị ở góc trên bên phải.\n\nSau 15 phút, bạn có thể nộp tiền quét mã QR để mở khóa bản quyền chính thức!`,
       checklist: matchedSkill.checklist || [
         { label: `Kích hoạt dùng thử: ${matchedSkill.name}`, status: 'pass' },
         { label: 'Thời lượng: 15 phút miễn phí', status: 'pass' }
@@ -224,8 +248,13 @@ export default function App() {
     ? skills.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || (s.desc && s.desc.toLowerCase().includes(searchTerm.toLowerCase())))
     : skills;
 
-  // Xử lý khi mua / kích hoạt gói Skill trong Store (Quét QR thành công -> Tự động kích hoạt Skill & Agent tương ứng)
+  // Xử lý khi mua / kích hoạt gói Skill trong Store
   const handleActivatePurchasedSkill = (purchasedPkg) => {
+    if (!user?.isLoggedIn) {
+      openAuth('login');
+      return;
+    }
+
     const packageToSkillMap = {
       'store-kol': 'kol-thoi-trang',
       'kol-thoi-trang': 'kol-thoi-trang',
@@ -280,22 +309,22 @@ export default function App() {
     }
 
     const skillName = matchedSkill?.name || purchasedPkg.name;
-    const userEmail = (user?.email || 'khachhang.moi@gmail.com').toLowerCase().trim();
+    const userEmail = (user?.email || 'khachhang@example.com').toLowerCase().trim();
     const userName = user?.name || 'Khách hàng';
 
-    // 1. TỰ ĐỘNG CẤP QUYỀN SỞ HỮU SKILL CHO TÀI KHOẢN KHÁCH HÀNG
+    // 1. CẤP QUYỀN SỞ HỮU SKILL CHO TÀI KHOẢN KHÁCH HÀNG
     if (isMasterAll) {
       skills.forEach(s => saveUserOwnedSkill(userEmail, s.id));
     } else if (matchedSkill?.id) {
       saveUserOwnedSkill(userEmail, matchedSkill.id);
     }
 
-    // 2. TỰ ĐỘNG TÌM VÀ GÁN AGENT TƯƠNG ỨNG VỚI SKILL ĐÃ MUA
+    // 2. GÁN AGENT TƯƠNG ỨNG VỚI SKILL ĐÃ MUA
     const targetAgentId = skillToAgentMap[matchedSkill?.id] || (matchedSkill?.id === 'kol-thoi-trang' ? 'tro-ly-kol' : 'anh-an');
     const matchedAgent = AGENTS_DATA.find(a => a.id === targetAgentId) || AGENTS_DATA[0];
     setSelectedAgent(matchedAgent);
 
-    // 3. GHI NHẬN GIAO DỊCH TỰ ĐỘNG VÀO TRUNG TÂM QUẢN LÝ CỦA ADMIN triqnnamabank@gmail.com
+    // 3. GHI NHẬN GIAO DỊCH
     try {
       const allReqs = getLicenseRequests();
       const autoApprovedLog = {
@@ -317,33 +346,29 @@ export default function App() {
       setLicenseChangeTick(prev => prev + 1);
     } catch (e) {}
 
-    // 4. CẬP NHẬT THÔNG TIN TÀI KHOẢN NGƯỜI DÙNG
+    // 4. CẬP NHẬT THÔNG TIN TÀI KHOẢN
     const updatedUser = {
       ...user,
-      role: isAdmin ? 'Chủ sở hữu' : 'Khách hàng VIP (Bản quyền chính thức)',
       plan: isMasterAll ? 'Trọn Gói 33 Skill VIP Toàn Quyền' : `Gói ${skillName} & ${matchedAgent.name} (Đã thanh toán QR)`
     };
     setUser(updatedUser);
-    try {
-      localStorage.setItem('tri_ai_user_session', JSON.stringify(updatedUser));
-    } catch (e) {}
 
     // 5. KÍCH HOẠT SKILL VÀ CHUYỂN NGAY VÀO KHÔNG GIAN CHAT
     setActiveSkill(matchedSkill);
     setTab('chat');
     setBannerMode('chat');
 
-    // 6. THÔNG BÁO CHÚC MỪNG VÀ HƯỚNG DẪN TRẢI NGHIỆM TRỰC TIẾP
+    // 6. THÔNG BÁO CHÚC MỪNG
     const celebrationMsg = {
       id: Date.now(),
       role: 'ai',
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      text: `🎉 XÁC NHẬN THANH TOÁN VIETQR THÀNH CÔNG! HỆ THỐNG ĐÃ TỰ ĐỘNG KÍCH HOẠT SKILL VÀ AGENT CHO BẠN!\n\n` +
+      text: `🎉 XÁC NHẬN THANH TOÁN VIETQR THÀNH CÔNG! HỆ THỐNG ĐÃ KÍCH HOẠT SKILL VÀ AGENT CHO BẠN!\n\n` +
             `• ✨ Skill đã kích hoạt: [${isMasterAll ? 'TRỌN BỘ 33 SKILL MASTER' : skillName.toUpperCase()}]\n` +
             `• 🤖 Trợ lý Agent đồng hành: ${matchedAgent.name} (${matchedAgent.role})\n` +
             `• 📧 Cấp quyền cho tài khoản: ${userEmail}\n` +
             `• 👑 Đối soát thanh toán: Đã xác thực thành công qua VietQR OCB (STK: 0982441446 - QUANG NHỰT TRÍ)\n\n` +
-            `"${matchedAgent.greeting}"\n\nToàn bộ năng lực xử lý, tài liệu và prompt mẫu đã được mở khóa 100%. Bạn có thể nhập câu hỏi hoặc chọn một trong các thao tác bên dưới để bắt đầu ngay!`,
+            `"${matchedAgent.greeting}"\n\nToàn bộ năng lực xử lý, tài liệu và prompt mẫu đã được mở khóa 100%. Bạn có thể bắt đầu ngay!`,
       checklist: matchedSkill.checklist || [
         { label: `Kích hoạt năng lực: ${skillName}`, status: 'pass' },
         { label: `Kết nối Trợ lý Agent: ${matchedAgent.name}`, status: 'pass' },
@@ -364,7 +389,7 @@ export default function App() {
         id: Date.now(),
         role: 'ai',
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        text: `Dạ anh Trí! Em là ${agent.name} (${agent.role}). ${agent.greeting}`,
+        text: `Xin chào! Tôi là ${agent.name} (${agent.role}). ${agent.greeting}`,
         checklist: [],
         files: []
       };
@@ -384,29 +409,53 @@ export default function App() {
     }, 80);
   };
 
-  // Xử lý khi chọn Agent từ RightSidebar
   const handleStartChatWithAgent = (agent) => {
     handleSwitchToChat('', agent);
   };
 
+  // Xử lý chuyển tab có kiểm tra phân quyền cho các tab nội bộ cá nhân
+  const handleSelectTab = (tabId) => {
+    if (['projects', 'files', 'history'].includes(tabId) && !user?.isLoggedIn) {
+      openAuth('login');
+      return;
+    }
+    setTab(tabId);
+    if (tabId === 'chat') {
+      setBannerMode('chat');
+      setTimeout(() => {
+        const inputEl = document.querySelector('.standard-chat-text-input');
+        if (inputEl) inputEl.focus();
+      }, 60);
+    }
+  };
+
   return (
     <div className="tri-ai-layout">
-      {/* 1. Left Sidebar Navigation (Đã gộp toàn bộ tính năng Cột 3 vào Cột 1) */}
+      {/* 1. Left Sidebar Navigation */}
       <Sidebar 
         currentTab={currentTab} 
-        setTab={(tabId) => {
-          setTab(tabId);
-          if (tabId === 'chat') {
-            setBannerMode('chat');
-            setTimeout(() => {
-              const inputEl = document.querySelector('.standard-chat-text-input');
-              if (inputEl) inputEl.focus();
-            }, 60);
+        setTab={handleSelectTab} 
+        onOpenSkillManager={() => {
+          if (!isAdmin) {
+            openAuth('login');
+            return;
           }
-        }} 
-        onOpenSkillManager={() => setIsSkillManagerOpen(true)}
-        onOpenAccountModal={() => setIsAccountModalOpen(true)}
-        onOpenAdminApproval={() => setIsAdminApprovalOpen(true)}
+          setIsSkillManagerOpen(true);
+        }}
+        onOpenAccountModal={() => {
+          if (!user?.isLoggedIn) {
+            openAuth('login');
+            return;
+          }
+          setIsAccountModalOpen(true);
+        }}
+        onOpenAdminApproval={() => {
+          if (!isAdmin) {
+            alert('Bạn không có quyền truy cập Trung Tâm Quản Trị Admin.');
+            return;
+          }
+          setIsAdminApprovalOpen(true);
+        }}
         pendingApprovalCount={pendingApprovalCount}
         skills={ownedSkills}
         allSkillsCount={skills.length}
@@ -416,23 +465,19 @@ export default function App() {
           setActiveSkill(s);
           setTab('chat');
           setBannerMode('chat');
-          setTimeout(() => {
-            const inputEl = document.querySelector('.standard-chat-text-input');
-            if (inputEl) inputEl.focus();
-          }, 60);
         }}
         onSelectAgent={(agent) => handleStartChatWithAgent(agent)}
         onOpenStore={() => setTab('store')}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         user={user}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenAuthModal={openAuth}
         onLogout={handleLogout}
       />
 
-      {/* 2. Center Column: Render dynamically based on selected Tab */}
+      {/* 2. Center Column */}
       <main className="center-viewport-column">
-        {/* TAB 1: Chat với Trí AI (Có Banner cố định đỉnh Cột 2 kèm Chuông & Avatar góc phải trên cùng) */}
+        {/* TAB 1: Chat với Trí AI */}
         {currentTab === 'chat' && (
           <>
             <HeroBanner 
@@ -440,18 +485,20 @@ export default function App() {
               onChangeTab={(mode) => {
                 setTab('chat');
                 setBannerMode(mode);
-                if (mode === 'chat') {
-                  setTimeout(() => {
-                    const inputEl = document.querySelector('.standard-chat-text-input');
-                    if (inputEl) inputEl.focus();
-                  }, 60);
-                }
               }}
               onTriggerVoice={() => {
+                if (!user?.isLoggedIn) {
+                  openAuth('login');
+                  return;
+                }
                 setTab('chat');
                 setBannerMode('voice');
               }}
               onTriggerFileUpload={() => {
+                if (!user?.isLoggedIn) {
+                  openAuth('login');
+                  return;
+                }
                 setTab('chat');
                 setBannerMode('file');
               }}
@@ -475,11 +522,29 @@ export default function App() {
               isAdmin={isAdmin}
               trialStatus={trialStatus}
               pendingApprovalCount={pendingApprovalCount}
-              onOpenAdminApproval={() => setIsAdminApprovalOpen(true)}
+              onOpenAdminApproval={() => {
+                if (!isAdmin) {
+                  alert('Bạn không có quyền truy cập Trung Tâm Quản Trị Admin.');
+                  return;
+                }
+                setIsAdminApprovalOpen(true);
+              }}
               onOpenStore={() => setIsStoreOpen(true)}
-              onOpenSkillManager={() => setIsSkillManagerOpen(true)}
-              onOpenAccountModal={() => setIsAccountModalOpen(true)}
-              onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              onOpenSkillManager={() => {
+                if (!isAdmin) {
+                  openAuth('login');
+                  return;
+                }
+                setIsSkillManagerOpen(true);
+              }}
+              onOpenAccountModal={() => {
+                if (!user?.isLoggedIn) {
+                  openAuth('login');
+                  return;
+                }
+                setIsAccountModalOpen(true);
+              }}
+              onOpenAuthModal={openAuth}
               onLogout={handleLogout}
             />
 
@@ -499,7 +564,7 @@ export default function App() {
               ownedSkills={ownedSkills}
               trialStatus={trialStatus}
               onOpenStore={() => setTab('store')}
-              onOpenAuthModal={() => setIsAuthModalOpen(true)}
+              onOpenAuthModal={openAuth}
             />
           </>
         )}
@@ -513,7 +578,7 @@ export default function App() {
             user={user}
             activeSkill={activeSkill}
             onSelectSkill={(s) => setActiveSkill(s)}
-            onOpenSkillManager={() => setIsSkillManagerOpen(true)}
+            onOpenSkillManager={isAdmin ? () => setIsSkillManagerOpen(true) : null}
             onSwitchToChat={handleSwitchToChat}
             onOpenStore={() => setTab('store')}
           />
@@ -534,7 +599,7 @@ export default function App() {
             onStartTrial={handleStartTrial}
             onSwitchToChat={handleSwitchToChat}
             user={user}
-            isAdmin={isAdmin}
+            onOpenAuthModal={openAuth}
           />
         )}
 
@@ -573,10 +638,10 @@ export default function App() {
       </main>
 
       {/* =========================================================================
-          MODALS POPUP (HIỆN Ở CHÍNH GIỮA MÀN HÌNH & NÚT CLOSE BÊN PHẢI TRÊN CÙNG)
+          MODALS POPUP
           ========================================================================= */}
       
-      {/* 0. Bảng Chọn Nhanh Skill (Khi bấm nút "Chọn Skill") */}
+      {/* 0. Bảng Chọn Nhanh Skill */}
       <SkillPickerModal 
         isOpen={isSkillPickerOpen}
         onClose={() => setIsSkillPickerOpen(false)}
@@ -634,19 +699,19 @@ export default function App() {
         isOpen={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}
         user={user}
-        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenAuthModal={openAuth}
         onLogout={handleLogout}
       />
 
-      {/* 6. Đăng Nhập / Đổi Tài Khoản Gmail Modal */}
+      {/* 6. Đăng Nhập / Đăng Ký Tài Khoản Modal */}
       <AuthModal 
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onLogin={handleLogin}
-        currentUser={user}
+        initialMode={authModalInitialMode}
       />
 
-      {/* 7. TRUNG TÂM PHÊ DUYỆT & CẤP BẢN QUYỀN (CHỈ DÀNH CHO ADMIN triqnnamabank@gmail.com) */}
+      {/* 7. TRUNG TÂM PHÊ DUYỆT & CẤP BẢN QUYỀN (CHỈ DÀNH CHO ADMIN) */}
       <AdminApprovalModal 
         isOpen={isAdminApprovalOpen}
         onClose={() => setIsAdminApprovalOpen(false)}
