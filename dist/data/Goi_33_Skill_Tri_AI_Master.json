@@ -1,0 +1,1322 @@
+[
+  {
+    "id": "phan-tich-4-goc",
+    "folder": "01-phan-tich-4-goc",
+    "name": "Phân tích 4 góc",
+    "category": "Phân tích & Chiến lược",
+    "category_key": "analysis",
+    "color": "blue",
+    "iconName": "BarChart3",
+    "desc": "Phân tích vấn đề theo 4 góc: Pháp lý, Kỹ thuật, Vận hành, Chi phí/Rủi ro.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Phân tích 4 góc",
+    "samplePrompt": "Hãy áp dụng Skill [Phân tích 4 góc] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Phân tích 4 góc\nPhân tích vấn đề theo 4 góc: Pháp lý, Kỹ thuật, Vận hành, Chi phí/Rủi ro.\n## Quy trình\n1. Xác định vấn đề.\n2. Phân tích từng góc.\n3. Xác định điểm thiếu dữ liệu.\n4. So sánh phương án.\n5. Kết luận và hành động tiếp theo.\n## Đầu ra\nKết luận → Căn cứ → Phân tích → Rủi ro → Phương án → Hành động.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Phân tích 4 góc: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_phan-tich-4-goc.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_phan-tich-4-goc.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "khung-hanh-dong",
+    "folder": "02-khung-hanh-dong",
+    "name": "Khung hành động thực tế",
+    "category": "Quản trị công việc",
+    "category_key": "work-management",
+    "color": "indigo",
+    "iconName": "CheckCircle2",
+    "desc": "Chuyển vấn đề thành kế hoạch hành động.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Khung hành động thực tế",
+    "samplePrompt": "Hãy áp dụng Skill [Khung hành động thực tế] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Khung hành động thực tế\nChuyển vấn đề thành kế hoạch hành động.\n## Khung\n- Cần làm gì?\n- Ai làm?\n- Hồ sơ gì?\n- Căn cứ nào?\n- Bao giờ làm?\n- Rủi ro nếu không làm?\n## Đầu ra\nBảng hành động có người phụ trách, thời hạn, hồ sơ và rủi ro.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Khung hành động thực tế: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_khung-hanh-dong.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_khung-hanh-dong.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "kiem-tra-can-cu",
+    "folder": "03-kiem-tra-can-cu",
+    "name": "Kiểm tra căn cứ & xác minh",
+    "category": "Tuân thủ & Căn cứ",
+    "category_key": "compliance",
+    "color": "gold",
+    "iconName": "ShieldCheck",
+    "desc": "Kiểm tra nguồn, thời điểm hiệu lực, phạm vi áp dụng và dữ liệu trước khi kết luận.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Kiểm tra căn cứ & xác minh",
+    "samplePrompt": "Hãy áp dụng Skill [Kiểm tra căn cứ & xác minh] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Kiểm tra căn cứ & xác minh\nKiểm tra nguồn, thời điểm hiệu lực, phạm vi áp dụng và dữ liệu trước khi kết luận.\n## Nguyên tắc\nPhân biệt: bắt buộc pháp lý / tiêu chuẩn kỹ thuật / khuyến nghị / thực hành tốt / ý kiến tư vấn / chưa đủ căn cứ.\nKhông tự tạo căn cứ, tiêu chuẩn hoặc số liệu.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Kiểm tra căn cứ & xác minh: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_kiem-tra-can-cu.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_kiem-tra-can-cu.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "chan-doan-su-co",
+    "folder": "04-chan-doan-su-co",
+    "name": "Chẩn đoán sự cố",
+    "category": "Kỹ thuật & Sự cố",
+    "category_key": "facility",
+    "color": "orange",
+    "iconName": "AlertTriangle",
+    "desc": "Phân tích sự cố theo: nguyên nhân khả dĩ → nguy hiểm → kiểm tra hiện trường → biện pháp tạm thời → sửa chữa → kiểm tra sau sửa chữa.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Chẩn đoán sự cố",
+    "samplePrompt": "Hãy áp dụng Skill [Chẩn đoán sự cố] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Chẩn đoán sự cố\nPhân tích sự cố theo: nguyên nhân khả dĩ → nguy hiểm → kiểm tra hiện trường → biện pháp tạm thời → sửa chữa → kiểm tra sau sửa chữa.\nƯu tiên an toàn, cô lập nguy hiểm và duy trì vận hành.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Chẩn đoán sự cố: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_chan-doan-su-co.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_chan-doan-su-co.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "quan-ly-ho-so",
+    "folder": "05-quan-ly-ho-so",
+    "name": "Quản lý hồ sơ & tài liệu",
+    "category": "Hồ sơ & Soạn thảo",
+    "category_key": "document",
+    "color": "cyan",
+    "iconName": "FileText",
+    "desc": "Kiểm tra tính đầy đủ, phiên bản, chữ ký, ngày tháng, phụ lục, căn cứ và khả năng truy xuất.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Quản lý hồ sơ & tài liệu",
+    "samplePrompt": "Hãy áp dụng Skill [Quản lý hồ sơ & tài liệu] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Quản lý hồ sơ & tài liệu\nKiểm tra tính đầy đủ, phiên bản, chữ ký, ngày tháng, phụ lục, căn cứ và khả năng truy xuất.\nĐầu ra: danh mục hồ sơ, hồ sơ thiếu, hồ sơ mâu thuẫn, hành động bổ sung.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Quản lý hồ sơ & tài liệu: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_quan-ly-ho-so.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_quan-ly-ho-so.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "tham-muu-lanh-dao",
+    "folder": "06-tham-muu-lanh-dao",
+    "name": "Tham mưu lãnh đạo",
+    "category": "Tham mưu & Quyết sách",
+    "category_key": "leadership",
+    "color": "purple",
+    "iconName": "Sparkles",
+    "desc": "Chuẩn bị thông tin để lãnh đạo ra quyết định.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Tham mưu lãnh đạo",
+    "samplePrompt": "Hãy áp dụng Skill [Tham mưu lãnh đạo] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Tham mưu lãnh đạo\nChuẩn bị thông tin để lãnh đạo ra quyết định.\n## Đầu ra\nTóm tắt 1 trang → vấn đề → căn cứ → chi phí → rủi ro → phương án → đề xuất → câu hỏi lãnh đạo có thể hỏi.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Tham mưu lãnh đạo: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_tham-muu-lanh-dao.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_tham-muu-lanh-dao.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "phan-tich-chi-phi",
+    "folder": "07-phan-tich-chi-phi",
+    "name": "Phân tích chi phí",
+    "category": "Tài chính & Chi phí",
+    "category_key": "finance",
+    "color": "pink",
+    "iconName": "DollarSign",
+    "desc": "Phân tích tổng tiền, tỷ trọng, biến động, báo giá, CAPEX/OPEX, chi phí bảo trì, đơn giá và cơ hội tối ưu.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Phân tích chi phí",
+    "samplePrompt": "Hãy áp dụng Skill [Phân tích chi phí] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Phân tích chi phí\nPhân tích tổng tiền, tỷ trọng, biến động, báo giá, CAPEX/OPEX, chi phí bảo trì, đơn giá và cơ hội tối ưu.\nKhông tự bịa giá thị trường khi chưa có dữ liệu.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Phân tích chi phí: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_phan-tich-chi-phi.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_phan-tich-chi-phi.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "quan-ly-cong-viec",
+    "folder": "08-quan-ly-cong-viec",
+    "name": "Quản lý công việc",
+    "category": "Hiệu suất làm việc",
+    "category_key": "productivity",
+    "color": "teal",
+    "iconName": "Clock",
+    "desc": "Quản lý nhiệm vụ theo: việc, người phụ trách, hạn, trạng thái, hồ sơ, rủi ro, việc chờ.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Quản lý công việc",
+    "samplePrompt": "Hãy áp dụng Skill [Quản lý công việc] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Quản lý công việc\nQuản lý nhiệm vụ theo: việc, người phụ trách, hạn, trạng thái, hồ sơ, rủi ro, việc chờ.\nƯu tiên P1–P4 theo mức độ khẩn cấp, an toàn, pháp lý và ảnh hưởng vận hành.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Quản lý công việc: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_quan-ly-cong-viec.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_quan-ly-cong-viec.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "soan-thao-qa",
+    "folder": "09-soan-thao-qa",
+    "name": "Soạn thảo & kiểm tra văn bản",
+    "category": "Hồ sơ & Soạn thảo",
+    "category_key": "document",
+    "color": "cyan",
+    "iconName": "FileText",
+    "desc": "Soạn báo cáo, biên bản, quyết định, hướng dẫn, quy trình, thông báo, email, kế hoạch và checklist.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Soạn thảo & kiểm tra văn bản",
+    "samplePrompt": "Hãy áp dụng Skill [Soạn thảo & kiểm tra văn bản] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Soạn thảo & kiểm tra văn bản\nSoạn báo cáo, biên bản, quyết định, hướng dẫn, quy trình, thông báo, email, kế hoạch và checklist.\nKiểm tra chính tả, logic, thuật ngữ, số liệu, đơn vị, căn cứ và phụ lục.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Soạn thảo & kiểm tra văn bản: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_soan-thao-qa.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_soan-thao-qa.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "ai-workflow",
+    "folder": "10-ai-workflow",
+    "name": "AI Workflow",
+    "category": "Trí tuệ nhân tạo (AI)",
+    "category_key": "ai",
+    "color": "indigo",
+    "iconName": "Bot",
+    "desc": "Thiết kế quy trình dùng AI cho công việc: nguồn dữ liệu → xử lý → kiểm tra → đầu ra → lưu trữ → tái sử dụng.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về AI Workflow",
+    "samplePrompt": "Hãy áp dụng Skill [AI Workflow] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill AI Workflow\nThiết kế quy trình dùng AI cho công việc: nguồn dữ liệu → xử lý → kiểm tra → đầu ra → lưu trữ → tái sử dụng.\nƯu tiên quy trình có thể lặp lại và kiểm chứng.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ AI Workflow: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_ai-workflow.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_ai-workflow.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "dau-ra-thuc-te",
+    "folder": "11-dau-ra-thuc-te",
+    "name": "Tạo đầu ra thực tế",
+    "category": "Tạo đầu ra thực tế",
+    "category_key": "output",
+    "color": "green",
+    "iconName": "Layers",
+    "desc": "Chuyển phân tích thành checklist, bảng, báo cáo, biểu mẫu, kế hoạch, ma trận trách nhiệm, risk list, dashboard spec hoặc prompt phù hợp mục tiêu.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Tạo đầu ra thực tế",
+    "samplePrompt": "Hãy áp dụng Skill [Tạo đầu ra thực tế] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Tạo đầu ra thực tế\nChuyển phân tích thành checklist, bảng, báo cáo, biểu mẫu, kế hoạch, ma trận trách nhiệm, risk list, dashboard spec hoặc prompt phù hợp mục tiêu.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Tạo đầu ra thực tế: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_dau-ra-thuc-te.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_dau-ra-thuc-te.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "an-toan-gioi-han",
+    "folder": "12-an-toan-gioi-han",
+    "name": "An toàn & giới hạn AI",
+    "category": "An toàn & Giới hạn",
+    "category_key": "safety",
+    "color": "red",
+    "iconName": "ShieldAlert",
+    "desc": "Không khẳng định tuân thủ khi thiếu căn cứ. Không bịa nguồn, tiêu chuẩn, số liệu. Nêu rõ dữ liệu còn thiếu và yêu cầu xác minh nguồn hiện hành khi cần.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về An toàn & giới hạn AI",
+    "samplePrompt": "Hãy áp dụng Skill [An toàn & giới hạn AI] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill An toàn & giới hạn AI\nKhông khẳng định tuân thủ khi thiếu căn cứ. Không bịa nguồn, tiêu chuẩn, số liệu. Nêu rõ dữ liệu còn thiếu và yêu cầu xác minh nguồn hiện hành khi cần.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ An toàn & giới hạn AI: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_an-toan-gioi-han.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_an-toan-gioi-han.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "mua-sam",
+    "folder": "13-mua-sam",
+    "name": "Mua sắm",
+    "category": "Mua sắm & Đấu thầu",
+    "category_key": "procurement",
+    "color": "orange",
+    "iconName": "ShoppingCart",
+    "desc": "Quản lý quy trình mua sắm: nhu cầu → phạm vi → khảo sát → báo giá → so sánh → lựa chọn → phê duyệt → đặt hàng → nghiệm thu → thanh toán → sau mua.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Mua sắm",
+    "samplePrompt": "Hãy áp dụng Skill [Mua sắm] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Mua sắm\nQuản lý quy trình mua sắm: nhu cầu → phạm vi → khảo sát → báo giá → so sánh → lựa chọn → phê duyệt → đặt hàng → nghiệm thu → thanh toán → sau mua.\nĐầu ra: bảng so sánh, đánh giá nhà cung cấp, hồ sơ đề xuất.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Mua sắm: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_mua-sam.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_mua-sam.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "quan-tri-tai-san",
+    "folder": "14-quan-tri-tai-san",
+    "name": "Quản trị tài sản",
+    "category": "Quản trị tài sản",
+    "category_key": "asset-management",
+    "color": "purple",
+    "iconName": "Package",
+    "desc": "Quản lý mã tài sản, tên, nguyên giá, khấu hao, giá trị còn lại, ngày hạch toán, bộ phận quản lý, điều chuyển, kiểm kê, bảo hành, bảo trì và thanh lý.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Quản trị tài sản",
+    "samplePrompt": "Hãy áp dụng Skill [Quản trị tài sản] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Quản trị tài sản\nQuản lý mã tài sản, tên, nguyên giá, khấu hao, giá trị còn lại, ngày hạch toán, bộ phận quản lý, điều chuyển, kiểm kê, bảo hành, bảo trì và thanh lý.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Quản trị tài sản: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_quan-tri-tai-san.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_quan-tri-tai-san.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "van-hanh-toa-nha",
+    "folder": "15-van-hanh-toa-nha",
+    "name": "Vận hành tòa nhà",
+    "category": "Vận hành tòa nhà",
+    "category_key": "facility-management",
+    "color": "blue",
+    "iconName": "Building2",
+    "desc": "Quản lý vận hành MEP/MEPF, điện, HVAC, nước, thang máy, BMS, an ninh, bảo trì, sự cố, nhà thầu, năng lượng và hồ sơ vận hành.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Vận hành tòa nhà",
+    "samplePrompt": "Hãy áp dụng Skill [Vận hành tòa nhà] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Vận hành tòa nhà\nQuản lý vận hành MEP/MEPF, điện, HVAC, nước, thang máy, BMS, an ninh, bảo trì, sự cố, nhà thầu, năng lượng và hồ sơ vận hành.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Vận hành tòa nhà: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_van-hanh-toa-nha.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_van-hanh-toa-nha.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "mep-mepf",
+    "folder": "16-mep-mepf",
+    "name": "MEP/MEPF",
+    "category": "Kỹ thuật Cơ điện MEP",
+    "category_key": "engineering",
+    "color": "green",
+    "iconName": "Cpu",
+    "desc": "Phân tích hệ thống điện, HVAC, cấp thoát nước, PCCC, BMS, thang máy và hệ thống kỹ thuật liên quan.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về MEP/MEPF",
+    "samplePrompt": "Hãy áp dụng Skill [MEP/MEPF] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill MEP/MEPF\nPhân tích hệ thống điện, HVAC, cấp thoát nước, PCCC, BMS, thang máy và hệ thống kỹ thuật liên quan.\nKhi tính toán phải nêu giả định, công thức, kết quả và hệ số an toàn.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ MEP/MEPF: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_mep-mepf.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_mep-mepf.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "pccc",
+    "folder": "17-pccc",
+    "name": "PCCC",
+    "category": "An toàn PCCC",
+    "category_key": "fire-safety",
+    "color": "red",
+    "iconName": "Flame",
+    "desc": "Kiểm tra báo cháy, sprinkler, họng nước, bơm, bể, hút khói, tăng áp, nguồn điện, ngăn cháy, thoát nạn, liên động và hồ sơ nghiệm thu.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về PCCC",
+    "samplePrompt": "Hãy áp dụng Skill [PCCC] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill PCCC\nKiểm tra báo cháy, sprinkler, họng nước, bơm, bể, hút khói, tăng áp, nguồn điện, ngăn cháy, thoát nạn, liên động và hồ sơ nghiệm thu.\nLuôn đối chiếu quy định hiện hành và phạm vi áp dụng.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ PCCC: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_pccc.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_pccc.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "phap-ly-tuan-thu",
+    "folder": "18-phap-ly-tuan-thu",
+    "name": "Pháp lý & tuân thủ",
+    "category": "Pháp lý & Hợp đồng",
+    "category_key": "legal",
+    "color": "gold",
+    "iconName": "Scale",
+    "desc": "Xác định vấn đề pháp lý, văn bản áp dụng, hiệu lực, phạm vi, nghĩa vụ, hồ sơ chứng minh và rủi ro.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Pháp lý & tuân thủ",
+    "samplePrompt": "Hãy áp dụng Skill [Pháp lý & tuân thủ] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Pháp lý & tuân thủ\nXác định vấn đề pháp lý, văn bản áp dụng, hiệu lực, phạm vi, nghĩa vụ, hồ sơ chứng minh và rủi ro.\nPhân biệt thông tin pháp lý với ý kiến tư vấn.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Pháp lý & tuân thủ: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_phap-ly-tuan-thu.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_phap-ly-tuan-thu.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "ho-so-nghiem-thu",
+    "folder": "19-ho-so-nghiem-thu",
+    "name": "Hồ sơ nghiệm thu",
+    "category": "Hồ sơ nghiệm thu",
+    "category_key": "acceptance",
+    "color": "cyan",
+    "iconName": "FileCheck",
+    "desc": "Kiểm tra hồ sơ pháp lý, thiết kế, thi công, vật liệu/thiết bị, nhật ký, biên bản, thử nghiệm, hoàn công, vận hành và bàn giao.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Hồ sơ nghiệm thu",
+    "samplePrompt": "Hãy áp dụng Skill [Hồ sơ nghiệm thu] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Hồ sơ nghiệm thu\nKiểm tra hồ sơ pháp lý, thiết kế, thi công, vật liệu/thiết bị, nhật ký, biên bản, thử nghiệm, hoàn công, vận hành và bàn giao.\nĐối chiếu thiết kế được duyệt ↔ thi công ↔ hiện trạng.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Hồ sơ nghiệm thu: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_ho-so-nghiem-thu.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_ho-so-nghiem-thu.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "du-lieu-kpi",
+    "folder": "20-du-lieu-kpi",
+    "name": "Phân tích dữ liệu & KPI",
+    "category": "Dữ liệu & KPI",
+    "category_key": "data",
+    "color": "blue",
+    "iconName": "TrendingUp",
+    "desc": "Xác định KPI, nguồn dữ liệu, grain, chất lượng dữ liệu, xu hướng, phân khúc, biến động và nguyên nhân.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Phân tích dữ liệu & KPI",
+    "samplePrompt": "Hãy áp dụng Skill [Phân tích dữ liệu & KPI] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Phân tích dữ liệu & KPI\nXác định KPI, nguồn dữ liệu, grain, chất lượng dữ liệu, xu hướng, phân khúc, biến động và nguyên nhân.\nĐầu ra: insight, bảng, biểu đồ, KPI definition và khuyến nghị dựa trên dữ liệu.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Phân tích dữ liệu & KPI: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_du-lieu-kpi.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_du-lieu-kpi.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "nang-luong-esg",
+    "folder": "21-nang-luong-esg",
+    "name": "Năng lượng – ESG",
+    "category": "Năng lượng & ESG",
+    "category_key": "esg",
+    "color": "teal",
+    "iconName": "Leaf",
+    "desc": "Theo dõi điện, nước, nhiên liệu, phát thải, hiệu suất và KPI ESG.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Năng lượng – ESG",
+    "samplePrompt": "Hãy áp dụng Skill [Năng lượng – ESG] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Năng lượng – ESG\nTheo dõi điện, nước, nhiên liệu, phát thải, hiệu suất và KPI ESG.\nThiết lập mục tiêu, người phụ trách, tần suất, nguồn dữ liệu và báo cáo.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Năng lượng – ESG: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_nang-luong-esg.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_nang-luong-esg.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "agent",
+    "folder": "22-agent",
+    "name": "Agent",
+    "category": "Trí tuệ nhân tạo (AI)",
+    "category_key": "ai",
+    "color": "indigo",
+    "iconName": "Bot",
+    "desc": "Thiết kế trợ lý AI chuyên biệt gồm mục tiêu, vai trò, công cụ, Skill, quy trình, guardrail, đầu vào, đầu ra và tiêu chí kiểm tra.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Agent",
+    "samplePrompt": "Hãy áp dụng Skill [Agent] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Agent\nThiết kế trợ lý AI chuyên biệt gồm mục tiêu, vai trò, công cụ, Skill, quy trình, guardrail, đầu vào, đầu ra và tiêu chí kiểm tra.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Agent: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_agent.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_agent.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "knowledge-base",
+    "folder": "23-knowledge-base",
+    "name": "Knowledge Base",
+    "category": "Trí tuệ nhân tạo (AI)",
+    "category_key": "ai",
+    "color": "indigo",
+    "iconName": "Bot",
+    "desc": "Tổ chức tài liệu thành kho kiến thức có cấu trúc: nguồn → phân loại → metadata → truy xuất → kiểm tra nguồn → cập nhật phiên bản.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Knowledge Base",
+    "samplePrompt": "Hãy áp dụng Skill [Knowledge Base] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Knowledge Base\nTổ chức tài liệu thành kho kiến thức có cấu trúc: nguồn → phân loại → metadata → truy xuất → kiểm tra nguồn → cập nhật phiên bản.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Knowledge Base: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_knowledge-base.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_knowledge-base.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "skill-router",
+    "folder": "24-skill-router",
+    "name": "Skill Router",
+    "category": "Trí tuệ nhân tạo (AI)",
+    "category_key": "ai",
+    "color": "indigo",
+    "iconName": "Bot",
+    "desc": "Phân tích yêu cầu người dùng và chọn Skill phù hợp.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Skill Router",
+    "samplePrompt": "Hãy áp dụng Skill [Skill Router] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Router\nPhân tích yêu cầu người dùng và chọn Skill phù hợp.\n## Quy trình\nNhận diện ý định → xác định lĩnh vực → chọn Skill → kiểm tra xung đột → chuyển yêu cầu cho Skill/Agent.\nKhông tự động trộn Skill riêng tư nếu chưa được phép.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Skill Router: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_skill-router.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_skill-router.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "skill-analyzer",
+    "folder": "25-skill-analyzer",
+    "name": "Skill Analyzer",
+    "category": "Trí tuệ nhân tạo (AI)",
+    "category_key": "ai",
+    "color": "indigo",
+    "iconName": "Bot",
+    "desc": "Phân tích Skill được upload: đọc cấu trúc → phân loại → kiểm tra metadata → phát hiện trùng → đánh giá thiếu sót → chuẩn hóa → đề xuất kích hoạt.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Skill Analyzer",
+    "samplePrompt": "Hãy áp dụng Skill [Skill Analyzer] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Analyzer\nPhân tích Skill được upload: đọc cấu trúc → phân loại → kiểm tra metadata → phát hiện trùng → đánh giá thiếu sót → chuẩn hóa → đề xuất kích hoạt.\nKhông sao chép bí mật hoặc system prompt riêng tư.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Skill Analyzer: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_skill-analyzer.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_skill-analyzer.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "chatbot-sales-ai",
+    "folder": "26-chatbot-sales-ai",
+    "name": "Chatbot Sales AI",
+    "category": "Bán hàng & CSKH",
+    "category_key": "sales",
+    "color": "orange",
+    "iconName": "MessageSquare",
+    "desc": "Thiết kế chatbot bán hàng: chào hỏi → xác định nhu cầu → giới thiệu → hỏi thông tin → báo giá/đề xuất → xử lý phản đối → chốt → chuyển người thật khi cần.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Chatbot Sales AI",
+    "samplePrompt": "Hãy áp dụng Skill [Chatbot Sales AI] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Chatbot Sales AI\nThiết kế chatbot bán hàng: chào hỏi → xác định nhu cầu → giới thiệu → hỏi thông tin → báo giá/đề xuất → xử lý phản đối → chốt → chuyển người thật khi cần.\nKhông bịa giá, chính sách hoặc tồn kho.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Chatbot Sales AI: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_chatbot-sales-ai.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_chatbot-sales-ai.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "ai-webapp-saas",
+    "folder": "27-ai-webapp-saas",
+    "name": "AI WebApp/SaaS",
+    "category": "Phần mềm & SaaS",
+    "category_key": "software",
+    "color": "indigo",
+    "iconName": "Code2",
+    "desc": "Thiết kế ứng dụng AI gồm frontend, backend, OpenAI API, database, file storage, authentication, Skill Library, Agent và logging.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về AI WebApp/SaaS",
+    "samplePrompt": "Hãy áp dụng Skill [AI WebApp/SaaS] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill AI WebApp/SaaS\nThiết kế ứng dụng AI gồm frontend, backend, OpenAI API, database, file storage, authentication, Skill Library, Agent và logging.\nƯu tiên V1 nhỏ, chạy được, sau đó mở rộng.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ AI WebApp/SaaS: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_ai-webapp-saas.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_ai-webapp-saas.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "poster-infographic",
+    "folder": "28-poster-infographic",
+    "name": "Thiết kế Poster/Infographic",
+    "category": "Thiết kế & Đồ họa",
+    "category_key": "design",
+    "color": "pink",
+    "iconName": "Palette",
+    "desc": "Chuyển nội dung thành bố cục trực quan: tiêu đề → thông điệp → phân cấp → hình ảnh → dữ liệu → CTA.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Thiết kế Poster/Infographic",
+    "samplePrompt": "Hãy áp dụng Skill [Thiết kế Poster/Infographic] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Poster/Infographic\nChuyển nội dung thành bố cục trực quan: tiêu đề → thông điệp → phân cấp → hình ảnh → dữ liệu → CTA.\nKiểm tra khả năng đọc trên màn hình và tính nhất quán thương hiệu.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Thiết kế Poster/Infographic: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_poster-infographic.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_poster-infographic.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "nam-a-bank-enews",
+    "folder": "29-nam-a-bank-enews",
+    "name": "Nam A Bank eNews",
+    "category": "Thiết kế & Đồ họa",
+    "category_key": "design",
+    "color": "pink",
+    "iconName": "Palette",
+    "desc": "Thiết kế eNews theo nhận diện đã xác lập: xanh 005EA6, vàng FFD700, trắng; bố cục hiện đại, sạch, cao cấp; ưu tiên logo, hình ảnh thương hiệu, hierarchy và khả năng đọc.",
+    "price": "399.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Nam A Bank eNews",
+    "samplePrompt": "Hãy áp dụng Skill [Nam A Bank eNews] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Nam A Bank eNews\nThiết kế eNews theo nhận diện đã xác lập: xanh #005EA6, vàng #FFD700, trắng; bố cục hiện đại, sạch, cao cấp; ưu tiên logo, hình ảnh thương hiệu, hierarchy và khả năng đọc.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Nam A Bank eNews: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_nam-a-bank-enews.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_nam-a-bank-enews.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "ai-video",
+    "folder": "30-ai-video",
+    "name": "AI Video",
+    "category": "Sản xuất AI Video",
+    "category_key": "video",
+    "color": "purple",
+    "iconName": "Video",
+    "desc": "Thiết kế workflow image-to-video/video generation: concept → shot list → prompt → chuyển động → camera → ánh sáng → kiểm tra character consistency → hậu kỳ.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về AI Video",
+    "samplePrompt": "Hãy áp dụng Skill [AI Video] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill AI Video\nThiết kế workflow image-to-video/video generation: concept → shot list → prompt → chuyển động → camera → ánh sáng → kiểm tra character consistency → hậu kỳ.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ AI Video: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_ai-video.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_ai-video.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "kol-thoi-trang",
+    "folder": "31-kol-thoi-trang",
+    "name": "KOL Thời Trang",
+    "category": "KOL & Hình ảnh AI",
+    "category_key": "kol-image",
+    "color": "pink",
+    "iconName": "Sparkles",
+    "desc": "Tạo KOL thời trang cho quảng cáo và lookbook.",
+    "price": "399.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về KOL Thời Trang",
+    "samplePrompt": "Hãy áp dụng Skill [KOL Thời Trang] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill KOL Thời Trang\nTạo KOL thời trang cho quảng cáo và lookbook.\nGiữ nhất quán khuôn mặt, tóc, vóc dáng và nhận diện khi có tham chiếu. Có chế độ Fashion Portrait, Full Body, Lookbook, Product Advertising và Campaign.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ KOL Thời Trang: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_kol-thoi-trang.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_kol-thoi-trang.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "reference-image",
+    "folder": "32-reference-image",
+    "name": "Học ảnh tham chiếu",
+    "category": "KOL & Hình ảnh AI",
+    "category_key": "kol-image",
+    "color": "pink",
+    "iconName": "Sparkles",
+    "desc": "Phân tích ảnh để trích xuất đặc điểm có thể sử dụng làm tham chiếu: khuôn mặt, tóc, dáng, trang phục, ánh sáng, bố cục và phong cách.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Học ảnh tham chiếu",
+    "samplePrompt": "Hãy áp dụng Skill [Học ảnh tham chiếu] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Học ảnh tham chiếu\nPhân tích ảnh để trích xuất đặc điểm có thể sử dụng làm tham chiếu: khuôn mặt, tóc, dáng, trang phục, ánh sáng, bố cục và phong cách.\nPhân biệt đặc điểm nhận diện với yếu tố có thể thay đổi.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Học ảnh tham chiếu: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_reference-image.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_reference-image.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  },
+  {
+    "id": "character-consistency",
+    "folder": "33-character-consistency",
+    "name": "Giữ nhất quán nhân vật",
+    "category": "KOL & Hình ảnh AI",
+    "category_key": "kol-image",
+    "color": "pink",
+    "iconName": "Sparkles",
+    "desc": "Duy trì nhận diện nhân vật qua nhiều ảnh/cảnh.",
+    "price": "199.000đ/tháng",
+    "systemRole": "Chuyên gia cấp cao về Giữ nhất quán nhân vật",
+    "samplePrompt": "Hãy áp dụng Skill [Giữ nhất quán nhân vật] để phân tích và đề xuất giải pháp xử lý vấn đề này giúp tôi.",
+    "skillMd": "# Skill Character Consistency\nDuy trì nhận diện nhân vật qua nhiều ảnh/cảnh.\nKhóa các đặc điểm cốt lõi và chỉ thay đổi thuộc tính được yêu cầu như trang phục, bối cảnh, dáng, góc máy và ánh sáng.",
+    "checklist": [
+      {
+        "label": "Căn cứ nghiệp vụ Giữ nhất quán nhân vật: Đạt chuẩn",
+        "status": "pass"
+      },
+      {
+        "label": "Kiểm tra tính logic & khả thi: 100%",
+        "status": "pass"
+      },
+      {
+        "label": "Đầu ra hành động: Có người phụ trách & thời hạn",
+        "status": "pass"
+      }
+    ],
+    "sampleFiles": [
+      {
+        "name": "Huong_dan_thuc_hien_character-consistency.pdf",
+        "size": "1.2 MB",
+        "type": "pdf"
+      },
+      {
+        "name": "Bieu_mau_chuan_character-consistency.xlsx",
+        "size": "280 KB",
+        "type": "excel"
+      }
+    ]
+  }
+]
