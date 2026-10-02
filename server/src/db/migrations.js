@@ -47,9 +47,9 @@ export async function runMigrations() {
       }
     }
 
-    console.log('✅ Database schema migration completed successfully.');
+    console.log('[MIGRATION SUCCESS] Database schema migration completed successfully.');
   } catch (error) {
-    console.error('❌ Database migration error:', error);
+    console.error('[MIGRATION ERROR] Database migration error:', error);
     throw error;
   }
 }

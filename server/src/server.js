@@ -80,7 +80,7 @@ app.use(errorHandler);
 // 7. Bootstrap Server
 async function startServer() {
   try {
-    console.log('🚀 Starting TRÍ AI SaaS Backend Server...');
+    console.log('Starting TRÍ AI SaaS Backend Server...');
     
     // Auto-migrate schema
     await runMigrations();
@@ -88,20 +88,20 @@ async function startServer() {
     // Auto-seed initial data (Master Admin, Agents, 33 Skills)
     await runSeeds();
 
-    const PORT = env.PORT || 5000;
+    const PORT = env.PORT || 80;
     app.listen(PORT, () => {
       console.log(`
 ======================================================
-  🤖 TRÍ AI SAAS PLATFORM — BACKEND ONLINE
-  📡 API Server:  http://localhost:${PORT}
-  🏥 Health:      http://localhost:${PORT}/api/health
-  👑 Master Admin: ${env.ADMIN_EMAIL}
-  🗄️ Database:    ${env.DATABASE_PATH}
+  TRÍ AI SAAS PLATFORM -- BACKEND ONLINE
+  API Server:   http://localhost:${PORT}
+  Health:       http://localhost:${PORT}/api/health
+  Master Admin: ${env.ADMIN_EMAIL}
+  Database:     ${env.DATABASE_PATH}
 ======================================================
       `);
     });
   } catch (error) {
-    console.error('❌ Failed to start TRÍ AI Server:', error);
+    console.error('[ERROR] Failed to start TRÍ AI Server:', error);
     process.exit(1);
   }
 }

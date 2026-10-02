@@ -42,12 +42,12 @@ export default function RightSidebar({
     { id: 'phan-tich-chi-phi', name: 'Phân tích chi phí', color: 'pink', img: '/assets/skill_8_chiphi.png', icon: BarChart3 },
   ];
 
-  // 4 Cửa hàng Skill chuẩn 4 cột ngang
+  // 4 Cửa hàng Skill chuẩn 4 cột ngang với giá chính thức
   const storeCards = [
-    { id: 'store-mua-sam', name: 'Skill Mua sắm', price: '99.000đ/tháng', color: 'orange', icon: ShoppingCart },
-    { id: 'store-pccc', name: 'Skill PCCC', price: '199.000đ/tháng', color: 'red', icon: Flame },
-    { id: 'store-toanha', name: 'Skill Vận hành tòa nhà', price: '299.000đ/tháng', color: 'blue', icon: Building2 },
-    { id: 'store-phaply', name: 'Skill Pháp lý', price: '199.000đ/tháng', color: 'gold', icon: Scale },
+    { id: 'skill-mua-sam', name: 'Skill Mua sắm', price: '199.000đ/tháng', color: 'orange', icon: ShoppingCart },
+    { id: 'skill-pccc', name: 'Skill PCCC', price: '249.000đ/tháng', color: 'red', icon: Flame },
+    { id: 'skill-mep', name: 'Skill MEP & Vận hành', price: '299.000đ/tháng', color: 'blue', icon: Building2 },
+    { id: 'skill-phap-ly', name: 'Skill Pháp lý', price: '299.000đ/tháng', color: 'gold', icon: Scale },
   ];
 
   return (

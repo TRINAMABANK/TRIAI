@@ -2,11 +2,12 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '../db/index.js';
 import { env } from '../config/env.js';
 import LicenseEngine from './licenseEngine.js';
+import { resolveOrderProduct } from '../config/pricing.js';
 
 export class PaymentService {
   /**
    * Create an order on server-side
-   * Backend strictly resolves skill prices and calculates totalAmount.
+   * Backend strictly resolves product prices and calculates totalAmount.
    */
   static async createOrder({ userId, items = [], note = '' }) {
     if (!items || items.length === 0) {
@@ -25,28 +26,21 @@ export class PaymentService {
     const resolvedItems = [];
 
     for (const item of items) {
-      const skill = await db.get('SELECT * FROM skills WHERE id = ?', [item.skillId]);
-      if (!skill) {
-        throw new Error(`Skill ${item.skillId} không tồn tại trong hệ thống.`);
-      }
+      const targetId = item.productId || item.skillId || item.id;
+      const period = item.period || item.billingCycle || 'monthly';
+      const product = resolveOrderProduct(targetId, period);
 
-      let price = 199000;
-      if (item.period === 'yearly') {
-        const cleanedYearPrice = parseInt(String(skill.price_year || '1990000').replace(/\D/g, ''), 10);
-        price = !isNaN(cleanedYearPrice) && cleanedYearPrice > 0 ? cleanedYearPrice : 1990000;
-      } else {
-        const cleanedMonthPrice = parseInt(String(skill.price_month || '199000').replace(/\D/g, ''), 10);
-        price = !isNaN(cleanedMonthPrice) && cleanedMonthPrice > 0 ? cleanedMonthPrice : 199000;
-      }
-
-      totalAmount += price;
+      totalAmount += product.price;
       resolvedItems.push({
         id: `odi_${uuidv4().substring(0, 8)}`,
         orderId,
-        skillId: skill.id,
-        skillName: skill.name,
-        period: item.period || 'monthly',
-        price
+        productId: product.productId,
+        skillId: product.productId,
+        skillName: product.productName,
+        type: product.type,
+        period: product.period,
+        price: product.price,
+        includedSkills: product.includedSkills
       });
     }
 
@@ -317,13 +311,27 @@ export class PaymentService {
       const items = await db.all('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
       for (const item of items) {
         const durationDays = item.plan_duration === 'yearly' ? 365 : 30;
-        await LicenseEngine.grantLicense({
-          userId: order.user_id,
-          skillId: item.skill_id,
-          licenseType: item.plan_duration === 'yearly' ? 'yearly' : 'monthly',
-          durationDays,
-          grantedBy: verifier
-        });
+        const product = resolveOrderProduct(item.skill_id, item.plan_duration);
+
+        let targetSkills = [];
+        if (product.includedSkills === 'all_33') {
+          const all = await db.all('SELECT id FROM skills');
+          targetSkills = all.map(s => s.id);
+        } else if (Array.isArray(product.includedSkills)) {
+          targetSkills = product.includedSkills;
+        } else {
+          targetSkills = [item.skill_id];
+        }
+
+        for (const skId of targetSkills) {
+          await LicenseEngine.grantLicense({
+            userId: order.user_id,
+            skillId: skId,
+            licenseType: item.plan_duration === 'yearly' ? 'yearly' : 'monthly',
+            durationDays,
+            grantedBy: verifier
+          });
+        }
       }
 
       // 4. Record Audit Log

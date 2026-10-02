@@ -153,10 +153,20 @@ export class LicenseEngine {
     const licenseKey = `LIC-${licenseType.toUpperCase()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     const id = `lic_${uuidv4()}`;
 
+    // Resolve skillId if alias or slight variant provided
+    let targetSkillId = skillId;
+    const existing = await db.get('SELECT id FROM skills WHERE id = ?', [skillId]);
+    if (!existing) {
+      const match = await db.get('SELECT id FROM skills WHERE slug = ? OR id LIKE ? LIMIT 1', [skillId, `%${skillId}%`]);
+      if (match) {
+        targetSkillId = match.id;
+      }
+    }
+
     await db.run(
       `INSERT INTO licenses (id, user_id, skill_id, license_key, license_type, status, expires_at, granted_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
-      [id, userId, skillId, licenseKey, licenseType, expiresAt, grantedBy, now.toISOString(), now.toISOString()]
+      [id, userId, targetSkillId, licenseKey, licenseType, expiresAt, grantedBy, now.toISOString(), now.toISOString()]
     );
 
     return { id, licenseKey, licenseType, expiresAt, status: 'active' };

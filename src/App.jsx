@@ -323,7 +323,7 @@ export default function App() {
       skillId: isMasterAll ? 'master-33' : targetSkillId,
       skillName: skillName,
       type: 'purchase_qr',
-      price: formattedAmount || packageData.priceMonth || packageData.price || '99.000đ',
+      price: formattedAmount || packageData.priceMonth || packageData.price || '149.000đ',
       notes: `Khách hàng đã chuyển khoản VietQR OCB (Mã: ${transferContent}). Đang chờ Admin đối soát và phê duyệt.`
     });
 
@@ -565,6 +565,8 @@ export default function App() {
           <AgentsView 
             onSelectAgent={(agent) => setSelectedAgent(agent)}
             onSwitchToChat={handleSwitchToChat}
+            ownedSkills={ownedSkills}
+            onOpenStore={() => setTab('store')}
           />
         )}
 

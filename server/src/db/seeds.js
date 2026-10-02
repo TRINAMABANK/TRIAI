@@ -30,7 +30,7 @@ export async function runSeeds() {
         now
       ]
     );
-    console.log(`✅ Seeded Master Admin: ${env.ADMIN_EMAIL}`);
+    console.log(`[SEED] Seeded Master Admin: ${env.ADMIN_EMAIL}`);
   }
 
   // 2. Seed Agents from agentsData.js (or JSON fallback)
@@ -108,7 +108,7 @@ export async function runSeeds() {
         ]
       );
     }
-    console.log(`✅ Seeded ${agents.length} default Agents.`);
+    console.log(`[SEED] Seeded ${agents.length} default Agents.`);
   }
 
   // 3. Seed Master Skills from src/data/masterSkills.json
@@ -129,8 +129,8 @@ export async function runSeeds() {
             skill.category || 'Chung',
             skill.desc || skill.description || '',
             skill.color || 'blue',
-            skill.price || '199.000đ/tháng',
-            '1.990.000đ/năm',
+            skill.price || '149.000đ/tháng',
+            '1.490.000đ/năm',
             skill.iconName || 'Sparkles',
             'TRÍ AI Master',
             now,
@@ -156,7 +156,7 @@ export async function runSeeds() {
           ]
         );
       }
-      console.log(`✅ Seeded ${skillsData.length} Master Skills & Versions.`);
+      console.log(`[SEED] Seeded ${skillsData.length} Master Skills & Versions.`);
     }
   }
 
@@ -184,7 +184,7 @@ export async function runSeeds() {
         );
       }
     }
-    console.log(`✅ Granted master licenses to Admin (${env.ADMIN_EMAIL}).`);
+    console.log(`[SEED] Granted master licenses to Admin (${env.ADMIN_EMAIL}).`);
   }
 }
 

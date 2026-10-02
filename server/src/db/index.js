@@ -17,9 +17,9 @@ export function getDb() {
   if (!dbInstance) {
     dbInstance = new sqlite.Database(dbPath, (err) => {
       if (err) {
-        console.error('❌ Failed to connect to SQLite database:', err.message);
+        console.error('[DB ERROR] Failed to connect to SQLite database:', err.message);
       } else {
-        console.log(`✅ SQLite connected: ${dbPath}`);
+        console.log(`[DB SUCCESS] SQLite connected: ${dbPath}`);
       }
     });
 
