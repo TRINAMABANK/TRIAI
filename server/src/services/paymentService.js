@@ -49,6 +49,42 @@ export class PaymentService {
     const userEmail = user?.email || 'Khách hàng';
     const userName = user?.full_name || 'Khách hàng';
 
+    // Check if there is already an existing pending order for this user with same skill in the last 60m
+    const targetSkillId = resolvedItems[0]?.skillId;
+    const existingPending = await db.get(
+      `SELECT o.* FROM orders o 
+       JOIN order_items oi ON o.id = oi.order_id 
+       WHERE o.user_id = ? AND o.status = 'pending' AND oi.skill_id = ? 
+       AND datetime(o.created_at) > datetime('now', '-60 minutes')
+       ORDER BY o.created_at DESC LIMIT 1`,
+      [userId, targetSkillId]
+    );
+
+    if (existingPending) {
+      const qrUrl = this.generateVietQRUrl({
+        amount: existingPending.total_amount,
+        orderCode: existingPending.order_code
+      });
+      return {
+        orderId: existingPending.id,
+        orderCode: existingPending.order_code,
+        totalAmount: existingPending.total_amount,
+        formattedAmount: existingPending.total_amount.toLocaleString('vi-VN') + ' đ',
+        status: 'pending',
+        bankInfo: {
+          bankName: env.BANK_NAME || 'OCB',
+          bankFullName: 'Ngân hàng TMCP Phương Đông (OCB)',
+          accountNumber: env.BANK_ACCOUNT_NUMBER || '0982441446',
+          accountHolder: env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ'
+        },
+        transferContent: existingPending.order_code,
+        qrUrl,
+        items: resolvedItems,
+        createdAt: existingPending.created_at,
+        isReused: true
+      };
+    }
+
     await db.transaction(async () => {
       // 1. Insert Order (STATUS = PENDING)
       await db.run(
@@ -65,33 +101,6 @@ export class PaymentService {
           [item.id, orderId, item.skillId, item.skillName, item.period, item.price, item.price, now]
         );
       }
-
-      // 3. Create Admin Notification
-      const notifId = `notif_${uuidv4().substring(0, 8)}`;
-      const skillNames = resolvedItems.map(i => i.skillName).join(', ');
-      const notifData = JSON.stringify({
-        orderId,
-        orderCode,
-        userId,
-        userEmail,
-        userName,
-        skills: skillNames,
-        totalAmount,
-        paymentMethod: 'VietQR / OCB'
-      });
-
-      await db.run(
-        `INSERT INTO notifications (id, user_id, type, title, message, resource_type, resource_id, data_json, is_read, created_at)
-         VALUES (?, 'usr_master_admin', 'payment_pending', ?, ?, 'order', ?, ?, 0, ?)`,
-        [
-          notifId,
-          `🔔 Có đơn hàng mới: ${orderCode} (${totalAmount.toLocaleString('vi-VN')} đ)`,
-          `Khách hàng ${userName} (${userEmail}) vừa tạo đơn mua Skill [${skillNames}].`,
-          orderId,
-          notifData,
-          now
-        ]
-      );
     });
 
     const qrUrl = this.generateVietQRUrl({
@@ -371,6 +380,12 @@ export class PaymentService {
           order.id,
           now
         ]
+      );
+
+      // 7. Auto-cancel duplicate pending orders for this user
+      await db.run(
+        `UPDATE orders SET status = 'cancelled', updated_at = ? WHERE user_id = ? AND id != ? AND status = 'pending'`,
+        [now, order.user_id, order.id]
       );
     });
 

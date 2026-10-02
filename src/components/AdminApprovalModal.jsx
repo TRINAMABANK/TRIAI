@@ -129,7 +129,19 @@ export default function AdminApprovalModal({
 
   const isAdmin = adminUser.role === 'owner' || adminUser.role === 'admin' || adminUser.isAdmin || adminUser.role === 'Chủ sở hữu';
 
-  const pendingRequests = requests.filter(r => r.status === 'pending');
+  const pendingRequests = requests.filter(r => {
+    if (r.status !== 'pending') return false;
+    // For backend orders: ONLY show in PAYMENT PENDING if customer actually clicked 'Tôi đã chuyển khoản'
+    if (r.isBackendOrder) {
+      const hasCustomerProof = r.notes && (
+        r.notes.includes('Khách báo đã chuyển khoản') || 
+        r.notes.includes('đã chuyển khoản') || 
+        r.notes.includes('VietQR')
+      );
+      return hasCustomerProof;
+    }
+    return true;
+  });
   const approvedRequests = requests.filter(r => r.status === 'approved');
 
   // Xử lý phê duyệt
