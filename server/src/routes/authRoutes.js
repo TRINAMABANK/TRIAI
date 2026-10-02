@@ -85,7 +85,10 @@ router.post('/login', async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Tài khoản của bạn đã bị khóa.' });
     }
 
-    const isValid = await comparePassword(password, user.password_hash);
+    let isValid = await comparePassword(password, user.password_hash);
+    if (!isValid && typeof password === 'string') {
+      isValid = await comparePassword(password.trim(), user.password_hash);
+    }
     if (!isValid) {
       return res.status(401).json({ success: false, error: 'Email hoặc mật khẩu không chính xác.' });
     }
