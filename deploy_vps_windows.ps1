@@ -1,16 +1,17 @@
 # ==============================================================================
-# TRÍ AI SAAS PLATFORM — TỰ ĐỘNG THIẾT LẬP & KHỞI CHẠY VPS WINDOWS SERVER
+# TRÍ AI SAAS PLATFORM — TU DONG THIET LAP & KHOI CHAY VPS WINDOWS SERVER
 # Domain: banhangdinhcao.com & www.banhangdinhcao.com | IP: 160.187.228.50
 # ==============================================================================
 
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Continue"
 
-Write-Host "======================================================" -ForegroundColor Cyan
-Write-Host "  🤖 BẮT ĐẦU TỰ ĐỘNG CẤU HÌNH TRÍ AI TRÊN VPS WINDOWS" -ForegroundColor Yellow
-Write-Host "======================================================" -ForegroundColor Cyan
+Write-Output "======================================================"
+Write-Output "  BAT DAU TU DONG CAU HINH TRI AI TREN VPS WINDOWS"
+Write-Output "======================================================"
 
-# 1. Mở cổng tường lửa Windows Firewall (Port 80, 443, 5000, 3000)
-Write-Host "`n[1/6] Đang mở các cổng tường lửa Windows Firewall (80, 443, 5000)..." -ForegroundColor Green
+# 1. Mo cong tuong lua Windows Firewall (Port 80, 443, 5000)
+Write-Output "`n[1/6] Dang mo cac cong tuong lua Windows Firewall (80, 443, 5000)..."
 netsh advfirewall firewall delete rule name="TRIAI-HTTP" 2>$null
 netsh advfirewall firewall delete rule name="TRIAI-HTTPS" 2>$null
 netsh advfirewall firewall delete rule name="TRIAI-API" 2>$null
@@ -18,32 +19,32 @@ netsh advfirewall firewall delete rule name="TRIAI-API" 2>$null
 netsh advfirewall firewall add rule name="TRIAI-HTTP" dir=in action=allow protocol=TCP localport=80
 netsh advfirewall firewall add rule name="TRIAI-HTTPS" dir=in action=allow protocol=TCP localport=443
 netsh advfirewall firewall add rule name="TRIAI-API" dir=in action=allow protocol=TCP localport=5000
-Write-Host "  -> Đã mở cổng tường lửa thành công!" -ForegroundColor Green
+Write-Output "  -> Da mo cong tuong lua thanh cong!"
 
-# 2. Kiểm tra và cài đặt Git nếu chưa có
-Write-Host "`n[2/6] Kiểm tra môi trường Git..." -ForegroundColor Green
+# 2. Kiem tra va cai dat Git neu chua co
+Write-Output "`n[2/6] Kiem tra moi truong Git..."
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Host "  -> Đang tải và cài đặt Git for Windows..." -ForegroundColor Yellow
+    Write-Output "  -> Dang tai va cai dat Git for Windows..."
     $gitInstaller = "$env:TEMP\git_setup.exe"
     Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/download/v2.44.0.windows.1/Git-2.44.0-64-bit.exe" -OutFile $gitInstaller
     Start-Process -FilePath $gitInstaller -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS" -Wait
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
-Write-Host "  -> Git đã sẵn sàng!" -ForegroundColor Green
+Write-Output "  -> Git da san sang!"
 
-# 3. Kiểm tra và cài đặt Node.js nếu chưa có
-Write-Host "`n[3/6] Kiểm tra môi trường Node.js..." -ForegroundColor Green
+# 3. Kiem tra va cai dat Node.js neu chua co
+Write-Output "`n[3/6] Kiem tra moi truong Node.js..."
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-    Write-Host "  -> Đang tải và cài đặt Node.js LTS (v20.x)..." -ForegroundColor Yellow
+    Write-Output "  -> Dang tai va cai dat Node.js LTS (v20.x)..."
     $nodeMsi = "$env:TEMP\node_setup.msi"
     Invoke-WebRequest -Uri "https://nodejs.org/dist/v20.12.2/node-v20.12.2-x64.msi" -OutFile $nodeMsi
     Start-Process msiexec.exe -ArgumentList "/i `"$nodeMsi`" /qn /norestart" -Wait
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 }
-Write-Host "  -> Node.js version: $(node -v)" -ForegroundColor Green
+Write-Output "  -> Node.js version: $(node -v)"
 
-# 4. Kéo hoặc tạo thư mục dự án C:\TRIAI
-Write-Host "`n[4/6] Cập nhật mã nguồn mới nhất từ GitHub..." -ForegroundColor Green
+# 4. Cap nhat ma nguon tu GitHub
+Write-Output "`n[4/6] Cap nhat ma nguon moi nhat tu GitHub..."
 $targetDir = "C:\TRIAI"
 if (Test-Path "$targetDir\.git") {
     Set-Location $targetDir
@@ -54,8 +55,8 @@ if (Test-Path "$targetDir\.git") {
     Set-Location $targetDir
 }
 
-# 5. Cấu hình file .env chuẩn Production
-Write-Host "`n[5/6] Thiết lập cấu hình hệ thống .env..." -ForegroundColor Green
+# 5. Cau hinh file .env chuan Production
+Write-Output "`n[5/6] Thiet lap cau hinh he thong .env..."
 $envContent = @"
 PORT=5000
 NODE_ENV=production
@@ -74,11 +75,11 @@ JWT_EXPIRES_IN=7d
 MASTER_ADMIN_EMAIL=triqnnamabank@gmail.com
 ADMIN_INITIAL_PASSWORD=TriAI@2026!Admin
 
-# Dùng thử & Thanh toán VietQR OCB
+# Dung thu & Thanh toan VietQR OCB
 TRIAL_DURATION_MINUTES=15
 VIETQR_BANK_CODE=OCB
 VIETQR_ACCOUNT_NUMBER=0982441446
-VIETQR_ACCOUNT_NAME=QUANG NHỰT TRÍ
+VIETQR_ACCOUNT_NAME=QUANG NHUT TRI
 
 # AI Runtime OpenAI
 OPENAI_API_KEY=
@@ -86,25 +87,25 @@ OPENAI_MODEL=gpt-4o-mini
 "@
 
 Set-Content -Path "$targetDir\.env" -Value $envContent -Encoding UTF8
-Write-Host "  -> File .env đã được cấu hình chuẩn!" -ForegroundColor Green
+Write-Output "  -> File .env da duoc cau hinh chuan!"
 
-# 6. Cài đặt dependencies và khởi động Backend
-Write-Host "`n[6/6] Cài đặt dependencies và khởi chạy Server..." -ForegroundColor Green
+# 6. Cai dat dependencies va khoi dong Backend
+Write-Output "`n[6/6] Cai dat dependencies va khoi chay Server..."
 npm install --production=false
 npm run build
 
-# Cài đặt PM2 để chạy nền Node.js
-Write-Host "  -> Khởi động Node.js Server qua PM2..." -ForegroundColor Yellow
+# Cai dat PM2 de chay nen Node.js
+Write-Output "  -> Khoi dong Node.js Server qua PM2..."
 npm install -g pm2
 pm2 delete triai 2>$null
 pm2 start server/src/server.js --name "triai"
 pm2 save
 
-# 7. Tải và cấu hình Caddy Server làm HTTPS/HTTP Reverse Proxy
-Write-Host "`n🔒 Thiết lập Caddy Web Server & Tự động cấp chứng chỉ SSL HTTPS..." -ForegroundColor Green
+# 7. Tai va cau hinh Caddy Server lam HTTPS/HTTP Reverse Proxy
+Write-Output "`nThiet lap Caddy Web Server & Tu dong cap chung chi SSL HTTPS..."
 $caddyExe = "$targetDir\caddy.exe"
 if (-not (Test-Path $caddyExe)) {
-    Write-Host "  -> Đang tải Caddy Server cho Windows..." -ForegroundColor Yellow
+    Write-Output "  -> Dang tai Caddy Server cho Windows..."
     Invoke-WebRequest -Uri "https://github.com/caddyserver/caddy/releases/download/v2.8.4/caddy_2.8.4_windows_amd64.zip" -OutFile "$env:TEMP\caddy.zip"
     Expand-Archive -Path "$env:TEMP\caddy.zip" -DestinationPath "$env:TEMP\caddy_unzip" -Force
     Copy-Item "$env:TEMP\caddy_unzip\caddy.exe" $caddyExe -Force
@@ -118,14 +119,14 @@ banhangdinhcao.com, www.banhangdinhcao.com, :80 {
 
 Set-Content -Path "$targetDir\Caddyfile" -Value $caddyfileContent -Encoding UTF8
 
-# Dừng caddy cũ nếu có và chạy caddy mới
+# Dung caddy cu neu co va chay caddy moi
 Stop-Process -Name "caddy" -ErrorAction SilentlyContinue
 Start-Process -FilePath $caddyExe -ArgumentList "run --config $targetDir\Caddyfile" -WindowStyle Hidden
 
-Write-Host "`n======================================================" -ForegroundColor Cyan
-Write-Host "  🎉 HỆ THỐNG TRÍ AI ĐÃ KHỞI CHẠY THÀNH CÔNG TRÊN VPS!" -ForegroundColor Green
-Write-Host "  🌐 Domain chính: https://banhangdinhcao.com" -ForegroundColor Yellow
-Write-Host "  🌐 Domain phụ:   https://www.banhangdinhcao.com" -ForegroundColor Yellow
-Write-Host "  🌐 HTTP dự phòng: http://banhangdinhcao.com" -ForegroundColor Yellow
-Write-Host "  🌐 IP Server:    http://160.187.228.50:5000" -ForegroundColor Yellow
-Write-Host "======================================================" -ForegroundColor Cyan
+Write-Output "`n======================================================"
+Write-Output "  HE THONG TRI AI DA KHOI CHAY THANH CONG TREN VPS!"
+Write-Output "  Domain chinh:  https://banhangdinhcao.com"
+Write-Output "  Domain phu:    https://www.banhangdinhcao.com"
+Write-Output "  HTTP du phong: http://banhangdinhcao.com"
+Write-Output "  IP Server:     http://160.187.228.50:5000"
+Write-Output "======================================================"
