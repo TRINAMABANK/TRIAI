@@ -1,8 +1,10 @@
 if (-not (Test-Path "C:\Caddy")) { New-Item -ItemType Directory -Path "C:\Caddy" -Force | Out-Null }
 
-Write-Host "Dang tai Caddy SSL Server..." -ForegroundColor Yellow
-curl.exe -L -o "C:\Caddy\caddy.zip" "https://github.com/caddyserver/caddy/releases/download/v2.7.6/caddy_2.7.6_windows_amd64.zip"
-tar.exe -xf "C:\Caddy\caddy.zip" -C "C:\Caddy"
+if (Test-Path "C:\TRIAI\caddy.exe") {
+    Copy-Item -Path "C:\TRIAI\caddy.exe" -Destination "C:\Caddy\caddy.exe" -Force
+} elseif (Test-Path "C:\TRIAI\caddy_test.exe") {
+    Copy-Item -Path "C:\TRIAI\caddy_test.exe" -Destination "C:\Caddy\caddy.exe" -Force
+}
 
 $caddyfileContent = @"
 banhangdinhcao.com, www.banhangdinhcao.com {
