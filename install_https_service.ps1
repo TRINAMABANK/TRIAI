@@ -1,43 +1,34 @@
 # ==============================================================================
 # TRÍ AI SAAS PLATFORM — TỰ ĐỘNG CÀI ĐẶT TOÀN DIỆN HTTPS/SSL CHO BANHANGDINHCAO.COM
-# Hỗ trợ: https://banhangdinhcao.com | http://banhangdinhcao.com | www.banhangdinhcao.com
 # ==============================================================================
 
 Write-Host "======================================================" -ForegroundColor Cyan
-Write-Host "  🔒 BẮT ĐẦU CÀI ĐẶT Ổ KHÓA XANH HTTPS CHO BANHANGDINHCAO.COM" -ForegroundColor Yellow
+Write-Host "  BẮT ĐẦU CÀI ĐẶT Ổ KHÓA XANH HTTPS CHO BANHANGDINHCAO.COM" -ForegroundColor Yellow
 Write-Host "======================================================" -ForegroundColor Cyan
 
 # 1. Cập nhật cấu hình cổng Backend sang 5000
 Write-Host "`n[1/5] Cập nhật Backend sang cổng 5000..." -ForegroundColor Green
 $envPath = "C:\TRIAI\.env"
-$envContent = @"
-PORT=5000
-NODE_ENV=production
-APP_URL=https://banhangdinhcao.com
-API_URL=https://banhangdinhcao.com/api
-CORS_ORIGIN=*
-
-# Database SQLite
-DATABASE_PATH=./.data/triai.db
-UPLOAD_DIR=./uploads
-
-# Security & Master Admin
-JWT_SECRET=triai_master_jwt_secret_production_2026_qnt
-JWT_EXPIRES_IN=7d
-MASTER_ADMIN_EMAIL=triqnnamabank@gmail.com
-ADMIN_INITIAL_PASSWORD=TriAI@2026!Admin
-
-# Dùng thử & Thanh toán VietQR OCB
-TRIAL_DURATION_MINUTES=15
-VIETQR_BANK_CODE=OCB
-VIETQR_ACCOUNT_NUMBER=0982441446
-VIETQR_ACCOUNT_NAME=QUANG NHỰT TRÍ
-
-# AI Runtime OpenAI
-OPENAI_API_KEY=
-OPENAI_MODEL=gpt-4o-mini
-"@
-Set-Content -Path $envPath -Value $envContent -Encoding UTF8
+$envLines = @(
+    "PORT=5000",
+    "NODE_ENV=production",
+    "APP_URL=https://banhangdinhcao.com",
+    "API_URL=https://banhangdinhcao.com/api",
+    "CORS_ORIGIN=*",
+    "DATABASE_PATH=./.data/triai.db",
+    "UPLOAD_DIR=./uploads",
+    "JWT_SECRET=triai_master_jwt_secret_production_2026_qnt",
+    "JWT_EXPIRES_IN=7d",
+    "MASTER_ADMIN_EMAIL=triqnnamabank@gmail.com",
+    "ADMIN_INITIAL_PASSWORD=TriAI@2026!Admin",
+    "TRIAL_DURATION_MINUTES=15",
+    "VIETQR_BANK_CODE=OCB",
+    "VIETQR_ACCOUNT_NUMBER=0982441446",
+    "VIETQR_ACCOUNT_NAME=QUANG NHỰT TRÍ",
+    "OPENAI_API_KEY=",
+    "OPENAI_MODEL=gpt-4o-mini"
+)
+$envLines | Set-Content -Path $envPath -Encoding UTF8
 
 # 2. Mở cổng tường lửa Windows Firewall cho 80, 443, 5000
 Write-Host "`n[2/5] Mở các cổng tường lửa 80 (HTTP), 443 (HTTPS), 5000 (API)..." -ForegroundColor Green
@@ -60,7 +51,7 @@ $caddyExe = "$caddyDir\caddy.exe"
 if (-not (Test-Path $caddyExe)) {
     $zipPath = "$env:TEMP\caddy.zip"
     Write-Host "  -> Đang tải Caddy binary..." -ForegroundColor Yellow
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
     Invoke-WebRequest -Uri "https://github.com/caddyserver/caddy/releases/download/v2.7.6/caddy_2.7.6_windows_amd64.zip" -OutFile $zipPath
     Expand-Archive -Path $zipPath -DestinationPath $caddyDir -Force
     Remove-Item $zipPath -Force
@@ -68,12 +59,12 @@ if (-not (Test-Path $caddyExe)) {
 
 # 4. Tạo Caddyfile cấu hình đầy đủ https, www, http
 Write-Host "`n[4/5] Tạo file cấu hình SSL Caddyfile..." -ForegroundColor Green
-$caddyfile = @"
-banhangdinhcao.com, www.banhangdinhcao.com {
-    reverse_proxy 127.0.0.1:5000
-}
-"@
-Set-Content -Path "$caddyDir\Caddyfile" -Value $caddyfile -Encoding UTF8
+$caddyLines = @(
+    "banhangdinhcao.com, www.banhangdinhcao.com {",
+    "    reverse_proxy 127.0.0.1:5000",
+    "}"
+)
+$caddyLines | Set-Content -Path "$caddyDir\Caddyfile" -Encoding UTF8
 
 # 5. Dừng các tiến trình node/caddy cũ và khởi động mới song song
 Write-Host "`n[5/5] Khởi động hệ thống Backend và Caddy SSL..." -ForegroundColor Green
@@ -89,8 +80,8 @@ Start-Process -FilePath "cmd.exe" -ArgumentList "/c cd /d C:\TRIAI && node serve
 Start-Process -FilePath $caddyExe -ArgumentList "run --config C:\Caddy\Caddyfile" -WorkingDirectory $caddyDir
 
 Write-Host "`n======================================================" -ForegroundColor Cyan
-Write-Host "  🎉 HỆ THỐNG ĐÃ KÍCH HOẠT THÀNH CÔNG Ổ KHÓA XANH HTTPS!" -ForegroundColor Green
-Write-Host "  🌐 HTTPS: https://banhangdinhcao.com" -ForegroundColor Yellow
-Write-Host "  🌐 WWW:   https://www.banhangdinhcao.com" -ForegroundColor Yellow
-Write-Host "  🌐 HTTP:  http://banhangdinhcao.com" -ForegroundColor Yellow
+Write-Host "  HỆ THỐNG ĐÃ KÍCH HOẠT THÀNH CÔNG Ổ KHÓA XANH HTTPS!" -ForegroundColor Green
+Write-Host "  HTTPS: https://banhangdinhcao.com" -ForegroundColor Yellow
+Write-Host "  WWW:   https://www.banhangdinhcao.com" -ForegroundColor Yellow
+Write-Host "  HTTP:  http://banhangdinhcao.com" -ForegroundColor Yellow
 Write-Host "======================================================" -ForegroundColor Cyan
