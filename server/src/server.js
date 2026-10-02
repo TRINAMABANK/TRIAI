@@ -54,11 +54,29 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', adminRoutes);
 
-// 5. Error & 404 Handlers
+// 5. Serve Frontend Static SPA (Single-port deployment)
+const possibleDistPaths = [
+  path.resolve(process.cwd(), 'dist'),
+  path.resolve(process.cwd(), '../dist')
+];
+const distPath = possibleDistPaths.find((p) => fs.existsSync(p));
+
+if (distPath) {
+  console.log(`📦 Serving Frontend SPA from: ${distPath}`);
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
+// 6. Error & 404 Handlers
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// 6. Bootstrap Server
+// 7. Bootstrap Server
 async function startServer() {
   try {
     console.log('🚀 Starting TRÍ AI SaaS Backend Server...');
