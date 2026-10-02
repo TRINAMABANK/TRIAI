@@ -1,7 +1,8 @@
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+if (-not (Test-Path "C:\Caddy")) { New-Item -ItemType Directory -Path "C:\Caddy" -Force | Out-Null }
+
 Write-Host "Dang tai Caddy SSL Server..." -ForegroundColor Yellow
-Invoke-WebRequest -Uri "https://github.com/caddyserver/caddy/releases/download/v2.7.6/caddy_2.7.6_windows_amd64.zip" -OutFile "C:\caddy.zip"
-Expand-Archive -Path "C:\caddy.zip" -DestinationPath "C:\Caddy" -Force
+curl.exe -L -o "C:\Caddy\caddy.zip" "https://github.com/caddyserver/caddy/releases/download/v2.7.6/caddy_2.7.6_windows_amd64.zip"
+tar.exe -xf "C:\Caddy\caddy.zip" -C "C:\Caddy"
 
 $caddyfileContent = @"
 banhangdinhcao.com, www.banhangdinhcao.com {
