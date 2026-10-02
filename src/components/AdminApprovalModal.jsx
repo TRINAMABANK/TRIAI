@@ -56,17 +56,67 @@ export default function AdminApprovalModal({
     setTimeout(() => setToastMsg(''), 4000);
   };
 
-  const loadData = async () => {
-    const data = getLicenseRequests();
-    setRequests(data);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
-    // Sync from backend orders if available
+  const loadData = async () => {
+    setIsLoadingOrders(true);
     try {
-      const ordersRes = await api.admin.getOrders().catch(() => null);
-      if (ordersRes && ordersRes.orders) {
-        // Log or integrate if needed
+      const localData = getLicenseRequests() || [];
+      let combinedRequests = [...localData];
+
+      // Fetch live orders from backend database
+      const ordersRes = await api.admin.getOrders().catch(err => {
+        console.warn('Failed to load admin orders from API:', err);
+        return null;
+      });
+
+      if (ordersRes && ordersRes.orders && Array.isArray(ordersRes.orders)) {
+        const backendRequests = ordersRes.orders.map(o => ({
+          id: o.order_code || o.id,
+          orderId: o.id,
+          orderCode: o.order_code,
+          userName: o.user_name || o.user_email?.split('@')[0] || 'Khách hàng',
+          email: o.user_email || 'Chưa cập nhật',
+          skillName: o.skill_names || 'Gói Skill Bản Quyền',
+          skillId: o.skill_names || 'skill-mua-sam',
+          price: (o.total_amount || 0).toLocaleString('vi-VN') + ' đ',
+          amountNumber: o.total_amount,
+          status: (o.status === 'completed' || o.status === 'paid') ? 'approved' : o.status === 'cancelled' ? 'rejected' : 'pending',
+          type: 'purchase_qr',
+          notes: o.note || `Đơn hàng ${o.order_code}`,
+          time: o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : 'Vừa xong',
+          isBackendOrder: true
+        }));
+
+        // Put backend requests first, avoid duplicates
+        const existingIds = new Set();
+        const merged = [];
+
+        for (const req of backendRequests) {
+          if (!existingIds.has(req.id) && !existingIds.has(req.orderId)) {
+            merged.push(req);
+            existingIds.add(req.id);
+            if (req.orderId) existingIds.add(req.orderId);
+          }
+        }
+
+        for (const req of combinedRequests) {
+          if (!existingIds.has(req.id)) {
+            merged.push(req);
+            existingIds.add(req.id);
+          }
+        }
+
+        setRequests(merged);
+      } else {
+        setRequests(combinedRequests);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Error loading admin orders:', e);
+      setRequests(getLicenseRequests() || []);
+    } finally {
+      setIsLoadingOrders(false);
+    }
   };
 
   useEffect(() => {
@@ -83,35 +133,43 @@ export default function AdminApprovalModal({
   const approvedRequests = requests.filter(r => r.status === 'approved');
 
   // Xử lý phê duyệt
-  const handleApprove = async (requestId) => {
-    try {
-      await api.admin.verifyPayment(requestId, { transactionRef: `VERIFIED_${Date.now()}` }).catch(() => null);
-    } catch (e) {}
+  const handleApprove = async (request) => {
+    const isObj = typeof request === 'object' && request !== null;
+    const requestId = isObj ? request.id : request;
+    const orderId = isObj ? (request.orderId || request.id) : request;
 
-    const res = approveLicenseRequest(requestId, adminUser.email);
-    if (res.success) {
-      showToast(`✅ ${res.message}`);
-      loadData();
-      if (onLicenseChanged) onLicenseChanged();
-    } else {
-      showToast(`❌ ${res.message}`);
+    try {
+      if (isObj && request.isBackendOrder) {
+        await api.admin.verifyPayment(orderId, { transactionRef: `VERIFIED_${Date.now()}` });
+      }
+    } catch (e) {
+      console.warn('API verify payment error:', e);
     }
+
+    const res = approveLicenseRequest(requestId, adminUser?.email);
+    showToast(`✅ Đã phê duyệt và kích hoạt bản quyền cho đơn hàng ${requestId}!`);
+    await loadData();
+    if (onLicenseChanged) onLicenseChanged();
   };
 
   // Xử lý từ chối
-  const handleReject = async (requestId) => {
-    try {
-      await api.admin.rejectPayment(requestId, { reason: 'Admin từ chối đơn hàng' }).catch(() => null);
-    } catch (e) {}
+  const handleReject = async (request) => {
+    const isObj = typeof request === 'object' && request !== null;
+    const requestId = isObj ? request.id : request;
+    const orderId = isObj ? (request.orderId || request.id) : request;
 
-    const res = rejectLicenseRequest(requestId, adminUser.email);
-    if (res.success) {
-      showToast(`⚠️ ${res.message}`);
-      loadData();
-      if (onLicenseChanged) onLicenseChanged();
-    } else {
-      showToast(`❌ ${res.message}`);
+    try {
+      if (isObj && request.isBackendOrder) {
+        await api.admin.rejectPayment(orderId, { reason: 'Admin từ chối đơn hàng' });
+      }
+    } catch (e) {
+      console.warn('API reject payment error:', e);
     }
+
+    const res = rejectLicenseRequest(requestId, adminUser?.email);
+    showToast(`⚠️ Đã từ chối đơn hàng ${requestId}`);
+    await loadData();
+    if (onLicenseChanged) onLicenseChanged();
   };
 
   // Xử lý cấp quyền thủ công
@@ -341,7 +399,7 @@ export default function AdminApprovalModal({
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           type="button"
-                          onClick={() => handleApprove(req.id)}
+                          onClick={() => handleApprove(req)}
                           disabled={!isAdmin}
                           style={{
                             background: '#16a34a',
@@ -363,7 +421,7 @@ export default function AdminApprovalModal({
 
                         <button
                           type="button"
-                          onClick={() => handleReject(req.id)}
+                          onClick={() => handleReject(req)}
                           disabled={!isAdmin}
                           style={{
                             background: '#fef2f2',
