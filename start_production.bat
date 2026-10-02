@@ -15,7 +15,8 @@ echo   -^> Da mo cong tuong lua thanh cong!
 echo [2/3] Build giao dien Single Page Application...
 call npm run build
 
-echo [3/3] Bat may chu web node server/src/server.js...
+echo [3/3] Bat may chu web node server/src/server.js tren Cong 80...
+set PORT=80
 node server/src/server.js
 
 pause
