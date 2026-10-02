@@ -73,7 +73,7 @@ MAX_FILE_SIZE_MB=25
 JWT_SECRET=triai_master_jwt_secret_production_2026_qnt
 JWT_EXPIRES_IN=7d
 MASTER_ADMIN_EMAIL=triqnnamabank@gmail.com
-ADMIN_INITIAL_PASSWORD=TriAI@2026!Admin
+ADMIN_INITIAL_PASSWORD=Giamua@2023admin
 
 # Dung thu & Thanh toan VietQR OCB
 TRIAL_DURATION_MINUTES=15

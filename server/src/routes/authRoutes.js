@@ -181,4 +181,39 @@ router.get('/me', requireAuth, async (req, res, next) => {
   }
 });
 
+/**
+ * POST /api/auth/change-password
+ */
+router.post('/change-password', requireAuth, async (req, res, next) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+    }
+
+    const user = await db.get('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy người dùng.' });
+    }
+
+    if (oldPassword) {
+      const isValid = await comparePassword(oldPassword, user.password_hash);
+      if (!isValid) {
+        return res.status(400).json({ success: false, error: 'Mật khẩu cũ không chính xác.' });
+      }
+    }
+
+    const newHash = await hashPassword(newPassword);
+    const now = new Date().toISOString();
+    await db.run('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?', [newHash, now, user.id]);
+
+    res.json({
+      success: true,
+      message: 'Đổi mật khẩu thành công.'
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

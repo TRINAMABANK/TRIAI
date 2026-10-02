@@ -22,7 +22,7 @@ export const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   
   ADMIN_EMAIL: (process.env.MASTER_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'triqnnamabank@gmail.com').toLowerCase().trim(),
-  ADMIN_INITIAL_PASSWORD: process.env.ADMIN_INITIAL_PASSWORD || 'TriAI@2026!Admin',
+  ADMIN_INITIAL_PASSWORD: process.env.ADMIN_INITIAL_PASSWORD || 'Giamua@2023admin',
   
   TRIAL_DURATION_MINUTES: parseInt(process.env.TRIAL_DURATION_MINUTES || '15', 10),
   
