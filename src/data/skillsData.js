@@ -297,77 +297,19 @@ export const MASTER_ADMIN_EMAIL = 'triqnnamabank@gmail.com';
 
 const REQUESTS_STORAGE_KEY = 'tri_ai_license_requests_v1';
 
-const DEFAULT_SAMPLE_REQUESTS = [
-  {
-    id: 'REQ-2026-001',
-    email: 'khachhang.moi@gmail.com',
-    userName: 'Tập Đoàn Xây Dựng Nam Á',
-    skillId: 'mep',
-    skillName: 'Gói Kỹ Sư Cơ Điện MEP',
-    type: 'purchase',
-    price: '299.000đ/tháng',
-    time: '29/09/2026 20:45',
-    status: 'pending', // Chờ Admin duyệt
-    phone: '0908.123.456',
-    notes: 'Đã chuyển khoản ngân hàng, chờ Admin kiểm tra và duyệt mở khóa'
-  },
-  {
-    id: 'REQ-2026-002',
-    email: 'doitac.bds@gmail.com',
-    userName: 'Công Ty Quản Lý Tòa Nhà Sunrise',
-    skillId: 'pccc',
-    skillName: 'Gói Chuyên Gia PCCC & Thẩm Duyệt',
-    type: 'trial',
-    price: 'Dùng thử 15 phút',
-    time: '29/09/2026 20:10',
-    status: 'pending',
-    phone: '0912.888.999',
-    notes: 'Đăng ký dùng thử tính năng rà soát QCVN 06:2026/BXD'
-  },
-  {
-    id: 'REQ-2026-003',
-    email: 'kol.fashion@gmail.com',
-    userName: 'Khách Hàng KOL Thời Trang',
-    skillId: 'kol-thoi-trang',
-    skillName: 'Gói KOL Thời Trang AI (Ý Ngọc Lookbook)',
-    type: 'purchase',
-    price: '399.000đ/tháng',
-    time: '29/09/2026 18:30',
-    status: 'approved',
-    approvedBy: MASTER_ADMIN_EMAIL,
-    approvedAt: '29/09/2026 18:32',
-    phone: '0988.777.666',
-    notes: 'Đã phê duyệt và cấp quyền sử dụng'
-  },
-  {
-    id: 'REQ-2026-004',
-    email: 'kythuat.pccc@gmail.com',
-    userName: 'Kỹ Sư Công Trình',
-    skillId: 'pccc',
-    skillName: 'Gói Chuyên Gia PCCC',
-    type: 'purchase',
-    price: '199.000đ/tháng',
-    time: '29/09/2026 17:15',
-    status: 'approved',
-    approvedBy: MASTER_ADMIN_EMAIL,
-    approvedAt: '29/09/2026 17:20',
-    phone: '0933.222.111',
-    notes: 'Đã phê duyệt và cấp quyền sử dụng'
-  }
-];
+const DEFAULT_SAMPLE_REQUESTS = [];
 
 export function getLicenseRequests() {
   try {
     const raw = localStorage.getItem(REQUESTS_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(REQUESTS_STORAGE_KEY, JSON.stringify(DEFAULT_SAMPLE_REQUESTS));
-      return DEFAULT_SAMPLE_REQUESTS;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return DEFAULT_SAMPLE_REQUESTS;
+    if (!Array.isArray(parsed)) return [];
     return parsed;
   } catch (e) {
-    return DEFAULT_SAMPLE_REQUESTS;
+    return [];
   }
 }
 
