@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Bell, 
@@ -15,6 +15,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { AGENTS_DATA } from '../data/agentsData';
+import { api } from '../api/client';
 
 export default function RightSidebar({ 
   skills, 
@@ -27,7 +28,21 @@ export default function RightSidebar({
   setSearchTerm
 }) {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const res = await api.notifications.getAll().catch(() => null);
+        if (res && res.notifications && Array.isArray(res.notifications)) {
+          setNotifications(res.notifications);
+        }
+      } catch (e) {}
+    };
+    fetchNotifs();
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   // 8 Skill Data chuẩn khớp màu sắc và icon 3D
@@ -88,17 +103,21 @@ export default function RightSidebar({
             <div className="notif-popup-card">
               <div className="notif-popup-head">
                 <b>Thông báo hệ thống</b>
-                <button onClick={() => setUnreadCount(0)}>Đã đọc</button>
+                <button onClick={() => setShowNotifications(false)}>Đóng</button>
               </div>
               <div className="notif-popup-body">
-                <div className="notif-line">
-                  <b>Rà soát hồ sơ PCCC cơ sở 2:</b>
-                  <p>Hệ thống tự động đã đối chiếu 100% biên bản thử nghiệm và sơ đồ hoàn công.</p>
-                </div>
-                <div className="notif-line">
-                  <b>Cập nhật Skill:</b>
-                  <p>Hệ sinh thái Trí AI đã bổ sung tiêu chuẩn QCVN 06:2026/BXD mới nhất.</p>
-                </div>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>
+                    Chưa có thông báo mới.
+                  </div>
+                ) : (
+                  notifications.map(n => (
+                    <div key={n.id} className="notif-line">
+                      <b>{n.title}</b>
+                      <p>{n.message}</p>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}

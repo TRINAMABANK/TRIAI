@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, 
   Mic, 
@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   Clock
 } from 'lucide-react';
+import { api } from '../api/client';
 
 export default function HeroBanner({ 
   activeTab = 'chat',
@@ -43,37 +44,82 @@ export default function HeroBanner({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Danh sách thông báo tương tác (chưa đọc: chữ in đậm, đọc rồi: chữ thường, click vào là đọc xong)
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: 'Rà soát hồ sơ PCCC cơ sở 2:',
-      content: 'Hệ thống tự động đã đối chiếu 100% biên bản thử nghiệm và sơ đồ hoàn công.',
-      time: '10:24',
-      isRead: false
-    },
-    {
-      id: 2,
-      title: 'Cập nhật Skill:',
-      content: 'Hệ sinh thái Trí AI đã bổ sung tiêu chuẩn QCVN 06:2026/BXD mới nhất.',
-      time: '09:15',
-      isRead: false
-    },
-    {
-      id: 3,
-      title: 'Bản quyền Pro:',
-      content: `Tài khoản ${user.name || 'QUANG NHỰT TRÍ'} đang hoạt động với đầy đủ quyền năng Enterprise.`,
-      time: 'Hôm qua',
-      isRead: false
+  // Danh sách thông báo thực tế từ Backend dựa trên quyền tài khoản (Admin vs Khách hàng)
+  const [notifications, setNotifications] = useState([]);
+
+  const fetchNotifications = async () => {
+    if (!user?.isLoggedIn) {
+      setNotifications([]);
+      return;
     }
-  ]);
+
+    try {
+      const res = await api.notifications.getAll().catch(() => null);
+      if (res && res.notifications && Array.isArray(res.notifications) && res.notifications.length > 0) {
+        const formatted = res.notifications.map(n => ({
+          id: n.id,
+          title: n.title,
+          content: n.message,
+          time: n.created_at ? new Date(n.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
+          isRead: Boolean(n.is_read),
+          type: n.type,
+          resourceId: n.resource_id,
+          resourceType: n.resource_type
+        }));
+        setNotifications(formatted);
+      } else {
+        if (isAdmin) {
+          setNotifications([
+            {
+              id: 'def_admin_1',
+              title: '👑 Trung tâm Quản trị Admin:',
+              content: 'Hệ thống đang hoạt động ổn định và sẵn sàng tiếp nhận các đơn hàng mua Skill mới từ khách hàng.',
+              time: 'Hôm nay',
+              isRead: false
+            }
+          ]);
+        } else {
+          setNotifications([
+            {
+              id: 'def_user_1',
+              title: '✨ Chào mừng bạn đến với TRÍ AI:',
+              content: 'Tài khoản của bạn đã được kích hoạt. Hãy khám phá 33 Kỹ năng chuyên môn và các Trợ lý AI chuyên ngành.',
+              time: 'Hôm nay',
+              isRead: false
+            }
+          ]);
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading notifications:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [user?.isLoggedIn, user?.email, isAdmin]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const handleMarkAsRead = (id) => {
+  const handleMarkAsRead = async (item) => {
+    const id = typeof item === 'object' ? item.id : item;
     setNotifications(prev => 
-      prev.map(item => item.id === id ? { ...item, isRead: true } : item)
+      prev.map(n => n.id === id ? { ...n, isRead: true } : n)
     );
+
+    try {
+      if (typeof id === 'string' && !id.startsWith('def_')) {
+        await api.notifications.markRead(id).catch(() => null);
+      }
+    } catch (e) {}
+
+    // Nếu là Admin và bấm vào thông báo đơn hàng -> Mở ngay Trung tâm duyệt đơn
+    if (isAdmin && onOpenAdminApproval && typeof item === 'object') {
+      setShowNotifications(false);
+      onOpenAdminApproval();
+    }
   };
 
   const showToast = (msg) => {
@@ -269,8 +315,8 @@ export default function HeroBanner({
                       <div 
                         key={item.id}
                         className={`notif-line ${item.isRead ? 'is-read' : 'is-unread'}`}
-                        onClick={() => handleMarkAsRead(item.id)}
-                        title={item.isRead ? "Đã đọc" : "Bấm vào để đánh dấu đã đọc"}
+                        onClick={() => handleMarkAsRead(item)}
+                        title={item.isRead ? "Đã đọc" : "Bấm vào để xem chi tiết"}
                       >
                         <div className="notif-line-top">
                           <b className="notif-item-title">{item.title}</b>
