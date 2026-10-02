@@ -15,22 +15,8 @@ export async function runMigrations() {
 
     const schemaSql = fs.readFileSync(schemaPath, 'utf8');
     
-    // Split SQL by semicolon and execute each statement cleanly
-    const statements = schemaSql
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
-
-    for (const stmt of statements) {
-      try {
-        await db.run(stmt);
-      } catch (err) {
-        // Ignore "already exists" or duplicate index errors gracefully
-        if (!err.message.includes('already exists') && !err.message.includes('duplicate')) {
-          console.warn('Migration statement notice:', err.message);
-        }
-      }
-    }
+    // Execute entire schema SQL in one shot
+    await db.exec(schemaSql);
 
     // Auto-migrate missing columns if table already existed
     const tablesToMigrate = [
