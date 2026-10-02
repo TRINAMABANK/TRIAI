@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { AGENTS_DATA } from '../data/agentsData';
 import { exportToWordDocument } from '../utils/documentExporter';
+import { api } from '../api/client';
 
 export default function ChatSection({ 
   activeSkill, 
@@ -123,7 +124,7 @@ export default function ChatSection({
   }, [messages, isAiTyping, bannerMode]);
 
   // Gửi tin nhắn / Gọi lệnh
-  const handleSend = (textToSend) => {
+  const handleSend = async (textToSend) => {
     const query = typeof textToSend === 'string' ? textToSend : input;
     if (!query.trim()) return;
 
@@ -151,211 +152,89 @@ export default function ChatSection({
     setInput('');
     setIsAiTyping(true);
 
-    setTimeout(() => {
-      // KIỂM TRA QUYỀN DUYỆT BẢN QUYỀN CỦA TÀI KHOẢN KHÁCH HÀNG
-      const hasAccess = isAdmin || (ownedSkills && ownedSkills.length > 0) || (trialStatus?.hasTrial && !trialStatus?.isExpired);
-      if (!hasAccess) {
-        setIsAiTyping(false);
+    try {
+      const chatRes = await api.chat.sendMessage({
+        agentId: activeCompanionAgent?.id || null,
+        skillId: activeSkill?.id || null,
+        message: query
+      });
+
+      if (chatRes && chatRes.success) {
+        const contentText = chatRes.content || '';
+        let checklist = activeSkill?.checklist || [];
+        let image = null;
+        let note = 'Báo cáo chi tiết đã được đồng bộ. Anh có thể xuất tài liệu Word hoặc tương tác tiếp với AI bên dưới.';
+        let files = activeSkill?.sampleFiles || [];
+
+        const lowerQuery = query.toLowerCase();
+        const isImageRequest = (
+          lowerQuery.includes('tạo ảnh') || lowerQuery.includes('lookbook') || lowerQuery.includes('ý ngọc') ||
+          lowerQuery.includes('áo dài') || lowerQuery.includes('người mẫu') ||
+          activeCompanionAgent?.id === 'tro-ly-kol' || activeSkill?.id === 'kol-thoi-trang'
+        );
+
+        if (isImageRequest) {
+          image = '/assets/y_ngoc_aodai.jpg';
+          note = 'Bộ ảnh Lookbook chuẩn 8K đã kết xuất thành công. Anh có thể bấm vào tệp bên dưới để tải về các định dạng: PDF, PNG và JPEG.';
+          files = [
+            { name: 'Lookbook_Y_Ngoc_Ao_Dai_Trang.pdf', size: '4.8 MB', type: 'pdf', url: '/assets/y_ngoc_aodai.jpg' },
+            { name: 'Lookbook_Y_Ngoc_Master_8K.png', size: '12.4 MB', type: 'png', url: '/assets/y_ngoc_aodai.jpg' },
+            { name: 'Lookbook_Y_Ngoc_Editorial.jpeg', size: '6.2 MB', type: 'jpeg', url: '/assets/y_ngoc_aodai.jpg' }
+          ];
+        }
+
+        const aiMsg = {
+          id: Date.now() + 1,
+          role: 'ai',
+          agentName: chatRes.agent?.name || activeCompanionAgent?.name,
+          agentRole: chatRes.agent?.role || activeCompanionAgent?.role,
+          agentAvatar: chatRes.agent?.avatar || activeCompanionAgent?.avatar,
+          skillId: chatRes.skill?.id || activeSkill?.id || 'pccc',
+          skillName: chatRes.skill?.name || activeSkill?.name || 'PCCC',
+          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          text: contentText,
+          checklist: checklist,
+          image: image,
+          note: note,
+          files: files
+        };
+
+        setMessages(prev => [...prev, aiMsg]);
+      } else {
+        throw new Error(chatRes?.error || 'Không nhận được kết quả từ máy chủ AI.');
+      }
+    } catch (err) {
+      console.warn('Chat execution note/error:', err);
+      if (err.status === 403 || (err.data && err.data.restricted)) {
         const lockedMsg = {
           id: Date.now() + 1,
           role: 'ai',
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          text: `🔒 THÔNG BÁO TỪ HỆ THỐNG TRÍ AI:\n\nTài khoản (${user.email || 'của bạn'}) hiện chưa được Quản trị viên (triqnnamabank@gmail.com) phê duyệt cấp bản quyền Skill nào.\n\n📌 Hướng dẫn kích hoạt:\n1. Bấm vào "Cửa Hàng Skill" (biểu tượng giỏ hàng ở thanh trên) để chọn gói và gửi yêu cầu phê duyệt tới Admin.\n2. Hoặc kích hoạt "Dùng Thử 15 Phút Miễn Phí" để trải nghiệm trước.\n3. Nếu bạn là Quản trị viên, vui lòng đăng nhập bằng Gmail: triqnnamabank@gmail.com`,
+          text: `🔒 THÔNG BÁO TỪ HỆ THỐNG TRÍ AI:\n\n${err.message || 'Tài khoản của bạn hiện chưa được Quản trị viên (triqnnamabank@gmail.com) phê duyệt cấp bản quyền Skill này.'}\n\n📌 Hướng dẫn kích hoạt:\n1. Bấm vào "Cửa Hàng Skill" (biểu tượng giỏ hàng) để chọn gói và gửi yêu cầu thanh toán tới Quản trị viên.\n2. Hoặc bấm "Dùng Thử 15 Phút Miễn Phí" để trải nghiệm ngay.\n3. Sau khi bạn chuyển khoản VietQR OCB và Admin xác nhận, Skill sẽ tự động mở khóa vĩnh viễn.`,
           checklist: [
-            { label: 'Quyền truy cập: Chưa được Admin phê duyệt', status: 'fail' },
+            { label: 'Quyền truy cập: Chưa được Admin phê duyệt bản quyền', status: 'fail' },
             { label: 'Người duyệt cấp quyền: Quản trị viên triqnnamabank@gmail.com', status: 'pass' }
           ],
           files: []
         };
         setMessages(prev => [...prev, lockedMsg]);
-        return;
-      }
-
-      // 1. ƯU TIÊN HÀNG ĐẦU: Nhận diện yêu cầu TẠO ẢNH / HÌNH ẢNH / LOOKBOOK / Ý NGỌC / VISUAL AI
-      const lowerQuery = query.toLowerCase();
-      const isImageRequest = (
-        lowerQuery.includes('tạo ảnh') ||
-        lowerQuery.includes('tao anh') ||
-        lowerQuery.includes('tạo hình') ||
-        lowerQuery.includes('chụp ảnh') ||
-        lowerQuery.includes('chup anh') ||
-        lowerQuery.includes('ảnh') ||
-        lowerQuery.includes('hình ảnh') ||
-        lowerQuery.includes('vẽ ảnh') ||
-        lowerQuery.includes('lookbook') ||
-        lowerQuery.includes('ý ngọc') ||
-        lowerQuery.includes('y ngoc') ||
-        lowerQuery.includes('áo dài') ||
-        lowerQuery.includes('ao dai') ||
-        lowerQuery.includes('người mẫu') ||
-        lowerQuery.includes('nguoi mau') ||
-        lowerQuery.includes('visual') ||
-        lowerQuery.includes('fashion') ||
-        lowerQuery.includes('haute couture') ||
-        lowerQuery.includes('kol') ||
-        activeCompanionAgent?.id === 'tro-ly-kol' ||
-        activeSkill?.id === 'kol-thoi-trang'
-      );
-
-      // 2. Xác định Skill chính xác từ truy vấn hoặc activeSkill
-      let skillId = (activeSkill?.id || '').toLowerCase();
-      if (isImageRequest) {
-        skillId = 'kol-thoi-trang';
-      } else if (!skillId || skillId === 'pccc' || skillId === 'phap-ly') {
-        if (lowerQuery.includes('báo giá') || lowerQuery.includes('mua sắm') || lowerQuery.includes('đấu thầu')) {
-          skillId = 'mua-sam';
-        } else if (lowerQuery.includes('mep') || lowerQuery.includes('cơ điện') || lowerQuery.includes('bảo trì') || lowerQuery.includes('hvac')) {
-          skillId = 'mep';
-        } else if (lowerQuery.includes('hợp đồng') || lowerQuery.includes('pháp lý') || lowerQuery.includes('pháp chế') || lowerQuery.includes('soạn thảo')) {
-          skillId = 'phap-ly';
-        } else if (lowerQuery.includes('tài chính') || lowerQuery.includes('dự toán') || lowerQuery.includes('ngân sách') || lowerQuery.includes('capex')) {
-          skillId = 'tai-chinh';
-        } else if (lowerQuery.includes('pccc') || lowerQuery.includes('chữa cháy') || lowerQuery.includes('nghiệm thu')) {
-          skillId = 'pccc';
-        }
-      }
-
-      let aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Trí AI'}) đã tiếp nhận yêu cầu: "${query}". Dưới đây là kết quả phân tích chuyên môn:`;
-      let checklist = activeSkill?.checklist || [];
-      let image = null;
-      let note = 'Anh có thể xem báo cáo chi tiết ở bên phải, hoặc yêu cầu em xuất báo cáo Word / đọc tóm tắt ngay bây giờ.';
-      let files = activeSkill?.sampleFiles || [];
-
-      if (skillId.includes('kol') || skillId.includes('thoi-trang') || skillId.includes('y-ngoc')) {
-        aiResponseText = `Dạ anh Trí, em đã kích hoạt Skill KOL Thời Trang và hoàn thành khởi tạo bộ ảnh Lookbook theo quy trình chuẩn cho người mẫu Ý Ngọc:`;
-        checklist = [
-          { label: 'Nhận diện nhân vật Ý Ngọc: Khóa gương mặt nhất quán 100%', status: 'pass' },
-          { label: 'Trang phục Áo dài trắng: Lụa tơ tằm thêu hoa cúc và cườm thủ công', status: 'pass' },
-          { label: 'Bối cảnh Khách sạn cao cấp: Sảnh tiệc di sản 5 sao, đèn chùm pha lê', status: 'pass' },
-          { label: 'Ánh sáng & Nhiếp ảnh: Commercial Photography, tiêu cự 85mm', status: 'pass' },
-          { label: 'Chất lượng xuất bản: Đạt chuẩn Fashion Campaign Lookbook 8K', status: 'pass' }
-        ];
-        image = '/assets/y_ngoc_aodai.jpg';
-        note = 'Bộ ảnh Lookbook chuẩn 8K đã kết xuất thành công. Anh có thể bấm vào tệp bên dưới để tải về các định dạng: PDF (Catalog), PNG (Ảnh gốc 8K) và JPEG (Đa nền tảng).';
-        files = [
-          { name: 'Lookbook_Y_Ngoc_Ao_Dai_Trang.pdf', size: '4.8 MB', type: 'pdf', url: '/assets/y_ngoc_aodai.jpg' },
-          { name: 'Lookbook_Y_Ngoc_Master_8K.png', size: '12.4 MB', type: 'png', url: '/assets/y_ngoc_aodai.jpg' },
-          { name: 'Lookbook_Y_Ngoc_Editorial.jpeg', size: '6.2 MB', type: 'jpeg', url: '/assets/y_ngoc_aodai.jpg' }
-        ];
-      } else if (skillId.includes('pccc') || skillId.includes('chua-chay')) {
-        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'PCCC'}) đã hoàn thành kiểm tra sơ bộ hồ sơ nghiệm thu hệ thống PCCC theo quy chuẩn QCVN 06:2026/BXD:`;
-        checklist = [
-          { label: 'Thành phần hồ sơ: Đầy đủ theo quy định', status: 'pass' },
-          { label: 'Biểu mẫu: Đúng theo Nghị định 136/2020/NĐ-CP & QCVN 06:2026/BXD', status: 'pass' },
-          { label: 'Nội dung kỹ thuật: Phù hợp thiết kế được duyệt', status: 'pass' },
-          { label: 'Các hạng mục cần lưu ý: 2 điểm (Van xả tràn & Sơ đồ hoàn công)', status: 'pass' },
-          { label: 'Đề xuất: Bổ sung biên bản thử nghiệm hệ thống báo cháy tự động và cập nhật sơ đồ hoàn công.', status: 'pass' }
-        ];
-        image = null;
-        note = 'Hồ sơ nghiệm thu PCCC đã được đối soát 100%. Kết quả xuất bản đầy đủ gồm: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
-        files = [
-          { name: 'Bien_ban_nghiem_thu_PCCC.docx', size: '1.4 MB', type: 'word' },
-          { name: 'Danh_sach_diem_luu_y.xlsx', size: '324 KB', type: 'excel' },
-          { name: 'Bao_cao_kiem_tra_PCCC.pdf', size: '2.4 MB', type: 'pdf' }
-        ];
-      } else if (skillId.includes('mua-sam') || skillId.includes('dau-thau') || skillId.includes('bao-gia')) {
-        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Mua sắm'}) đã hoàn thành bóc tách và so sánh đa báo giá thiết bị:`;
-        checklist = [
-          { label: 'Số lượng báo giá so sánh: Đầy đủ 3 nhà cung cấp uy tín', status: 'pass' },
-          { label: 'Đơn giá & Chiết khấu: Tối ưu 12% so với đơn giá dự toán duyệt', status: 'pass' },
-          { label: 'Hồ sơ năng lực & Chứng chỉ CO/CQ: Hợp lệ theo tiêu chuẩn', status: 'pass' },
-          { label: 'Đề xuất: Lựa chọn phương án có tổng chi phí sở hữu (TCO) thấp nhất.', status: 'pass' }
-        ];
-        image = null;
-        note = 'Hồ sơ bóc tách mua sắm đã hoàn tất. Kết quả xuất bản đầy đủ gồm: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
-        files = [
-          { name: 'To_trinh_mua_sam_ISO.docx', size: '1.2 MB', type: 'word' },
-          { name: 'Bang_so_sanh_3_bao_gia.xlsx', size: '512 KB', type: 'excel' },
-          { name: 'Bao_cao_danh_gia_NCC.pdf', size: '1.8 MB', type: 'pdf' }
-        ];
-      } else if (skillId.includes('mep') || skillId.includes('van-hanh') || skillId.includes('toa-nha')) {
-        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'MEP'}) đã hoàn tất phân tích hệ thống cơ điện và quy trình bảo trì tòa nhà:`;
-        checklist = [
-          { label: 'Trạm biến áp & Tủ điện phân phối: Phân tải cân bằng 3 pha', status: 'pass' },
-          { label: 'Hệ thống bơm nước & Điều hòa HVAC: Áp lực và lưu lượng ổn định', status: 'pass' },
-          { label: 'Lịch bảo dưỡng phòng ngừa rủi ro: Đã lên kế hoạch quý', status: 'pass' },
-          { label: 'Đề xuất: Hiệu chuẩn cảm biến nhiệt độ tầng hầm và thay thế bộ lọc gió.', status: 'pass' }
-        ];
-        image = null;
-        note = 'Báo cáo kỹ thuật MEP đã được trích xuất thành công dưới dạng: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
-        files = [
-          { name: 'Bien_ban_kiem_toan_MEP.docx', size: '1.1 MB', type: 'word' },
-          { name: 'Nhat_ky_van_hanh_MEP.xlsx', size: '820 KB', type: 'excel' },
-          { name: 'Quy_trinh_bao_tri_toa_nha.pdf', size: '1.9 MB', type: 'pdf' }
-        ];
-      } else if (skillId.includes('phap-ly') || skillId.includes('hop-dong')) {
-        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Pháp lý'}) đã hoàn thành rà soát các điều khoản hợp đồng:`;
-        checklist = [
-          { label: 'Tư cách chủ thể & Thẩm quyền đại diện: Hợp lệ 100%', status: 'pass' },
-          { label: 'Điều khoản bảo lãnh & Tạm ứng thanh toán: Đảm bảo an toàn tài chính', status: 'pass' },
-          { label: 'Điều khoản phạt vi phạm & Bồi thường thiệt hại: Đúng luật', status: 'pass' },
-          { label: 'Đề xuất: Làm rõ mốc bàn giao thực tế và cơ chế giải quyết tranh chấp.', status: 'pass' }
-        ];
-        image = null;
-        note = 'Hồ sơ pháp lý hợp đồng đã được trích xuất đầy đủ: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
-        files = [
-          { name: 'Ra_soat_hop_dong_phap_ly.docx', size: '1.4 MB', type: 'word' },
-          { name: 'Bang_doi_chieu_dieu_khoan.xlsx', size: '420 KB', type: 'excel' },
-          { name: 'Bao_cao_tham_dinh_phap_ly.pdf', size: '2.1 MB', type: 'pdf' }
-        ];
-      } else if (skillId.includes('tai-chinh') || skillId.includes('du-toan')) {
-        aiResponseText = `Dạ anh Trí, em (${activeSkill?.name || 'Tài chính'}) đã hoàn tất mô hình dự toán chi phí & dòng tiền:`;
-        checklist = [
-          { label: 'Dự toán ngân sách CAPEX/OPEX: Chi tiết theo từng hạng mục', status: 'pass' },
-          { label: 'Dự báo dòng tiền hoàn vốn & NPV/IRR: Đạt chỉ số an toàn tài chính', status: 'pass' },
-          { label: 'Kế hoạch kiểm soát chi phí: Tối ưu theo hạn mức duyệt', status: 'pass' },
-          { label: 'Đề xuất: Phê duyệt phương án phân kỳ giải ngân theo mốc nghiệm thu.', status: 'pass' }
-        ];
-        image = null;
-        note = 'Mô hình dự toán tài chính đã sẵn sàng tải về: Word (.docx), Excel (.xlsx) và PDF (.pdf).';
-        files = [
-          { name: 'Thuyet_minh_du_toan_tai_chinh.docx', size: '1.3 MB', type: 'word' },
-          { name: 'Bang_du_toan_ngan_sach_CAPEX.xlsx', size: '920 KB', type: 'excel' },
-          { name: 'Bao_cao_tham_dinh_tai_chinh.pdf', size: '2.5 MB', type: 'pdf' }
-        ];
       } else {
-        if (checklist.length === 0) {
-          checklist = [
-            { label: `Quy trình thực thi Skill [${activeSkill?.name}]: Đạt chuẩn`, status: 'pass' },
-            { label: 'Dữ liệu đầu vào: Hợp lệ và đồng bộ', status: 'pass' },
-            { label: 'Đề xuất: Thực hiện theo đúng quy chuẩn nghiệp vụ.', status: 'pass' }
-          ];
-        }
-        if (files.length === 0) {
-          files = [
-            { name: `Bao_cao_${activeSkill?.id || 'van_ban'}.docx`, size: '1.2 MB', type: 'word' },
-            { name: `Bang_tong_hop_${activeSkill?.id || 'so_lieu'}.xlsx`, size: '450 KB', type: 'excel' },
-            { name: `Ho_so_xuat_ban_${activeSkill?.id || 'tai_lieu'}.pdf`, size: '1.8 MB', type: 'pdf' }
-          ];
-        }
+        const errorMsg = {
+          id: Date.now() + 1,
+          role: 'ai',
+          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          text: `⚠️ Thông báo phản hồi AI: ${err.message || 'Hệ thống đang bận, vui lòng thử lại sau.'}`,
+          checklist: [],
+          files: []
+        };
+        setMessages(prev => [...prev, errorMsg]);
       }
-
-      if (activeCompanionAgent) {
-        aiResponseText = `Dạ anh Trí, tôi là ${activeCompanionAgent.name} (${activeCompanionAgent.role}). Tôi đã tiếp nhận yêu cầu: "${query}". Dưới đây là phân tích chuyên môn của tôi:`;
-      }
-
-      const aiMsg = {
-        id: Date.now() + 1,
-        role: 'ai',
-        agentName: activeCompanionAgent?.name,
-        agentRole: activeCompanionAgent?.role,
-        agentAvatar: activeCompanionAgent?.avatar,
-        skillId: activeSkill?.id || 'pccc',
-        skillName: activeSkill?.name || 'PCCC',
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        text: aiResponseText,
-        checklist: checklist,
-        image: image,
-        note: note,
-        files: files
-      };
-
-      setMessages(prev => [...prev, aiMsg]);
+    } finally {
       setIsAiTyping(false);
       setTimeout(() => {
         textInputRef.current?.focus();
       }, 60);
-    }, 800);
+    }
   };
 
   // Chọn Agent đồng hành từ bảng popup

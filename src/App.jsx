@@ -228,7 +228,7 @@ export default function App() {
   }, [user?.isLoggedIn, user?.email, skills, ownedSkills.length]);
 
   // Xử lý khi bắt đầu dùng thử 15 phút từ Cửa Hàng
-  const handleStartTrial = (pkg) => {
+  const handleStartTrial = async (pkg) => {
     if (!user?.isLoggedIn) {
       openAuth('login');
       return;
@@ -252,6 +252,12 @@ export default function App() {
 
     const targetSkillId = packageToSkillMap[pkg.id] || pkg.id;
     const matchedSkill = skills.find(s => s.id === targetSkillId || s.id === pkg.id || s.name.toLowerCase() === pkg.name.toLowerCase()) || skills[0];
+
+    try {
+      await api.licenses.startTrial(matchedSkill.id);
+    } catch (e) {
+      console.warn('Backend start trial notice:', e);
+    }
 
     const currentEmail = user.email || 'khachhang@example.com';
     startSkillTrial(currentEmail, matchedSkill.id, 15);

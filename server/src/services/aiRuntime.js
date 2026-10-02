@@ -10,7 +10,9 @@ let openaiClient = null;
 function getOpenAI() {
   if (!openaiClient && env.OPENAI_API_KEY && env.OPENAI_API_KEY !== 'sk-your-openai-api-key-here') {
     openaiClient = new OpenAI({
-      apiKey: env.OPENAI_API_KEY
+      apiKey: env.OPENAI_API_KEY,
+      baseURL: env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+      timeout: 30000 // 30s timeout
     });
   }
   return openaiClient;
@@ -30,6 +32,7 @@ export class AIRuntime {
     }
     if (!agent) {
       agent = {
+        id: 'tro-ly-tri-ai',
         name: 'Trợ lý TRÍ AI',
         role: 'Chuyên gia tư vấn tổng hợp',
         greeting: 'Chào bạn! Tôi có thể hỗ trợ gì cho bạn hôm nay?'
@@ -85,8 +88,8 @@ export class AIRuntime {
     );
 
     // 6. Build System Instructions
-    let systemPrompt = `Bạn là ${agent.name}, giữ vai trò là ${agent.role} trong nền tảng TRÍ AI SaaS Enterprise.\n`;
-    systemPrompt += `Phong cách làm việc: Chuyên nghiệp, chuẩn mực, lập luận chặt chẽ, luôn đưa ra giải pháp rõ ràng, thực tiễn và đúng trọng tâm.\n\n`;
+    let systemPrompt = `Bạn là ${agent.name}, giữ vai trò là ${agent.role} trong nền tảng TRÍ AI SaaS Enterprise (https://banhangdinhcao.com).\n`;
+    systemPrompt += `Phong cách làm việc: Chuyên nghiệp, chuẩn mực, lập luận chặt chẽ, luôn đưa ra giải pháp rõ ràng, thực tiễn và đúng trọng tâm bằng Tiếng Việt chuẩn mực.\n\n`;
 
     if (skill) {
       systemPrompt += `=== KỸ NĂNG CHUYÊN SÂU ĐƯỢC KÍCH HOẠT: [${skill.name}] ===\n`;
@@ -99,7 +102,7 @@ export class AIRuntime {
       systemPrompt += `4. **Phương án đề xuất & Kế hoạch hành động cụ thể (Rõ người, rõ việc, rõ tiến độ)**\n`;
     }
 
-    // 7. Invoke OpenAI or Intelligent SaaS Fallback Generator
+    // 7. Invoke OpenAI API
     let assistantReply = '';
     const openai = getOpenAI();
 
@@ -119,13 +122,28 @@ export class AIRuntime {
           temperature: 0.7
         });
 
-        assistantReply = completion.choices[0]?.message?.content || 'Đã xử lý xong yêu cầu.';
+        assistantReply = completion.choices[0]?.message?.content;
+        if (!assistantReply) {
+          throw new Error('OpenAI không trả về nội dung hợp lệ.');
+        }
       } catch (err) {
-        console.error('OpenAI call failed, switching to SaaS engine response:', err.message);
+        console.error('🔥 OpenAI API Error:', err.message);
+        if (env.NODE_ENV === 'production' && (!env.IS_DEV || env.OPENAI_API_KEY)) {
+          return {
+            success: false,
+            error: `Lỗi kết nối OpenAI API: ${err.message || 'Không thể tạo phản hồi từ AI model lúc này.'}`
+          };
+        }
         assistantReply = this.generateFallbackResponse(agent, skill, messageText);
       }
     } else {
-      // Local High-Performance SaaS Intelligence Engine
+      if (env.NODE_ENV === 'production') {
+        return {
+          success: false,
+          error: 'Hệ thống OpenAI API Key chưa được cấu hình trên môi trường Production. Vui lòng liên hệ Quản trị viên.'
+        };
+      }
+      // Local High-Performance SaaS Intelligence Engine for development
       assistantReply = this.generateFallbackResponse(agent, skill, messageText);
     }
 
@@ -162,7 +180,7 @@ export class AIRuntime {
 ---
 
 #### 1. 🎯 Tóm tắt & Kết luận cốt lõi
-Dựa trên yêu cầu của anh: *"**${userPrompt.trim()}**"*, hệ thống TRÍ AI đã kích hoạt toàn bộ quy trình kiểm duyệt tiêu chuẩn theo Skill **${skillName}**.
+Dựa trên yêu cầu: *"**${userPrompt.trim()}**"*, hệ thống TRÍ AI đã kích hoạt toàn bộ quy trình kiểm duyệt tiêu chuẩn theo Skill **${skillName}**.
 
 #### 2. 📋 Căn cứ & Phân tích chi tiết
 - **Căn cứ kỹ thuật & pháp lý:** Đã đối soát toàn bộ tiêu chuẩn ngành và cơ sở dữ liệu hiện hành.
