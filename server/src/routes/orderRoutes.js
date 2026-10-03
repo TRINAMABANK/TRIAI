@@ -44,15 +44,11 @@ router.post('/:orderId/payment-request', requireAuth, async (req, res, next) => 
 });
 
 /**
- * GET /api/orders (User order history)
+ * GET /api/orders & GET /api/orders/my-orders (Customer order history from database)
  */
-router.get('/', requireAuth, async (req, res, next) => {
+router.get(['/', '/my-orders'], requireAuth, async (req, res, next) => {
   try {
-    const orders = await db.all(
-      `SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC`,
-      [req.user.id]
-    );
-
+    const orders = await PaymentService.getCustomerOrders(req.user.id);
     res.json({ success: true, orders });
   } catch (err) {
     next(err);

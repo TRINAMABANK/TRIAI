@@ -5,6 +5,7 @@ import { env } from '../config/env.js';
 import LicenseEngine from './licenseEngine.js';
 import AgentEngine from './agentEngine.js';
 import SkillEngine from './skillEngine.js';
+import QuotaService from './quotaService.js';
 
 let openaiClient = null;
 function getOpenAI() {
@@ -24,6 +25,19 @@ export class AIRuntime {
    */
   static async execute({ userId, conversationId, agentId, skillId, messageText, attachments = [] }) {
     const now = new Date().toISOString();
+
+    // 0. Enforce Resource Quota
+    if (userId) {
+      const quotaCheck = await QuotaService.checkAiQuota(userId);
+      if (!quotaCheck.allowed) {
+        return {
+          success: false,
+          status: 429,
+          error: quotaCheck.reason,
+          quotaExceeded: true
+        };
+      }
+    }
 
     // 1. Resolve Agent
     let agent = null;
@@ -158,6 +172,11 @@ export class AIRuntime {
 
     // Update conversation updated_at
     await db.run('UPDATE conversations SET updated_at = ? WHERE id = ?', [assistantNow, convId]);
+
+    // Record real quota usage
+    if (userId) {
+      await QuotaService.incrementAiRequests(userId);
+    }
 
     return {
       success: true,

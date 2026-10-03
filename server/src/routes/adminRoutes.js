@@ -3,6 +3,8 @@ import db from '../db/index.js';
 import { requireAdmin } from '../middleware/auth.js';
 import LicenseEngine from '../services/licenseEngine.js';
 import PaymentService from '../services/paymentService.js';
+import defaultBankProvider from '../services/bankPaymentProvider.js';
+import EmailService from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -96,17 +98,118 @@ router.get('/orders', async (req, res, next) => {
 });
 
 /**
+ * GET /api/admin/payments
+ * Filter payments and get real verified revenue KPIs
+ */
+router.get('/payments', async (req, res, next) => {
+  try {
+    const { status, dateFrom, dateTo, customer, email, orderCode } = req.query;
+    const result = await PaymentService.getPaymentsForAdmin({
+      status,
+      dateFrom,
+      dateTo,
+      customer,
+      email,
+      orderCode
+    });
+    res.json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/payments/:id/verify
+ * Strict reconciliation with actual amount and unique bank transaction ref
+ */
+router.post('/payments/:id/verify', async (req, res, next) => {
+  try {
+    const { actualAmount, bankTransactionRef, transactionTime, notes } = req.body;
+    const payment = await db.get('SELECT order_id FROM payments WHERE id = ?', [req.params.id]);
+    const orderId = payment ? payment.order_id : req.params.id;
+
+    const result = await PaymentService.adminVerifyPayment({
+      orderId,
+      adminUserId: req.user.id,
+      adminEmail: req.user.email,
+      actualAmount,
+      bankTransactionRef,
+      transactionTime,
+      notes
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/payments/:id/reject
+ */
+router.post('/payments/:id/reject', async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const payment = await db.get('SELECT order_id FROM payments WHERE id = ?', [req.params.id]);
+    const orderId = payment ? payment.order_id : req.params.id;
+
+    const result = await PaymentService.adminRejectPayment({
+      orderId,
+      adminUserId: req.user.id,
+      adminEmail: req.user.email,
+      reason
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/admin/provider-status
+ */
+router.get('/provider-status', (req, res) => {
+  res.json({ success: true, provider: defaultBankProvider.getProviderInfo() });
+});
+
+/**
+ * GET /api/admin/email-logs
+ */
+router.get('/email-logs', async (req, res, next) => {
+  try {
+    const logs = await db.all('SELECT * FROM email_logs ORDER BY created_at DESC LIMIT 100');
+    res.json({ success: true, logs });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/admin/email-logs/:id/retry
+ */
+router.post('/email-logs/:id/retry', async (req, res, next) => {
+  try {
+    const result = await EmailService.retryEmail(req.params.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * POST /api/admin/orders/:orderId/verify-payment
  * Admin verifies actual bank transaction and activates license
  */
 router.post('/orders/:orderId/verify-payment', async (req, res, next) => {
   try {
-    const { transactionRef } = req.body;
+    const { actualAmount, bankTransactionRef, transactionRef, transactionTime, notes } = req.body;
     const result = await PaymentService.adminVerifyPayment({
       orderId: req.params.orderId,
       adminUserId: req.user.id,
       adminEmail: req.user.email,
-      transactionRef
+      actualAmount,
+      bankTransactionRef: bankTransactionRef || transactionRef,
+      transactionTime,
+      notes
     });
     res.json(result);
   } catch (err) {

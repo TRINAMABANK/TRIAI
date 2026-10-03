@@ -5,6 +5,7 @@ import { hashPassword, comparePassword, generateToken, sanitizeUser } from '../u
 import { requireAuth } from '../middleware/auth.js';
 import { env } from '../config/env.js';
 import LicenseEngine from '../services/licenseEngine.js';
+import QuotaService from '../services/quotaService.js';
 
 const router = express.Router();
 
@@ -174,10 +175,27 @@ router.post('/google', async (req, res, next) => {
 router.get('/me', requireAuth, async (req, res, next) => {
   try {
     const accessMap = await LicenseEngine.getUserAccessMap(req.user.id);
+    const quota = await QuotaService.getUserQuotaSummary(req.user.id);
     res.json({
       success: true,
       user: sanitizeUser(req.user),
-      access: accessMap
+      access: accessMap,
+      quota
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /api/auth/quota
+ */
+router.get('/quota', requireAuth, async (req, res, next) => {
+  try {
+    const quota = await QuotaService.getUserQuotaSummary(req.user.id);
+    res.json({
+      success: true,
+      quota
     });
   } catch (err) {
     next(err);

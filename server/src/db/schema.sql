@@ -155,13 +155,17 @@ CREATE TABLE IF NOT EXISTS payments (
     order_id TEXT NOT NULL,
     user_id TEXT,
     transaction_ref TEXT NOT NULL,
+    bank_transaction_ref TEXT, -- Actual Bank Reference ID (e.g., FT26090123456)
     amount INTEGER NOT NULL,
+    verified_amount INTEGER,
     currency TEXT DEFAULT 'VND',
     payment_gateway TEXT DEFAULT 'vietqr',
     bank_name TEXT DEFAULT 'Ngân hàng TMCP Phương Đông (OCB)',
     account_number TEXT DEFAULT '0982441446',
     account_name TEXT DEFAULT 'QUANG NHỰT TRÍ',
     status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'verified' | 'success' | 'failed' | 'rejected'
+    reconciliation_type TEXT DEFAULT 'manual', -- 'manual' | 'auto_bank_api'
+    verification_notes TEXT,
     verified_at TEXT,
     verified_by TEXT,
     raw_response_json TEXT,
@@ -262,6 +266,36 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TEXT NOT NULL
 );
 
+-- 18. EMAIL LOGS TABLE
+CREATE TABLE IF NOT EXISTS email_logs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    order_id TEXT,
+    recipient TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    type TEXT NOT NULL, -- 'payment_verified' | 'payment_rejected' | 'welcome' | 'system'
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending' | 'sent' | 'failed'
+    error_message TEXT,
+    data_json TEXT,
+    sent_at TEXT,
+    created_at TEXT NOT NULL
+);
+
+-- 19. USAGE COUNTERS TABLE (Real Quota Tracking)
+CREATE TABLE IF NOT EXISTS usage_counters (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    period_month TEXT NOT NULL, -- 'YYYY-MM'
+    ai_requests INTEGER NOT NULL DEFAULT 0,
+    image_generations INTEGER NOT NULL DEFAULT 0,
+    file_count INTEGER NOT NULL DEFAULT 0,
+    storage_bytes INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(user_id, period_month)
+);
+
 -- INDEXES
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_licenses_user_skill ON licenses(user_id, skill_id);
@@ -269,5 +303,10 @@ CREATE INDEX IF NOT EXISTS idx_trials_user_skill ON trials(user_id, skill_id);
 CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_bank_ref ON payments(bank_transaction_ref);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_resource ON notifications(resource_id);
+CREATE INDEX IF NOT EXISTS idx_email_logs_recipient ON email_logs(recipient);
+CREATE INDEX IF NOT EXISTS idx_usage_counters_user_month ON usage_counters(user_id, period_month);
+

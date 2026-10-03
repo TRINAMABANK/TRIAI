@@ -20,18 +20,14 @@ import {
   KeyRound,
   DollarSign,
   UserX,
-  Send
+  Send,
+  RefreshCw,
+  Mail,
+  FileCheck,
+  TrendingUp,
+  Calendar,
+  CreditCard
 } from 'lucide-react';
-import { 
-  getLicenseRequests, 
-  approveLicenseRequest, 
-  rejectLicenseRequest, 
-  grantDirectLicense, 
-  revokeCustomerLicense,
-  deleteCustomerLicenseRequest,
-  MASTER_ADMIN_EMAIL 
-} from '../data/skillsData';
-
 import api from '../api/client';
 
 export default function AdminApprovalModal({ 
@@ -41,14 +37,32 @@ export default function AdminApprovalModal({
   adminUser = {},
   onLicenseChanged 
 }) {
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' | 'licensed' | 'grant_direct'
-  const [requests, setRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState('payments'); // 'payments' | 'pending' | 'licenses' | 'grant_direct' | 'emails'
+  const [paymentsData, setPaymentsData] = useState({ payments: [], kpis: {}, providerInfo: {} });
+  const [licenses, setLicenses] = useState([]);
+  const [emailLogs, setEmailLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [toastMsg, setToastMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Form cấp quyền trực tiếp
+  // Reconciliation Dialog State
+  const [reconcileModalOpen, setReconcileModalOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [actualAmount, setActualAmount] = useState('');
+  const [bankTransactionRef, setBankTransactionRef] = useState('');
+  const [transactionTime, setTransactionTime] = useState('');
+  const [reconciliationNotes, setReconciliationNotes] = useState('');
+  const [reconcileError, setReconcileError] = useState('');
+
+  // Rejection Dialog State
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
+  // Direct Grant State
   const [directEmail, setDirectEmail] = useState('');
   const [directSkillId, setDirectSkillId] = useState('kol-thoi-trang');
+  const [directDuration, setDirectDuration] = useState('30');
   const [directNotes, setDirectNotes] = useState('');
 
   const showToast = (msg) => {
@@ -56,577 +70,876 @@ export default function AdminApprovalModal({
     setTimeout(() => setToastMsg(''), 4000);
   };
 
-  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
-
-  const loadData = async () => {
-    setIsLoadingOrders(true);
-    try {
-      const localData = getLicenseRequests() || [];
-      let combinedRequests = [...localData];
-
-      // Fetch live orders from backend database
-      const ordersRes = await api.admin.getOrders().catch(err => {
-        console.warn('Failed to load admin orders from API:', err);
-        return null;
-      });
-
-      if (ordersRes && ordersRes.orders && Array.isArray(ordersRes.orders)) {
-        const backendRequests = ordersRes.orders.map(o => ({
-          id: o.order_code || o.id,
-          orderId: o.id,
-          orderCode: o.order_code,
-          userName: o.user_name || o.user_email?.split('@')[0] || 'Khách hàng',
-          email: o.user_email || 'Chưa cập nhật',
-          skillName: o.skill_names || 'Gói Skill Bản Quyền',
-          skillId: o.skill_names || 'skill-mua-sam',
-          price: (o.total_amount || 0).toLocaleString('vi-VN') + ' đ',
-          amountNumber: o.total_amount,
-          status: (o.status === 'completed' || o.status === 'paid') ? 'approved' : o.status === 'cancelled' ? 'rejected' : 'pending',
-          type: 'purchase_qr',
-          notes: o.note || `Đơn hàng ${o.order_code}`,
-          time: o.created_at ? new Date(o.created_at).toLocaleString('vi-VN') : 'Vừa xong',
-          isBackendOrder: true
-        }));
-
-        // Put backend requests first, avoid duplicates
-        const existingIds = new Set();
-        const merged = [];
-
-        for (const req of backendRequests) {
-          if (!existingIds.has(req.id) && !existingIds.has(req.orderId)) {
-            merged.push(req);
-            existingIds.add(req.id);
-            if (req.orderId) existingIds.add(req.orderId);
-          }
-        }
-
-        for (const req of combinedRequests) {
-          if (!existingIds.has(req.id)) {
-            merged.push(req);
-            existingIds.add(req.id);
-          }
-        }
-
-        setRequests(merged);
-      } else {
-        setRequests(combinedRequests);
-      }
-    } catch (e) {
-      console.warn('Error loading admin orders:', e);
-      setRequests(getLicenseRequests() || []);
-    } finally {
-      setIsLoadingOrders(false);
-    }
-  };
-
   useEffect(() => {
     if (isOpen) {
       loadData();
     }
-  }, [isOpen]);
+  }, [isOpen, activeTab, statusFilter]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      if (activeTab === 'payments' || activeTab === 'pending') {
+        const res = await api.admin.getPayments({
+          status: activeTab === 'pending' ? 'pending' : statusFilter
+        }).catch(err => {
+          console.warn('Failed to load payments:', err);
+          return null;
+        });
+        if (res) {
+          setPaymentsData({
+            payments: res.payments || [],
+            kpis: res.kpis || {},
+            providerInfo: res.providerInfo || {}
+          });
+        }
+      } else if (activeTab === 'licenses') {
+        const res = await api.admin.getLicenses().catch(() => null);
+        if (res && res.licenses) {
+          setLicenses(res.licenses);
+        }
+      } else if (activeTab === 'emails') {
+        const res = await api.admin.getEmailLogs().catch(() => null);
+        if (res && res.logs) {
+          setEmailLogs(res.logs);
+        }
+      }
+    } catch (e) {
+      console.warn('Error loading admin data:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Open Reconciliation Modal
+  const handleOpenReconcile = (payment) => {
+    setSelectedPayment(payment);
+    setActualAmount(payment.order_amount || payment.amount || '');
+    setBankTransactionRef(payment.bank_transaction_ref || `FT${Date.now().toString().slice(-8)}`);
+    setTransactionTime(new Date().toISOString().slice(0, 16));
+    setReconciliationNotes('');
+    setReconcileError('');
+    setReconcileModalOpen(true);
+  };
+
+  // Submit Reconciliation & Verify
+  const handleConfirmReconcile = async () => {
+    if (!selectedPayment) return;
+    const requiredAmount = selectedPayment.order_amount || selectedPayment.amount;
+    const parsedActual = parseInt(actualAmount, 10);
+
+    if (isNaN(parsedActual) || parsedActual <= 0) {
+      setReconcileError('Vui lòng nhập số tiền thực nhận hợp lệ.');
+      return;
+    }
+
+    if (parsedActual !== requiredAmount) {
+      setReconcileError(`Số tiền thực nhận (${parsedActual.toLocaleString('vi-VN')} đ) không khớp với số tiền phải thu (${requiredAmount.toLocaleString('vi-VN')} đ). Không thể đối soát.`);
+      return;
+    }
+
+    try {
+      const res = await api.admin.verifyPayment(selectedPayment.order_id || selectedPayment.id, {
+        actualAmount: parsedActual,
+        bankTransactionRef: bankTransactionRef.trim(),
+        transactionTime: new Date(transactionTime).toISOString(),
+        notes: reconciliationNotes
+      });
+
+      if (res && res.success) {
+        showToast(res.message || 'Đối soát thành công & Đã kích hoạt bản quyền!');
+        setReconcileModalOpen(false);
+        if (onLicenseChanged) onLicenseChanged();
+        loadData();
+      }
+    } catch (err) {
+      setReconcileError(err.message || 'Lỗi đối soát đơn hàng.');
+    }
+  };
+
+  // Open Reject Modal
+  const handleOpenReject = (payment) => {
+    setSelectedPayment(payment);
+    setRejectReason('Chưa nhận được giao dịch khớp với số tiền hoặc nội dung chuyển khoản.');
+    setRejectModalOpen(true);
+  };
+
+  // Submit Rejection
+  const handleConfirmReject = async () => {
+    if (!selectedPayment) return;
+    try {
+      const res = await api.admin.rejectPayment(selectedPayment.order_id || selectedPayment.id, {
+        reason: rejectReason
+      });
+      if (res && res.success) {
+        showToast(res.message || 'Đã từ chối đơn hàng.');
+        setRejectModalOpen(false);
+        if (onLicenseChanged) onLicenseChanged();
+        loadData();
+      }
+    } catch (err) {
+      showToast('Lỗi khi từ chối: ' + err.message);
+    }
+  };
+
+  // Retry Failed Email
+  const handleRetryEmail = async (logId) => {
+    try {
+      const res = await api.admin.retryEmailLog(logId);
+      if (res && res.success) {
+        showToast(res.message || 'Đã gửi lại email thành công.');
+        loadData();
+      }
+    } catch (err) {
+      showToast('Gửi lại email thất bại: ' + err.message);
+    }
+  };
+
+  // Direct License Grant
+  const handleDirectGrant = async (e) => {
+    e.preventDefault();
+    if (!directEmail) {
+      showToast('Vui lòng nhập email khách hàng.');
+      return;
+    }
+
+    try {
+      // Look up user id by email
+      const usersRes = await api.admin.getUsers().catch(() => ({ users: [] }));
+      const targetUser = usersRes.users?.find(u => u.email.toLowerCase() === directEmail.trim().toLowerCase());
+      const targetUserId = targetUser ? targetUser.id : `usr_guest_${directEmail.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+      const res = await api.admin.grantLicense({
+        userId: targetUserId,
+        userEmail: directEmail.trim().toLowerCase(),
+        skillId: directSkillId,
+        durationDays: parseInt(directDuration, 10)
+      });
+
+      if (res && res.success) {
+        showToast(`Đã cấp bản quyền cho ${directEmail}!`);
+        setDirectEmail('');
+        setDirectNotes('');
+        if (onLicenseChanged) onLicenseChanged();
+        loadData();
+      }
+    } catch (err) {
+      showToast('Lỗi cấp quyền: ' + err.message);
+    }
+  };
+
+  // Revoke License
+  const handleRevokeLicense = async (licenseId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn thu hồi bản quyền này?')) return;
+    try {
+      const res = await api.admin.revokeLicense(licenseId);
+      if (res && res.success) {
+        showToast('Đã thu hồi bản quyền.');
+        if (onLicenseChanged) onLicenseChanged();
+        loadData();
+      }
+    } catch (err) {
+      showToast('Lỗi thu hồi: ' + err.message);
+    }
+  };
 
   if (!isOpen) return null;
 
-  const isAdmin = adminUser.role === 'owner' || adminUser.role === 'admin' || adminUser.isAdmin || adminUser.role === 'Chủ sở hữu';
+  const kpis = paymentsData.kpis || {};
+  const providerInfo = paymentsData.providerInfo || {};
 
-  const pendingRequests = requests.filter(r => {
-    if (r.status !== 'pending') return false;
-    // For backend orders: ONLY show in PAYMENT PENDING if customer actually clicked 'Tôi đã chuyển khoản'
-    if (r.isBackendOrder) {
-      const hasCustomerProof = r.notes && (
-        r.notes.includes('Khách báo đã chuyển khoản') || 
-        r.notes.includes('đã chuyển khoản') || 
-        r.notes.includes('VietQR')
-      );
-      return hasCustomerProof;
-    }
-    return true;
+  // Filter payments list
+  const filteredPayments = (paymentsData.payments || []).filter(p => {
+    const q = searchTerm.toLowerCase();
+    const matchSearch = 
+      (p.order_code || '').toLowerCase().includes(q) ||
+      (p.customer_email || '').toLowerCase().includes(q) ||
+      (p.customer_name || '').toLowerCase().includes(q) ||
+      (p.bank_transaction_ref || '').toLowerCase().includes(q) ||
+      (p.productSummary || '').toLowerCase().includes(q);
+    return matchSearch;
   });
-  const approvedRequests = requests.filter(r => r.status === 'approved');
-
-  // Xử lý phê duyệt
-  const handleApprove = async (request) => {
-    const isObj = typeof request === 'object' && request !== null;
-    const requestId = isObj ? request.id : request;
-    const orderId = isObj ? (request.orderId || request.id) : request;
-
-    try {
-      if (isObj && request.isBackendOrder) {
-        await api.admin.verifyPayment(orderId, { transactionRef: `VERIFIED_${Date.now()}` });
-      }
-    } catch (e) {
-      console.warn('API verify payment error:', e);
-    }
-
-    const res = approveLicenseRequest(requestId, adminUser?.email);
-    showToast(`✅ Đã phê duyệt và kích hoạt bản quyền cho đơn hàng ${requestId}!`);
-    await loadData();
-    if (onLicenseChanged) onLicenseChanged();
-  };
-
-  // Xử lý từ chối
-  const handleReject = async (request) => {
-    const isObj = typeof request === 'object' && request !== null;
-    const requestId = isObj ? request.id : request;
-    const orderId = isObj ? (request.orderId || request.id) : request;
-
-    try {
-      if (isObj && request.isBackendOrder) {
-        await api.admin.rejectPayment(orderId, { reason: 'Admin từ chối đơn hàng' });
-      }
-    } catch (e) {
-      console.warn('API reject payment error:', e);
-    }
-
-    const res = rejectLicenseRequest(requestId, adminUser?.email);
-    showToast(`⚠️ Đã từ chối đơn hàng ${requestId}`);
-    await loadData();
-    if (onLicenseChanged) onLicenseChanged();
-  };
-
-  // Xử lý cấp quyền thủ công
-  const handleDirectGrant = (e) => {
-    e.preventDefault();
-    if (!directEmail.trim()) {
-      showToast('❌ Vui lòng nhập email khách hàng!');
-      return;
-    }
-    const matchedSkill = skills.find(s => s.id === directSkillId);
-    const res = grantDirectLicense(directEmail, directSkillId, matchedSkill?.name, adminUser.email);
-    if (res.success) {
-      showToast(`✅ ${res.message}`);
-      setDirectEmail('');
-      setDirectNotes('');
-      loadData();
-      setActiveTab('licensed');
-      if (onLicenseChanged) onLicenseChanged();
-    } else {
-      showToast(`❌ ${res.message}`);
-    }
-  };
-
-  // Xử lý thu hồi quyền
-  const handleRevoke = (customerEmail, skillId) => {
-    if (window.confirm(`Anh có chắc chắn muốn thu hồi quyền Skill [${skillId}] của tài khoản ${customerEmail}?`)) {
-      const res = revokeCustomerLicense(customerEmail, skillId, adminUser.email);
-      if (res.success) {
-        showToast(`🔒 ${res.message}`);
-        loadData();
-        if (onLicenseChanged) onLicenseChanged();
-      }
-    }
-  };
-
-  // Xử lý xóa quyền vĩnh viễn
-  const handleDeletePermission = (requestId, customerEmail, skillId, skillName) => {
-    if (window.confirm(`Anh có chắc chắn muốn XÓA VĨNH VIỄN quyền Skill [${skillName || skillId}] của tài khoản ${customerEmail}?`)) {
-      const res = deleteCustomerLicenseRequest(requestId, customerEmail, skillId, adminUser.email);
-      if (res.success) {
-        showToast(`🗑️ ${res.message}`);
-        loadData();
-        if (onLicenseChanged) onLicenseChanged();
-      } else {
-        showToast(`❌ ${res.message}`);
-      }
-    }
-  };
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
+    <div className="modal-backdrop-wrap" onClick={onClose}>
       <div 
-        className="modal-container admin-approval-modal" 
+        className="modal-box-card" 
+        style={{ maxWidth: '1100px', width: '95vw', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: '880px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
       >
-        {/* Toast Feedback */}
-        {toastMsg && (
-          <div className="auth-toast-badge" style={{ zIndex: 10000 }}>
-            <span>{toastMsg}</span>
-          </div>
-        )}
-
-        {/* Modal Header */}
-        <div className="modal-header" style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', color: '#ffffff', borderRadius: '16px 16px 0 0', padding: '18px 24px' }}>
-          <div className="modal-title-wrap" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)' }}>
-              👑
+        {/* Header */}
+        <div className="modal-box-head" style={{ borderBottom: '1px solid #1f2937', padding: '16px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: '#1e3a8a', padding: '8px', borderRadius: '8px', color: '#60a5fa' }}>
+              <ShieldCheck size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#ffffff' }}>
-                Trung Tâm Phê Duyệt &amp; Cấp Bản Quyền Khách Hàng
-              </h3>
-              <p style={{ margin: '3px 0 0', fontSize: '12.5px', color: '#94a3b8' }}>
-                Quản trị viên tối cao: <b style={{ color: '#38bdf8' }}>{MASTER_ADMIN_EMAIL}</b> — Toàn quyền kiểm soát và bán các gói Skill/Agent
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#f3f4f6' }}>
+                  TRÍ AI — ADMIN CENTER & QUẢN LÝ THU TIỀN
+                </h3>
+                <span style={{ fontSize: '11px', background: '#065f46', color: '#34d399', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                  PRODUCTION
+                </span>
+              </div>
+              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#9ca3af' }}>
+                Master Admin: <strong style={{ color: '#60a5fa' }}>{adminUser?.email || 'triqnnamabank@gmail.com'}</strong> • OCB 0982441446
               </p>
             </div>
           </div>
-          <button className="modal-close-btn" onClick={onClose} title="Đóng (CLOSE)" style={{ color: '#ffffff' }}>
-            <X size={20} />
+          <button className="btn-close-modal" onClick={onClose}>
+            <X size={18} />
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: '20px 24px', flex: 1, overflowY: 'auto', background: '#f8fafc' }}>
-          
-          {/* Admin Verification Banner */}
-          {!isAdmin && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', color: '#b91c1c' }}>
-              <AlertCircle size={18} />
-              <span style={{ fontSize: '13px', fontWeight: 600 }}>
-                Cảnh báo: Bạn đang không đăng nhập bằng tài khoản Quản trị viên (<b>{MASTER_ADMIN_EMAIL}</b>). Chỉ có Admin mới có quyền phê duyệt cấp bán Skill.
-              </span>
-            </div>
-          )}
-
-          {/* KPI Cards Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '18px' }}>
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={15} color="#f59e0b" /> Yêu Cầu Chờ Duyệt
-              </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#d97706', marginTop: '6px' }}>
-                {pendingRequests.length} <span style={{ fontSize: '13px', fontWeight: 500, color: '#94a3b8' }}>khách hàng</span>
-              </div>
-            </div>
-
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <ShieldCheck size={15} color="#16a34a" /> Đã Cấp Bản Quyền
-              </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#15803d', marginTop: '6px' }}>
-                {approvedRequests.length} <span style={{ fontSize: '13px', fontWeight: 500, color: '#94a3b8' }}>tài khoản active</span>
-              </div>
-            </div>
-
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <DollarSign size={15} color="#2563eb" /> Tổng Số Skill Sẵn Sàng
-              </div>
-              <div style={{ fontSize: '24px', fontWeight: 800, color: '#1d4ed8', marginTop: '6px' }}>
-                {skills.length} <span style={{ fontSize: '13px', fontWeight: 500, color: '#94a3b8' }}>bộ Skill thương mại</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
+        {/* Navigation Tabs & Bank Provider Status */}
+        <div style={{ background: '#0f172a', padding: '8px 24px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '4px' }}>
             <button
               type="button"
-              className={`cat-pill ${activeTab === 'pending' ? 'active' : ''}`}
+              onClick={() => setActiveTab('payments')}
+              style={{
+                background: activeTab === 'payments' ? '#1e293b' : 'transparent',
+                border: 'none',
+                color: activeTab === 'payments' ? '#38bdf8' : '#94a3b8',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                fontWeight: activeTab === 'payments' ? 'bold' : 'normal',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px'
+              }}
+            >
+              <DollarSign size={15} /> Quản Lý Thu Tiền
+            </button>
+            <button
+              type="button"
               onClick={() => setActiveTab('pending')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              style={{
+                background: activeTab === 'pending' ? '#1e293b' : 'transparent',
+                border: 'none',
+                color: activeTab === 'pending' ? '#f59e0b' : '#94a3b8',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                fontWeight: activeTab === 'pending' ? 'bold' : 'normal',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px'
+              }}
             >
-              <Clock size={15} /> 
-              PAYMENT PENDING ({pendingRequests.length})
+              <Clock size={15} /> Chờ Đối Soát ({kpis.pendingCount || 0})
             </button>
-
             <button
               type="button"
-              className={`cat-pill ${activeTab === 'licensed' ? 'active' : ''}`}
-              onClick={() => setActiveTab('licensed')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              onClick={() => setActiveTab('licenses')}
+              style={{
+                background: activeTab === 'licenses' ? '#1e293b' : 'transparent',
+                border: 'none',
+                color: activeTab === 'licenses' ? '#34d399' : '#94a3b8',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                fontWeight: activeTab === 'licenses' ? 'bold' : 'normal',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px'
+              }}
             >
-              <UserCheck size={15} /> 
-              Khách Hàng Đã Cấp Quyền ({approvedRequests.length})
+              <KeyRound size={15} /> Bản Quyền Đã Cấp
             </button>
-
             <button
               type="button"
-              className={`cat-pill ${activeTab === 'grant_direct' ? 'active' : ''}`}
               onClick={() => setActiveTab('grant_direct')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+              style={{
+                background: activeTab === 'grant_direct' ? '#1e293b' : 'transparent',
+                border: 'none',
+                color: activeTab === 'grant_direct' ? '#a78bfa' : '#94a3b8',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                fontWeight: activeTab === 'grant_direct' ? 'bold' : 'normal',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px'
+              }}
             >
-              <Plus size={15} /> 
-              + Cấp Quyền Trực Tiếp
+              <Plus size={15} /> Cấp Trực Tiếp
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('emails')}
+              style={{
+                background: activeTab === 'emails' ? '#1e293b' : 'transparent',
+                border: 'none',
+                color: activeTab === 'emails' ? '#ec4899' : '#94a3b8',
+                padding: '8px 14px',
+                borderRadius: '6px',
+                fontWeight: activeTab === 'emails' ? 'bold' : 'normal',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px'
+              }}
+            >
+              <Mail size={15} /> Nhật Ký Email
             </button>
           </div>
 
-          {/* TAB 1: YÊU CẦU CHỜ DUYỆT */}
-          {activeTab === 'pending' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {pendingRequests.length > 0 && (
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '20px' }}>🔔</span>
-                    <div>
-                      <b style={{ color: '#92400e', fontSize: '13.5px' }}>Thông báo: Có {pendingRequests.length} yêu cầu thanh toán mới</b>
-                      <div style={{ fontSize: '12px', color: '#b45309' }}>Quản trị viên kiểm tra tiền thực tế tại ngân hàng trước khi bấm Xác nhận thanh toán.</div>
-                    </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1', padding: '4px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: providerInfo.configured ? '#34d399' : '#f59e0b' }}></span>
+              {providerInfo.statusText || 'Đối soát thủ công — chưa kết nối ngân hàng tự động'}
+            </span>
+            <button
+              type="button"
+              onClick={loadData}
+              disabled={isLoading}
+              style={{ background: '#334155', border: 'none', color: '#f3f4f6', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}
+            >
+              <RefreshCw size={13} className={isLoading ? 'spin-icon' : ''} />
+            </button>
+          </div>
+        </div>
+
+        {/* Toast Notification */}
+        {toastMsg && (
+          <div style={{ background: '#1e3a8a', color: '#93c5fd', padding: '8px 24px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #1e40af' }}>
+            <CheckCircle2 size={16} /> {toastMsg}
+          </div>
+        )}
+
+        {/* Modal Body */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', background: '#0b0f19' }}>
+          
+          {/* TAB 1 & 2: REVENUE & PAYMENTS RECONCILIATION */}
+          {(activeTab === 'payments' || activeTab === 'pending') && (
+            <div>
+              {/* Revenue KPI Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <TrendingUp size={14} color="#38bdf8" /> Doanh Thu Hôm Nay
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#38bdf8', marginTop: '6px' }}>
+                    {(kpis.todayRevenue || 0).toLocaleString('vi-VN')} đ
                   </div>
                 </div>
-              )}
 
-              {pendingRequests.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '36px 20px', background: '#ffffff', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-                  <CheckCircle2 size={36} color="#16a34a" style={{ margin: '0 auto 10px' }} />
-                  <h4 style={{ margin: '0 0 6px', color: '#0f172a' }}>Không có yêu cầu nào đang chờ duyệt</h4>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Tất cả các yêu cầu mua và dùng thử từ khách hàng đã được xử lý xong.</p>
-                </div>
-              ) : (
-                pendingRequests.map(req => (
-                  <div 
-                    key={req.id} 
-                    style={{ background: '#ffffff', border: '1px solid #fed7aa', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.06)' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: req.skillId?.includes('kol') ? '#fce7f3' : '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-                        {req.skillId?.includes('kol') ? '✨' : req.skillId?.includes('pccc') ? '🔥' : '⚙️'}
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '11px', background: '#0f172a', color: '#ffffff', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, fontFamily: 'monospace' }}>
-                            {req.id}
-                          </span>
-                          <b style={{ fontSize: '14px', color: '#0f172a' }}>{req.userName}</b>
-                          <span style={{ fontSize: '11px', background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                            {req.type === 'trial' ? '🎁 Dùng thử 15p' : '💳 Mua Bản Quyền'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: '12.5px', color: '#2563eb', fontFamily: 'monospace', marginTop: '2px' }}>
-                          📧 {req.email} {req.phone && `• 📞 ${req.phone}`}
-                        </div>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginTop: '4px' }}>
-                          Skill: <span style={{ color: '#0284c7' }}>{req.skillName}</span> • Số tiền: <b style={{ color: '#dc2626' }}>{req.price}</b>
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
-                          🏦 PTTT: <b>VietQR / OCB (0982441446)</b> • Ref: <code style={{ color: '#4338ca', fontWeight: 700 }}>{req.id}</code>
-                        </div>
-                        {req.notes && (
-                          <div style={{ fontSize: '11.5px', color: '#64748b', fontStyle: 'italic', marginTop: '2px' }}>
-                            Ghi chú: {req.notes} • Gửi lúc: {req.time}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end', flexShrink: 0 }}>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <span style={{ fontSize: '10.5px', background: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #fde68a' }}>
-                          Payment: PENDING
-                        </span>
-                        <span style={{ fontSize: '10.5px', background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid #e2e8f0' }}>
-                          License: PENDING
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(req)}
-                          disabled={!isAdmin}
-                          style={{
-                            background: '#16a34a',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '8px 14px',
-                            borderRadius: '8px',
-                            fontSize: '12.5px',
-                            fontWeight: 700,
-                            cursor: isAdmin ? 'pointer' : 'not-allowed',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)'
-                          }}
-                        >
-                          <CheckCircle2 size={16} /> Duyệt thanh toán
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleReject(req)}
-                          disabled={!isAdmin}
-                          style={{
-                            background: '#fef2f2',
-                            color: '#dc2626',
-                            border: '1px solid #fecaca',
-                            padding: '8px 12px',
-                            borderRadius: '8px',
-                            fontSize: '12.5px',
-                            fontWeight: 600,
-                            cursor: isAdmin ? 'pointer' : 'not-allowed',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <XCircle size={15} /> Từ chối
-                        </button>
-                      </div>
-                    </div>
+                <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Calendar size={14} color="#34d399" /> Doanh Thu Tháng Này
                   </div>
-                ))
-              )}
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#34d399', marginTop: '6px' }}>
+                    {(kpis.thisMonthRevenue || 0).toLocaleString('vi-VN')} đ
+                  </div>
+                </div>
+
+                <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <ShieldCheck size={14} color="#a78bfa" /> Tổng Đã Thu Thực Tế
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#a78bfa', marginTop: '6px' }}>
+                    {(kpis.totalRevenue || 0).toLocaleString('vi-VN')} đ
+                  </div>
+                </div>
+
+                <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Clock size={14} color="#f59e0b" /> Chờ Đối Soát
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#f59e0b', marginTop: '6px' }}>
+                    {kpis.pendingCount || 0} đơn
+                  </div>
+                </div>
+
+                <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', padding: '14px' }}>
+                  <div style={{ fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <XCircle size={14} color="#f87171" /> Đã Từ Chối
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#f87171', marginTop: '6px' }}>
+                    {kpis.rejectedCount || 0} đơn
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters & Search */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '240px' }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <Search size={15} style={{ position: 'absolute', left: '10px', top: '10px', color: '#6b7280' }} />
+                    <input 
+                      type="text" 
+                      placeholder="Tìm theo Mã Đơn (TRIAI-...), Email, Khách Hàng, Mã Giao Dịch..."
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      style={{ width: '100%', background: '#111827', border: '1px solid #1f2937', borderRadius: '6px', padding: '8px 12px 8px 32px', color: '#f3f4f6', fontSize: '13px' }}
+                    />
+                  </div>
+                </div>
+
+                {activeTab === 'payments' && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {['all', 'pending', 'verified', 'rejected'].map(st => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => setStatusFilter(st)}
+                        style={{
+                          background: statusFilter === st ? '#2563eb' : '#1e293b',
+                          border: 'none',
+                          color: statusFilter === st ? '#ffffff' : '#94a3b8',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          fontWeight: statusFilter === st ? 'bold' : 'normal'
+                        }}
+                      >
+                        {st === 'all' ? 'Tất cả' : st === 'pending' ? 'Chờ đối soát' : st === 'verified' ? 'Đã thu' : 'Từ chối'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Table */}
+              <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: '#1e293b', color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                      <th style={{ padding: '12px 14px' }}>Mã Đơn Hàng</th>
+                      <th style={{ padding: '12px 14px' }}>Khách Hàng</th>
+                      <th style={{ padding: '12px 14px' }}>Sản Phẩm</th>
+                      <th style={{ padding: '12px 14px' }}>Số Tiền Phải Thu</th>
+                      <th style={{ padding: '12px 14px' }}>Thực Nhận</th>
+                      <th style={{ padding: '12px 14px' }}>Mã GD Ngân Hàng</th>
+                      <th style={{ padding: '12px 14px' }}>Trạng Thái</th>
+                      <th style={{ padding: '12px 14px', textAlign: 'right' }}>Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPayments.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ padding: '32px 14px', textAlign: 'center', color: '#6b7280' }}>
+                          Không có giao dịch nào phù hợp với điều kiện tìm kiếm.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredPayments.map(p => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #1f2937', color: '#e5e7eb' }}>
+                          <td style={{ padding: '12px 14px' }}>
+                            <strong style={{ color: '#38bdf8' }}>{p.order_code}</strong>
+                            <div style={{ fontSize: '11px', color: '#6b7280' }}>{new Date(p.created_at).toLocaleString('vi-VN')}</div>
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <div>{p.customer_name || 'Khách hàng'}</div>
+                            <div style={{ fontSize: '11px', color: '#9ca3af' }}>{p.customer_email}</div>
+                          </td>
+                          <td style={{ padding: '12px 14px', maxWidth: '220px' }}>
+                            <span style={{ color: '#cbd5e1' }}>{p.productSummary || 'Gói Skill'}</span>
+                          </td>
+                          <td style={{ padding: '12px 14px', fontWeight: 'bold' }}>
+                            {(p.order_amount || p.amount || 0).toLocaleString('vi-VN')} đ
+                          </td>
+                          <td style={{ padding: '12px 14px', color: p.verified_amount ? '#34d399' : '#9ca3af' }}>
+                            {p.verified_amount ? `${p.verified_amount.toLocaleString('vi-VN')} đ` : '—'}
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            {p.bank_transaction_ref ? (
+                              <code style={{ background: '#0f172a', padding: '2px 6px', borderRadius: '4px', color: '#f59e0b', fontSize: '12px' }}>
+                                {p.bank_transaction_ref}
+                              </code>
+                            ) : (
+                              <span style={{ color: '#6b7280' }}>Chờ nhập</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <span style={{
+                              fontSize: '11px',
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontWeight: 'bold',
+                              background: p.payment_status === 'verified' ? '#065f46' : p.payment_status === 'rejected' ? '#7f1d1d' : '#854d0e',
+                              color: p.payment_status === 'verified' ? '#34d399' : p.payment_status === 'rejected' ? '#f87171' : '#fde047'
+                            }}>
+                              {p.payment_status === 'verified' ? 'ĐÃ THU' : p.payment_status === 'rejected' ? 'TỪ CHỐI' : 'CHỜ ĐỐI SOÁT'}
+                            </span>
+                            {p.verified_by && (
+                              <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '2px' }}>
+                                Duyệt: {p.verified_by.split('@')[0]}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                            {p.payment_status === 'pending' ? (
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenReconcile(p)}
+                                  style={{ background: '#2563eb', border: 'none', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                >
+                                  <FileCheck size={13} /> Đối Soát
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenReject(p)}
+                                  style={{ background: '#dc2626', border: 'none', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+                                >
+                                  Từ chối
+                                </button>
+                              </div>
+                            ) : p.payment_status === 'verified' ? (
+                              <span style={{ color: '#34d399', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'flex-end' }}>
+                                <CheckCircle2 size={14} /> Hoàn tất
+                              </span>
+                            ) : (
+                              <span style={{ color: '#f87171', fontSize: '12px' }}>Đã từ chối</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
-          {/* TAB 2: KHÁCH HÀNG ĐÃ CẤP QUYỀN */}
-          {activeTab === 'licensed' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {approvedRequests.map(req => (
-                <div 
-                  key={req.id} 
-                  style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <b style={{ fontSize: '14px', color: '#0f172a' }}>{req.userName}</b>
-                      <span style={{ fontSize: '10.5px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                        Payment: PAID
-                      </span>
-                      <span style={{ fontSize: '10.5px', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
-                        License: ACTIVE
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '12.5px', color: '#475569', fontFamily: 'monospace', marginTop: '2px' }}>
-                      📧 {req.email}
-                    </div>
-                    <div style={{ fontSize: '12.5px', color: '#0284c7', fontWeight: 600, marginTop: '2px' }}>
-                      Skill đã mở khóa: <b>{req.skillName}</b> (Duyệt bởi: {req.approvedBy || MASTER_ADMIN_EMAIL})
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleRevoke(req.email, req.skillId)}
-                      disabled={!isAdmin}
-                      title="Thu hồi / Khóa bản quyền Skill này của khách hàng"
-                      style={{
-                        background: '#fef2f2',
-                        color: '#dc2626',
-                        border: '1px solid #fecaca',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: isAdmin ? 'pointer' : 'not-allowed',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <UserX size={14} /> Thu hồi quyền
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDeletePermission(req.id, req.email, req.skillId, req.skillName)}
-                      disabled={!isAdmin}
-                      title="Xóa vĩnh viễn quyền và bản ghi khỏi hệ thống"
-                      style={{
-                        background: '#fff1f2',
-                        color: '#be123c',
-                        border: '1px solid #fecdd3',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: isAdmin ? 'pointer' : 'not-allowed',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <Trash2 size={14} /> Xóa quyền
-                    </button>
-                  </div>
-                </div>
-              ))}
+          {/* TAB 3: LICENSES LIST */}
+          {activeTab === 'licenses' && (
+            <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#1e293b', color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                    <th style={{ padding: '12px 14px' }}>Khách Hàng / Email</th>
+                    <th style={{ padding: '12px 14px' }}>Skill Bản Quyền</th>
+                    <th style={{ padding: '12px 14px' }}>Loại Gói</th>
+                    <th style={{ padding: '12px 14px' }}>Trạng Thái</th>
+                    <th style={{ padding: '12px 14px' }}>Thời Hạn</th>
+                    <th style={{ padding: '12px 14px' }}>Người Cấp</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'right' }}>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {licenses.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ padding: '32px 14px', textAlign: 'center', color: '#6b7280' }}>
+                        Chưa có bản quyền nào được kích hoạt.
+                      </td>
+                    </tr>
+                  ) : (
+                    licenses.map(lic => (
+                      <tr key={lic.id} style={{ borderBottom: '1px solid #1f2937', color: '#e5e7eb' }}>
+                        <td style={{ padding: '12px 14px' }}>
+                          <strong style={{ color: '#f3f4f6' }}>{lic.user_name || lic.user_email?.split('@')[0]}</strong>
+                          <div style={{ fontSize: '11px', color: '#9ca3af' }}>{lic.user_email}</div>
+                        </td>
+                        <td style={{ padding: '12px 14px', color: '#38bdf8' }}>
+                          {lic.skill_name || lic.skill_id}
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{ textTransform: 'uppercase', fontSize: '11px', background: '#334155', padding: '2px 6px', borderRadius: '4px' }}>
+                            {lic.license_type}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', background: lic.status === 'active' ? '#065f46' : '#7f1d1d', color: lic.status === 'active' ? '#34d399' : '#f87171' }}>
+                            {lic.status === 'active' ? 'HOẠT ĐỘNG' : 'HẾT HẠN'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '12px', color: '#9ca3af' }}>
+                          {lic.expires_at ? new Date(lic.expires_at).toLocaleDateString('vi-VN') : 'Vĩnh viễn'}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '11px', color: '#6b7280' }}>
+                          {lic.granted_by || 'system'}
+                        </td>
+                        <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                          {lic.status === 'active' && (
+                            <button
+                              type="button"
+                              onClick={() => handleRevokeLicense(lic.id)}
+                              style={{ background: '#7f1d1d', border: 'none', color: '#f87171', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
+                            >
+                              Thu hồi
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
 
-          {/* TAB 3: CẤP QUYỀN TRỰC TIẾP */}
+          {/* TAB 4: DIRECT LICENSE GRANT */}
           {activeTab === 'grant_direct' && (
-            <form onSubmit={handleDirectGrant} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-              <h4 style={{ margin: '0 0 14px', color: '#0f172a', fontSize: '15px' }}>
-                ⚡ Cấp Quyền Sử Dụng Trực Tiếp Theo Email Khách Hàng
+            <div style={{ maxWidth: '580px', margin: '0 auto', background: '#111827', border: '1px solid #1f2937', borderRadius: '12px', padding: '24px' }}>
+              <h4 style={{ margin: '0 0 16px 0', color: '#f3f4f6', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={18} color="#38bdf8" /> Cấp Bản Quyền Trực Tiếp Cho Khách Hàng
               </h4>
+              <form onSubmit={handleDirectGrant} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>Email Khách Hàng (*):</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="ví dụ: khachhang@gmail.com"
+                    value={directEmail}
+                    onChange={e => setDirectEmail(e.target.value)}
+                    style={{ width: '100%', background: '#0b0f19', border: '1px solid #334155', borderRadius: '6px', padding: '10px 12px', color: '#f3f4f6', fontSize: '13px' }}
+                  />
+                </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  Địa chỉ Gmail của Khách hàng:
-                </label>
-                <input 
-                  type="email" 
-                  value={directEmail} 
-                  onChange={e => setDirectEmail(e.target.value)}
-                  placeholder="vi_du_khachhang@gmail.com"
-                  required
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13.5px', boxSizing: 'border-box' }}
-                />
-              </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>Chọn Skill Cần Cấp:</label>
+                  <select
+                    value={directSkillId}
+                    onChange={e => setDirectSkillId(e.target.value)}
+                    style={{ width: '100%', background: '#0b0f19', border: '1px solid #334155', borderRadius: '6px', padding: '10px 12px', color: '#f3f4f6', fontSize: '13px' }}
+                  >
+                    <option value="kol-thoi-trang">KOL Thời Trang AI (Ý Ngọc Lookbook)</option>
+                    <option value="pccc">Chuyên Gia PCCC & Thẩm Duyệt QCVN 06</option>
+                    <option value="mep">Kỹ Sư Cơ Điện MEP</option>
+                    <option value="hop-dong">Pháp Lý & Hợp Đồng Kinh Tế</option>
+                    <option value="combo-5">Gói Combo 5 Trợ Lý Chuyên Sâu</option>
+                    <option value="master-33">Gói Master 33 Trợ Lý Toàn Năng</option>
+                  </select>
+                </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  Chọn Bộ Kỹ Năng (Skill / Agent) cần cấp quyền:
-                </label>
-                <select 
-                  value={directSkillId} 
-                  onChange={e => setDirectSkillId(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13.5px', background: '#ffffff', boxSizing: 'border-box' }}
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>Thời Hạn Bản Quyền:</label>
+                  <select
+                    value={directDuration}
+                    onChange={e => setDirectDuration(e.target.value)}
+                    style={{ width: '100%', background: '#0b0f19', border: '1px solid #334155', borderRadius: '6px', padding: '10px 12px', color: '#f3f4f6', fontSize: '13px' }}
+                  >
+                    <option value="30">1 Tháng (30 Ngày)</option>
+                    <option value="365">1 Năm (365 Ngày)</option>
+                    <option value="3650">Vĩnh Viễn (10 Năm)</option>
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  style={{ background: '#2563eb', border: 'none', color: '#fff', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                 >
-                  {skills.map(s => (
-                    <option key={s.id} value={s.id}>
-                      [{s.category || 'Chuyên ngành'}] {s.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <CheckCircle2 size={16} /> Xác Nhận Cấp Bản Quyền
+                </button>
+              </form>
+            </div>
+          )}
 
-              <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '6px' }}>
-                  Ghi chú cấp quyền (tùy chọn):
-                </label>
-                <input 
-                  type="text" 
-                  value={directNotes} 
-                  onChange={e => setDirectNotes(e.target.value)}
-                  placeholder="Ví dụ: Đã nhận thanh toán hợp đồng 12 tháng qua Vietcombank"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13.5px', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <button 
-                type="submit"
-                disabled={!isAdmin}
-                style={{
-                  background: '#2563eb',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  fontSize: '13.5px',
-                  fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'not-allowed',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
-                }}
-              >
-                <KeyRound size={16} /> Cấp Quyền &amp; Kích Hoạt Ngay
-              </button>
-            </form>
+          {/* TAB 5: EMAIL LOGS */}
+          {activeTab === 'emails' && (
+            <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: '8px', overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#1e293b', color: '#94a3b8', borderBottom: '1px solid #334155' }}>
+                    <th style={{ padding: '12px 14px' }}>Người Nhận</th>
+                    <th style={{ padding: '12px 14px' }}>Tiêu Đề</th>
+                    <th style={{ padding: '12px 14px' }}>Loại Email</th>
+                    <th style={{ padding: '12px 14px' }}>Trạng Thái</th>
+                    <th style={{ padding: '12px 14px' }}>Thời Gian</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'right' }}>Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emailLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '32px 14px', textAlign: 'center', color: '#6b7280' }}>
+                        Chưa có lịch sử gửi email nào.
+                      </td>
+                    </tr>
+                  ) : (
+                    emailLogs.map(log => (
+                      <tr key={log.id} style={{ borderBottom: '1px solid #1f2937', color: '#e5e7eb' }}>
+                        <td style={{ padding: '12px 14px' }}>
+                          <strong>{log.recipient}</strong>
+                        </td>
+                        <td style={{ padding: '12px 14px', color: '#cbd5e1' }}>
+                          {log.subject}
+                          {log.error_message && (
+                            <div style={{ fontSize: '11px', color: '#f87171', marginTop: '2px' }}>
+                              Lỗi: {log.error_message}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <code style={{ fontSize: '11px', background: '#0f172a', padding: '2px 6px', borderRadius: '4px' }}>
+                            {log.type}
+                          </code>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold', background: log.status === 'sent' ? '#065f46' : '#7f1d1d', color: log.status === 'sent' ? '#34d399' : '#f87171' }}>
+                            {log.status === 'sent' ? 'ĐÃ GỬI' : log.status === 'failed' ? 'THẤT BẠI' : 'CHỜ'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '12px', color: '#9ca3af' }}>
+                          {new Date(log.created_at).toLocaleString('vi-VN')}
+                        </td>
+                        <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                          {log.status !== 'sent' && (
+                            <button
+                              type="button"
+                              onClick={() => handleRetryEmail(log.id)}
+                              style={{ background: '#3b82f6', border: 'none', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
+                            >
+                              Thử lại
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           )}
 
         </div>
 
-        {/* Modal Footer */}
-        <div style={{ padding: '14px 24px', background: '#ffffff', borderTop: '1px solid #e2e8f0', borderRadius: '0 0 16px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>
-            🔒 <b>Bảo mật:</b> Mọi thao tác cấp bản quyền đều được ghi nhận trực tiếp bởi Admin <b>{MASTER_ADMIN_EMAIL}</b>.
-          </span>
-          <button 
-            type="button" 
-            className="btn-secondary" 
-            onClick={onClose}
-            style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px' }}
-          >
-            Đóng
+        {/* Footer */}
+        <div style={{ background: '#111827', borderTop: '1px solid #1f2937', padding: '14px 24px', display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn-primary" onClick={onClose}>
+            Đóng Admin Center
           </button>
         </div>
-
       </div>
+
+      {/* RECONCILIATION MODAL */}
+      {reconcileModalOpen && selectedPayment && (
+        <div className="modal-backdrop-wrap" style={{ zIndex: 9999 }} onClick={() => setReconcileModalOpen(false)}>
+          <div className="modal-box-card" style={{ maxWidth: '520px', width: '90vw' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box-head">
+              <h3>Đối Soát Thực Tế & Kích Hoạt Bản Quyền</h3>
+              <button className="btn-close-modal" onClick={() => setReconcileModalOpen(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-box-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ background: '#1e293b', padding: '12px', borderRadius: '8px', fontSize: '13px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: '#94a3b8' }}>Mã đơn hàng:</span>
+                  <strong style={{ color: '#38bdf8' }}>{selectedPayment.order_code}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ color: '#94a3b8' }}>Khách hàng:</span>
+                  <span>{selectedPayment.customer_email}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#94a3b8' }}>Số tiền phải thu:</span>
+                  <strong style={{ color: '#f59e0b' }}>{(selectedPayment.order_amount || selectedPayment.amount || 0).toLocaleString('vi-VN')} đ</strong>
+                </div>
+              </div>
+
+              {reconcileError && (
+                <div style={{ background: '#7f1d1d', color: '#fca5a5', padding: '10px 12px', borderRadius: '6px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <AlertCircle size={16} /> {reconcileError}
+                </div>
+              )}
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>
+                  Số tiền thực nhận trên tài khoản ngân hàng (*):
+                </label>
+                <input
+                  type="number"
+                  value={actualAmount}
+                  onChange={e => setActualAmount(e.target.value)}
+                  style={{ width: '100%', background: '#111827', border: '1px solid #334155', borderRadius: '6px', padding: '10px 12px', color: '#34d399', fontSize: '15px', fontWeight: 'bold' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>
+                  Mã giao dịch ngân hàng / Ref ID (*):
+                </label>
+                <input
+                  type="text"
+                  placeholder="ví dụ: FT26090123456"
+                  value={bankTransactionRef}
+                  onChange={e => setBankTransactionRef(e.target.value)}
+                  style={{ width: '100%', background: '#111827', border: '1px solid #334155', borderRadius: '6px', padding: '10px 12px', color: '#f3f4f6', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>
+                  Thời gian giao dịch:
+                </label>
+                <input
+                  type="datetime-local"
+                  value={transactionTime}
+                  onChange={e => setTransactionTime(e.target.value)}
+                  style={{ width: '100%', background: '#111827', border: '1px solid #334155', borderRadius: '6px', padding: '8px 12px', color: '#f3f4f6', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>
+                  Ghi chú đối soát:
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Ghi chú xác nhận từ sao kê ngân hàng..."
+                  value={reconciliationNotes}
+                  onChange={e => setReconciliationNotes(e.target.value)}
+                  style={{ width: '100%', background: '#111827', border: '1px solid #334155', borderRadius: '6px', padding: '8px 12px', color: '#f3f4f6', fontSize: '13px' }}
+                />
+              </div>
+            </div>
+
+            <div className="modal-actions-row">
+              <button className="btn-secondary" onClick={() => setReconcileModalOpen(false)}>Hủy</button>
+              <button className="btn-primary" onClick={handleConfirmReconcile}>
+                <CheckCircle2 size={14} /> Xác Nhận Thu Tiền & Kích Hoạt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REJECT MODAL */}
+      {rejectModalOpen && selectedPayment && (
+        <div className="modal-backdrop-wrap" style={{ zIndex: 9999 }} onClick={() => setRejectModalOpen(false)}>
+          <div className="modal-box-card" style={{ maxWidth: '460px', width: '90vw' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box-head">
+              <h3>Từ Chối Đơn Hàng {selectedPayment.order_code}</h3>
+              <button className="btn-close-modal" onClick={() => setRejectModalOpen(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-box-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ color: '#9ca3af', fontSize: '13px', margin: 0 }}>
+                Hệ thống sẽ cập nhật trạng thái đơn thành <strong>TỪ CHỐI</strong> và gửi email thông báo lý do cho khách hàng.
+              </p>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#9ca3af', marginBottom: '6px' }}>Lý do từ chối:</label>
+                <textarea
+                  rows={3}
+                  value={rejectReason}
+                  onChange={e => setRejectReason(e.target.value)}
+                  style={{ width: '100%', background: '#111827', border: '1px solid #334155', borderRadius: '6px', padding: '8px 12px', color: '#f3f4f6', fontSize: '13px' }}
+                />
+              </div>
+            </div>
+            <div className="modal-actions-row">
+              <button className="btn-secondary" onClick={() => setRejectModalOpen(false)}>Hủy</button>
+              <button 
+                type="button"
+                style={{ background: '#dc2626', border: 'none', color: '#fff', padding: '10px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={handleConfirmReject}
+              >
+                Xác Nhận Từ Chối
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

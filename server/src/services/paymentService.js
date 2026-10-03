@@ -3,6 +3,8 @@ import db from '../db/index.js';
 import { env } from '../config/env.js';
 import LicenseEngine from './licenseEngine.js';
 import { resolveOrderProduct } from '../config/pricing.js';
+import EmailService from './emailService.js';
+import defaultBankProvider from './bankPaymentProvider.js';
 
 export class PaymentService {
   /**
@@ -44,12 +46,7 @@ export class PaymentService {
       });
     }
 
-    // Lấy thông tin user để lưu snapshot và notification
-    const user = await db.get('SELECT id, email, full_name FROM users WHERE id = ?', [userId]);
-    const userEmail = user?.email || 'Khách hàng';
-    const userName = user?.full_name || 'Khách hàng';
-
-    // Check if there is already an existing pending order for this user with same skill in the last 60m
+    // Reuse existing pending order if created within the last 60 minutes for the same skill
     const targetSkillId = resolvedItems[0]?.skillId;
     const existingPending = await db.get(
       `SELECT o.* FROM orders o 
@@ -257,9 +254,17 @@ export class PaymentService {
   }
 
   /**
-   * Admin verifies actual bank transaction and activates licenses
+   * Admin verifies actual bank transaction, performs strict reconciliation, and activates licenses
    */
-  static async adminVerifyPayment({ orderId, adminUserId, adminEmail, transactionRef }) {
+  static async adminVerifyPayment({
+    orderId,
+    adminUserId,
+    adminEmail,
+    actualAmount,
+    bankTransactionRef = '',
+    transactionTime = '',
+    notes = ''
+  }) {
     const order = await db.get('SELECT * FROM orders WHERE id = ? OR order_code = ?', [orderId, orderId]);
     if (!order) {
       throw new Error('Không tìm thấy đơn hàng cần phê duyệt.');
@@ -268,21 +273,49 @@ export class PaymentService {
     if (order.status === 'completed' || order.status === 'paid') {
       return {
         success: true,
-        message: 'Đơn hàng đã được phê duyệt và kích hoạt trước đó.',
+        message: 'Đơn hàng đã được đối soát và kích hoạt trước đó.',
         orderId: order.id,
         orderCode: order.order_code,
         status: 'completed'
       };
     }
 
+    const verifiedAmt = typeof actualAmount === 'number' ? actualAmount : parseInt(actualAmount || order.total_amount, 10);
+
+    // Strict validation: Amount must match exactly
+    if (verifiedAmt !== order.total_amount) {
+      throw new Error(`Số tiền thực nhận (${verifiedAmt.toLocaleString('vi-VN')} đ) không khớp với tổng tiền đơn hàng (${order.total_amount.toLocaleString('vi-VN')} đ).`);
+    }
+
+    // Strict validation: Bank transaction reference must be unique if provided
+    const cleanBankRef = bankTransactionRef ? bankTransactionRef.trim() : `FT_${Date.now()}`;
+    if (bankTransactionRef && bankTransactionRef.trim()) {
+      const duplicateRef = await db.get(
+        `SELECT p.id, o.order_code FROM payments p 
+         JOIN orders o ON p.order_id = o.id 
+         WHERE p.bank_transaction_ref = ? AND p.status = 'verified' AND p.order_id != ?`,
+        [cleanBankRef, order.id]
+      );
+      if (duplicateRef) {
+        throw new Error(`Mã giao dịch ngân hàng '${cleanBankRef}' đã được đối soát cho đơn hàng ${duplicateRef.order_code}. Vui lòng kiểm tra lại.`);
+      }
+    }
+
     const now = new Date().toISOString();
-    const finalTxnRef = transactionRef || `ADMIN_VERIFIED_${Date.now()}`;
+    const verifiedTimestamp = transactionTime || now;
     const verifier = adminEmail || env.ADMIN_EMAIL;
 
+    // Fetch customer details for notification and email
+    const customer = await db.get('SELECT id, email, full_name FROM users WHERE id = ?', [order.user_id]);
+    const items = await db.all('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
+    const productNames = items.map(i => i.skill_name || i.skill_id).join(', ');
+
+    let calculatedExpiresAt = null;
+
     await db.transaction(async () => {
-      // 1. Update order status to 'completed'
+      // 1. Update order status to 'paid' (or completed)
       await db.run(
-        `UPDATE orders SET status = 'completed', updated_at = ? WHERE id = ?`,
+        `UPDATE orders SET status = 'paid', updated_at = ? WHERE id = ?`,
         [now, order.id]
       );
 
@@ -290,26 +323,48 @@ export class PaymentService {
       const existingPayment = await db.get('SELECT * FROM payments WHERE order_id = ?', [order.id]);
       if (existingPayment) {
         await db.run(
-          `UPDATE payments SET status = 'verified', transaction_ref = ?, verified_at = ?, verified_by = ?, raw_response_json = ?, updated_at = ? WHERE id = ?`,
-          [finalTxnRef, now, verifier, JSON.stringify({ verifiedBy: verifier, at: now }), now, existingPayment.id]
+          `UPDATE payments 
+           SET status = 'verified', 
+               bank_transaction_ref = ?, 
+               verified_amount = ?, 
+               reconciliation_type = 'manual',
+               verification_notes = ?,
+               verified_at = ?, 
+               verified_by = ?, 
+               raw_response_json = ?, 
+               updated_at = ? 
+           WHERE id = ?`,
+          [
+            cleanBankRef,
+            verifiedAmt,
+            notes,
+            verifiedTimestamp,
+            verifier,
+            JSON.stringify({ verifiedBy: verifier, bankRef: cleanBankRef, at: now, notes }),
+            now,
+            existingPayment.id
+          ]
         );
       } else {
         const paymentId = `pay_${uuidv4().substring(0, 8)}`;
         await db.run(
-          `INSERT INTO payments (id, order_id, user_id, transaction_ref, amount, currency, payment_gateway, bank_name, account_number, account_name, status, verified_at, verified_by, raw_response_json, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, 'VND', 'vietqr', ?, ?, ?, 'verified', ?, ?, ?, ?, ?)`,
+          `INSERT INTO payments (id, order_id, user_id, transaction_ref, bank_transaction_ref, amount, verified_amount, currency, payment_gateway, bank_name, account_number, account_name, status, reconciliation_type, verification_notes, verified_at, verified_by, raw_response_json, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'VND', 'vietqr', ?, ?, ?, 'verified', 'manual', ?, ?, ?, ?, ?, ?)`,
           [
             paymentId,
             order.id,
             order.user_id,
-            finalTxnRef,
+            `REF_${order.order_code}`,
+            cleanBankRef,
             order.total_amount,
+            verifiedAmt,
             env.BANK_NAME || 'OCB',
             env.BANK_ACCOUNT_NUMBER || '0982441446',
             env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ',
-            now,
+            notes,
+            verifiedTimestamp,
             verifier,
-            JSON.stringify({ verifiedBy: verifier, at: now }),
+            JSON.stringify({ verifiedBy: verifier, bankRef: cleanBankRef, at: now, notes }),
             now,
             now
           ]
@@ -317,7 +372,6 @@ export class PaymentService {
       }
 
       // 3. Activate licenses for all items in order
-      const items = await db.all('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
       for (const item of items) {
         const durationDays = item.plan_duration === 'yearly' ? 365 : 30;
         const product = resolveOrderProduct(item.skill_id, item.plan_duration);
@@ -333,13 +387,16 @@ export class PaymentService {
         }
 
         for (const skId of targetSkills) {
-          await LicenseEngine.grantLicense({
+          const lic = await LicenseEngine.grantLicense({
             userId: order.user_id,
             skillId: skId,
             licenseType: item.plan_duration === 'yearly' ? 'yearly' : 'monthly',
             durationDays,
             grantedBy: verifier
           });
+          if (lic && lic.expiresAt) {
+            calculatedExpiresAt = lic.expiresAt;
+          }
         }
       }
 
@@ -354,7 +411,8 @@ export class PaymentService {
           order.id,
           JSON.stringify({
             orderCode: order.order_code,
-            amount: order.total_amount,
+            amount: verifiedAmt,
+            bankTransactionRef: cleanBankRef,
             verifiedBy: verifier,
             timestamp: now
           }),
@@ -362,7 +420,7 @@ export class PaymentService {
         ]
       );
 
-      // 5. Mark notifications for this order as read
+      // 5. Mark admin notifications for this order as read
       await db.run(
         `UPDATE notifications SET is_read = 1, read_at = ? WHERE resource_id = ? OR resource_id = ?`,
         [now, order.id, order.order_code]
@@ -376,7 +434,7 @@ export class PaymentService {
         [
           custNotifId,
           order.user_id,
-          `Đơn hàng ${order.order_code} của bạn đã được Admin xác nhận thanh toán. Bản quyền Skill đã được kích hoạt thành công!`,
+          `Đơn hàng ${order.order_code} của bạn đã được Admin xác nhận thanh toán (${verifiedAmt.toLocaleString('vi-VN')} đ). Bản quyền Skill đã được kích hoạt thành công!`,
           order.id,
           now
         ]
@@ -391,12 +449,28 @@ export class PaymentService {
 
     console.log(`✅ [ADMIN] Order ${order.order_code} verified by ${verifier}. License ACTIVATED for user ${order.user_id}.`);
 
+    // 8. Send Confirmation Email (Asynchronous, post-commit)
+    if (customer?.email) {
+      EmailService.sendPaymentVerifiedEmail({
+        userId: customer.id,
+        userEmail: customer.email,
+        userName: customer.full_name,
+        orderCode: order.order_code,
+        orderId: order.id,
+        productName: productNames,
+        amount: verifiedAmt,
+        expiresAt: calculatedExpiresAt
+      }).catch(e => console.error('[EMAIL DISPATCH ERROR]', e.message));
+    }
+
     return {
       success: true,
-      message: `Đã xác nhận thanh toán cho đơn hàng ${order.order_code} và kích hoạt bản quyền Skill thành công!`,
+      message: `Đã đối soát thành công đơn hàng ${order.order_code} và kích hoạt bản quyền Skill!`,
       orderId: order.id,
       orderCode: order.order_code,
-      status: 'completed'
+      status: 'paid',
+      bankTransactionRef: cleanBankRef,
+      verifiedAmount: verifiedAmt
     };
   }
 
@@ -411,6 +485,7 @@ export class PaymentService {
 
     const now = new Date().toISOString();
     const rejector = adminEmail || env.ADMIN_EMAIL;
+    const customer = await db.get('SELECT id, email, full_name FROM users WHERE id = ?', [order.user_id]);
 
     await db.transaction(async () => {
       // 1. Update order status to 'cancelled'
@@ -419,9 +494,9 @@ export class PaymentService {
         [now, order.id]
       );
 
-      // 2. Update payment status to 'failed'
+      // 2. Update payment status to 'rejected'
       await db.run(
-        `UPDATE payments SET status = 'failed', raw_response_json = ?, updated_at = ? WHERE order_id = ?`,
+        `UPDATE payments SET status = 'rejected', raw_response_json = ?, updated_at = ? WHERE order_id = ?`,
         [JSON.stringify({ rejectedBy: rejector, reason, at: now }), now, order.id]
       );
 
@@ -450,20 +525,33 @@ export class PaymentService {
         [now, order.id, order.order_code]
       );
 
-      // 5. Notify customer
+      // 5. Create Notification for Customer
       const custNotifId = `notif_${uuidv4().substring(0, 8)}`;
       await db.run(
         `INSERT INTO notifications (id, user_id, type, title, message, resource_type, resource_id, is_read, created_at)
-         VALUES (?, ?, 'payment_rejected', 'Yêu cầu thanh toán không được phê duyệt', ?, 'order', ?, 0, ?)`,
+         VALUES (?, ?, 'payment_rejected', 'Thanh toán chưa được xác nhận', ?, 'order', ?, 0, ?)`,
         [
           custNotifId,
           order.user_id,
-          `Đơn hàng ${order.order_code} của bạn bị từ chối: ${reason}. Vui lòng liên hệ Admin để được hỗ trợ.`,
+          `Yêu cầu thanh toán đơn hàng ${order.order_code} chưa thể đối soát. Lý do: ${reason}. Vui lòng liên hệ Admin để được hỗ trợ.`,
           order.id,
           now
         ]
       );
     });
+
+    // 6. Send Rejection Email (Post-commit)
+    if (customer?.email) {
+      EmailService.sendPaymentRejectedEmail({
+        userId: customer.id,
+        userEmail: customer.email,
+        userName: customer.full_name,
+        orderCode: order.order_code,
+        orderId: order.id,
+        amount: order.total_amount,
+        reason
+      }).catch(e => console.error('[EMAIL DISPATCH ERROR]', e.message));
+    }
 
     return {
       success: true,
@@ -475,14 +563,169 @@ export class PaymentService {
   }
 
   /**
-   * Generate VietQR Quick Link
+   * Get payments & revenue reconciliation data for Admin Center
+   */
+  static async getPaymentsForAdmin({ status, dateFrom, dateTo, customer, email, orderCode } = {}) {
+    let whereClause = '1=1';
+    const params = [];
+
+    if (status && status !== 'all') {
+      whereClause += ' AND p.status = ?';
+      params.push(status);
+    }
+
+    if (orderCode) {
+      whereClause += ' AND (o.order_code LIKE ? OR p.transaction_ref LIKE ? OR p.bank_transaction_ref LIKE ?)';
+      params.push(`%${orderCode}%`, `%${orderCode}%`, `%${orderCode}%`);
+    }
+
+    if (email) {
+      whereClause += ' AND u.email LIKE ?';
+      params.push(`%${email}%`);
+    }
+
+    if (customer) {
+      whereClause += ' AND (u.full_name LIKE ? OR u.email LIKE ?)';
+      params.push(`%${customer}%`, `%${customer}%`);
+    }
+
+    if (dateFrom) {
+      whereClause += ' AND date(p.created_at) >= date(?)';
+      params.push(dateFrom);
+    }
+
+    if (dateTo) {
+      whereClause += ' AND date(p.created_at) <= date(?)';
+      params.push(dateTo);
+    }
+
+    const payments = await db.all(
+      `SELECT 
+        p.id,
+        p.order_id,
+        p.user_id,
+        p.transaction_ref,
+        p.bank_transaction_ref,
+        p.amount,
+        p.verified_amount,
+        p.status as payment_status,
+        p.reconciliation_type,
+        p.verification_notes,
+        p.bank_name,
+        p.account_number,
+        p.account_name,
+        p.verified_at,
+        p.verified_by,
+        p.created_at,
+        p.updated_at,
+        o.order_code,
+        o.total_amount as order_amount,
+        o.status as order_status,
+        u.email as customer_email,
+        u.full_name as customer_name
+       FROM payments p
+       JOIN orders o ON p.order_id = o.id
+       LEFT JOIN users u ON p.user_id = u.id
+       WHERE ${whereClause}
+       ORDER BY p.created_at DESC`,
+      params
+    );
+
+    // Fetch order items for each payment
+    for (const payment of payments) {
+      const items = await db.all('SELECT * FROM order_items WHERE order_id = ?', [payment.order_id]);
+      payment.items = items;
+      payment.productSummary = items.map(i => `${i.skill_name || i.skill_id} (${i.plan_duration})`).join(', ');
+    }
+
+    // Calculate Strict Verified Revenue KPIs
+    const todayRevenueRow = await db.get(
+      `SELECT COALESCE(SUM(verified_amount), 0) as total 
+       FROM payments 
+       WHERE status = 'verified' AND date(verified_at) = date('now')`
+    );
+
+    const monthRevenueRow = await db.get(
+      `SELECT COALESCE(SUM(verified_amount), 0) as total 
+       FROM payments 
+       WHERE status = 'verified' AND strftime('%Y-%m', verified_at) = strftime('%Y-%m', 'now')`
+    );
+
+    const yearRevenueRow = await db.get(
+      `SELECT COALESCE(SUM(verified_amount), 0) as total 
+       FROM payments 
+       WHERE status = 'verified' AND strftime('%Y', verified_at) = strftime('%Y', 'now')`
+    );
+
+    const totalRevenueRow = await db.get(
+      `SELECT COALESCE(SUM(verified_amount), 0) as total 
+       FROM payments 
+       WHERE status = 'verified'`
+    );
+
+    const countPending = await db.get(`SELECT COUNT(*) as count FROM payments WHERE status = 'pending'`);
+    const countVerified = await db.get(`SELECT COUNT(*) as count FROM payments WHERE status = 'verified'`);
+    const countRejected = await db.get(`SELECT COUNT(*) as count FROM payments WHERE status = 'rejected'`);
+    const countTotal = await db.get(`SELECT COUNT(*) as count FROM payments`);
+
+    return {
+      providerInfo: defaultBankProvider.getProviderInfo(),
+      kpis: {
+        todayRevenue: todayRevenueRow?.total || 0,
+        thisMonthRevenue: monthRevenueRow?.total || 0,
+        thisYearRevenue: yearRevenueRow?.total || 0,
+        totalRevenue: totalRevenueRow?.total || 0,
+        pendingCount: countPending?.count || 0,
+        verifiedCount: countVerified?.count || 0,
+        rejectedCount: countRejected?.count || 0,
+        totalCount: countTotal?.count || 0
+      },
+      payments
+    };
+  }
+
+  /**
+   * Get orders for a specific customer
+   */
+  static async getCustomerOrders(userId) {
+    if (!userId) return [];
+
+    const orders = await db.all(
+      `SELECT o.*, p.status as payment_status, p.bank_transaction_ref, p.verified_at
+       FROM orders o
+       LEFT JOIN payments p ON o.id = p.order_id
+       WHERE o.user_id = ?
+       ORDER BY o.created_at DESC`,
+      [userId]
+    );
+
+    for (const order of orders) {
+      const items = await db.all('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
+      order.items = items;
+      order.productName = items.map(i => i.skill_name || i.skill_id).join(', ');
+
+      // Check licenses granted for this order items
+      const licenses = await db.all(
+        `SELECT l.* FROM licenses l 
+         WHERE l.user_id = ? AND l.skill_id IN (${items.map(() => '?').join(',') || "''"})`,
+        [userId, ...items.map(i => i.skill_id)]
+      );
+      order.licenses = licenses;
+      order.licenseStatus = licenses.some(l => l.status === 'active') ? 'active' : (order.status === 'paid' ? 'active' : 'inactive');
+    }
+
+    return orders;
+  }
+
+  /**
+   * Helper: Generate VietQR quick link
    */
   static generateVietQRUrl({ amount, orderCode }) {
-    const bank = env.BANK_NAME || 'OCB';
-    const acc = env.BANK_ACCOUNT_NUMBER || '0982441446';
-    const name = encodeURIComponent(env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ');
-    const memo = encodeURIComponent(orderCode || 'TRIAI');
-    return `https://img.vietqr.io/image/${bank}-${acc}-compact2.png?amount=${amount}&addInfo=${memo}&accountName=${name}`;
+    const bankCode = encodeURIComponent(env.BANK_NAME || 'OCB');
+    const accountNo = encodeURIComponent(env.BANK_ACCOUNT_NUMBER || '0982441446');
+    const accountName = encodeURIComponent(env.BANK_ACCOUNT_HOLDER || 'QUANG NHUT TRI');
+    const memo = encodeURIComponent(orderCode);
+    return `https://img.vietqr.io/image/${bankCode}-${accountNo}-compact2.png?amount=${amount}&addInfo=${memo}&accountName=${accountName}`;
   }
 }
 

@@ -28,13 +28,8 @@ import {
   getLoadedSkills, 
   addOrUpdateSkill, 
   getUserOwnedSkillIds, 
-  saveUserOwnedSkill,
-  startSkillTrial,
-  getActiveTrial,
   getLicenseRequests,
-  saveLicenseRequests,
-  createLicenseRequest,
-  MASTER_ADMIN_EMAIL
+  MASTER_ADMIN_EMAIL 
 } from './data/skillsData';
 
 import { api, setAuthToken } from './api/client';
@@ -259,8 +254,6 @@ export default function App() {
       console.warn('Backend start trial notice:', e);
     }
 
-    const currentEmail = user.email || 'khachhang@example.com';
-    startSkillTrial(currentEmail, matchedSkill.id, 15);
     setActiveSkill(matchedSkill);
     setTab('chat');
     setBannerMode('chat');
@@ -269,7 +262,7 @@ export default function App() {
       id: Date.now(),
       role: 'ai',
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      text: `🎁 BẠN ĐÃ KÍCH HOẠT DÙNG THỬ 15 PHÚT SKILL [${matchedSkill.name.toUpperCase()}] MIỄN PHÍ!\n\nBạn có trọn vẹn 15 phút trải nghiệm toàn bộ tính năng & tài liệu mẫu của ${matchedSkill.name}. Đồng hồ đếm ngược trực tiếp đang hiển thị ở góc trên bên phải.\n\nSau 15 phút, bạn có thể nộp tiền quét mã QR để mở khóa bản quyền chính thức!`,
+      text: `🎁 BẠN ĐÃ KÍCH HOẠT DÙNG THỬ 15 PHÚT SKILL [${matchedSkill.name.toUpperCase()}] MIỄN PHÍ!\n\nBạn có trọn vẹn 15 phút trải nghiệm toàn bộ tính năng & tài liệu mẫu của ${matchedSkill.name}.\n\nSau khi hết hạn trải nghiệm, bạn có thể chuyển khoản để mở khóa bản quyền chính thức!`,
       checklist: matchedSkill.checklist || [
         { label: `Kích hoạt dùng thử: ${matchedSkill.name}`, status: 'pass' },
         { label: 'Thời lượng: 15 phút miễn phí', status: 'pass' }
@@ -292,40 +285,8 @@ export default function App() {
     }
 
     const { packageData, billingCycle, transferContent, formattedAmount } = paymentInfo;
-    const packageToSkillMap = {
-      'store-kol': 'kol-thoi-trang',
-      'kol-thoi-trang': 'kol-thoi-trang',
-      'store-pccc': 'pccc',
-      'pccc': 'pccc',
-      'store-muasam': 'mua-sam',
-      'store-mua-sam': 'mua-sam',
-      'mua-sam': 'mua-sam',
-      'store-mep': 'mep',
-      'mep': 'mep',
-      'store-phap-ly': 'phap-ly',
-      'phap-ly': 'phap-ly',
-      'store-van-hanh': 'van-hanh-toa-nha',
-      'van-hanh-toa-nha': 'van-hanh-toa-nha',
-      'store-master-33': 'master-33',
-      'store-enterprise': 'master-33'
-    };
-
-    const targetSkillId = packageToSkillMap[packageData.id] || packageData.id;
-    const isMasterAll = targetSkillId === 'master-33' || packageData.id === 'store-master-33' || packageData.id === 'store-enterprise';
-    const skillName = isMasterAll ? 'Trọn Bộ 33 Skill Master & Agent' : packageData.name;
+    const skillName = packageData.name || 'Gói Skill Bản Quyền';
     const userEmail = (user?.email || 'khachhang@example.com').toLowerCase().trim();
-    const userName = user?.name || userEmail.split('@')[0];
-
-    // Tạo yêu cầu bản quyền ở trạng thái "pending" (Chờ Admin duyệt)
-    createLicenseRequest({
-      email: userEmail,
-      userName: userName,
-      skillId: isMasterAll ? 'master-33' : targetSkillId,
-      skillName: skillName,
-      type: 'purchase_qr',
-      price: formattedAmount || packageData.priceMonth || packageData.price || '149.000đ',
-      notes: `Khách hàng đã chuyển khoản VietQR OCB (Mã: ${transferContent}). Đang chờ Admin đối soát và phê duyệt.`
-    });
 
     setLicenseChangeTick(prev => prev + 1);
 
@@ -340,17 +301,15 @@ export default function App() {
       text: `⏳ ĐÃ GỬI YÊU CẦU ĐĂNG KÝ BẢN QUYỀN [${skillName.toUpperCase()}]:\n\n` +
             `• 📦 Gói đăng ký: ${skillName}\n` +
             `• 💰 Số tiền chuyển khoản: ${formattedAmount || packageData.priceMonth || packageData.price}\n` +
-            `• 📝 Mã giao dịch CK: ${transferContent}\n` +
+            `• 📝 Nội dung chuyển khoản: ${transferContent}\n` +
             `• 👤 Tài khoản nhận: ${userEmail}\n` +
-            `• 👑 Quản trị viên phê duyệt: QUANG NHỰT TRÍ (triqnnamabank@gmail.com)\n\n` +
-            `📌 TRẠNG THÁI: ĐANG CHỜ ADMIN XÁC NHẬN.\n` +
-            `Sau khi Quản trị viên kiểm tra và xác nhận chuyển khoản ngân hàng OCB thành công, Skill sẽ được mở khóa toàn quyền cho tài khoản của bạn!`,
+            `• 👑 Quản trị viên đối soát: QUANG NHỰT TRÍ (triqnnamabank@gmail.com)\n\n` +
+            `📌 TRẠNG THÁI: ĐANG CHỜ ADMIN ĐỐI SOÁT NGÂN HÀNG.\n` +
+            `Sau khi Quản trị viên đối soát và xác nhận giao dịch khớp sao kê OCB, Skill sẽ được kích hoạt toàn quyền cho tài khoản của bạn!`,
       checklist: [
         { label: `Gửi thông tin giao dịch: ${skillName}`, status: 'pass' },
-        { label: 'Trạng thái: Chờ Quản trị viên đối soát OCB', status: 'pending' },
-        { label: 'Mở khóa Skill: Sau khi Admin phê duyệt', status: 'pending' }
-      ],
-      files: []
+        { label: 'Trạng thái: Chờ Quản trị viên đối soát OCB', status: 'pending' }
+      ]
     };
     setMessages(prev => [...prev, pendingMsg]);
   };

@@ -191,6 +191,10 @@ export const api = {
         body: JSON.stringify(data)
       }),
     getOrders: () => request('/admin/orders'),
+    getPayments: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return request(`/admin/payments${query ? '?' + query : ''}`);
+    },
     verifyPayment: (orderId, data = {}) =>
       request(`/admin/orders/${orderId}/verify-payment`, {
         method: 'POST',
@@ -200,6 +204,12 @@ export const api = {
       request(`/admin/orders/${orderId}/reject-payment`, {
         method: 'POST',
         body: JSON.stringify(data)
+      }),
+    getProviderStatus: () => request('/admin/provider-status'),
+    getEmailLogs: () => request('/admin/email-logs'),
+    retryEmailLog: (id) =>
+      request(`/admin/email-logs/${id}/retry`, {
+        method: 'POST'
       }),
     getNotifications: () => request('/admin/notifications'),
     markNotificationRead: (id) =>

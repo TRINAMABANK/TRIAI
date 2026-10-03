@@ -35,9 +35,24 @@ export const env = {
   
   BANK_NAME: process.env.VIETQR_BANK_CODE || process.env.BANK_NAME || 'OCB',
   BANK_ACCOUNT_NUMBER: process.env.VIETQR_ACCOUNT_NUMBER || process.env.BANK_ACCOUNT_NUMBER || '0982441446',
-  BANK_ACCOUNT_HOLDER: process.env.VIETQR_ACCOUNT_NAME || process.env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ'
+  BANK_ACCOUNT_HOLDER: process.env.VIETQR_ACCOUNT_NAME || process.env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ',
+
+  // Bank Reconciliation Provider Abstraction
+  BANK_PROVIDER: process.env.BANK_PROVIDER || 'manual', // 'manual' | 'casso' | 'sepay' | 'payos'
+  BANK_API_KEY: process.env.BANK_API_KEY || '',
+  BANK_WEBHOOK_SECRET: process.env.BANK_WEBHOOK_SECRET || '',
+
+  // SMTP Email Configuration
+  SMTP_HOST: process.env.SMTP_HOST || '',
+  SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
+  SMTP_SECURE: process.env.SMTP_SECURE === 'true',
+  SMTP_USER: process.env.SMTP_USER || '',
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD || '',
+  EMAIL_FROM: process.env.EMAIL_FROM || 'support@banhangdinhcao.com',
+  EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'TRÍ AI'
 };
 
 export const config = env;
 
 export default env;
+

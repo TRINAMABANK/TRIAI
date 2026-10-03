@@ -15,14 +15,15 @@ export async function runMigrations() {
 
     const schemaSql = fs.readFileSync(schemaPath, 'utf8');
     
-    // Execute entire schema SQL in one shot
-    await db.exec(schemaSql);
-
-    // Auto-migrate missing columns if table already existed
+    // 1. Auto-migrate missing columns if tables already existed
     const tablesToMigrate = [
       {
         table: 'payments',
         columns: [
+          { name: 'bank_transaction_ref', type: 'TEXT' },
+          { name: 'verified_amount', type: 'INTEGER' },
+          { name: 'reconciliation_type', type: "TEXT DEFAULT 'manual'" },
+          { name: 'verification_notes', type: 'TEXT' },
           { name: 'verified_at', type: 'TEXT' },
           { name: 'verified_by', type: 'TEXT' },
           { name: 'updated_at', type: 'TEXT' }
@@ -42,10 +43,13 @@ export async function runMigrations() {
         try {
           await db.run(`ALTER TABLE ${item.table} ADD COLUMN ${col.name} ${col.type}`);
         } catch (e) {
-          // Column already exists, ignore
+          // Column or table doesn't exist yet, ignore
         }
       }
     }
+
+    // 2. Execute schema SQL (create tables & indexes)
+    await db.exec(schemaSql);
 
     console.log('[MIGRATION SUCCESS] Database schema migration completed successfully.');
   } catch (error) {
