@@ -60,6 +60,9 @@ export default function ChatSection({
 }) {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [voiceState, setVoiceState] = useState('idle'); // 'idle' | 'listening' | 'processing' | 'speaking'
+  const [voiceError, setVoiceError] = useState('');
+  const recognitionRef = useRef(null);
   const [selectedLang, setSelectedLang] = useState('Tiếng Việt');
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
@@ -99,14 +102,14 @@ export default function ChatSection({
   const [speechRate, setSpeechRate] = useState(0.95);
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
 
-  // QUAN TRỌNG: Trạng thái đã gọi lệnh hay chưa cho từng chế độ (Khắc phục: "phần này không hiện khi chưa gọi lệnh")
+  // QUAN TRỌNG: Trạng thái đã gọi lệnh hay chưa cho từng chế độ
   const [hasCalledChatCommand, setHasCalledChatCommand] = useState(messages.some(m => m.role === 'user'));
   const [hasCalledVoiceCommand, setHasCalledVoiceCommand] = useState(false);
   const [hasCalledFileCommand, setHasCalledFileCommand] = useState(false);
   const [hasCalledSkillCommand, setHasCalledSkillCommand] = useState(false);
   const [hasCalledResultCommand, setHasCalledResultCommand] = useState(false);
 
-  // Trạng thái thu xuống / thu lên Cột 5 (không hiện cố định)
+  // Trạng thái thu xuống / thu lên Cột 5
   const [isDockCollapsed, setIsDockCollapsed] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -123,10 +126,82 @@ export default function ChatSection({
     }
   }, [messages, isAiTyping, bannerMode]);
 
-  // Gửi tin nhắn / Gọi lệnh
-  const handleSend = async (textToSend) => {
+  // Làm sạch Markdown để phát âm tự nhiên
+  const cleanMarkdownForTts = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/```[\s\S]*?```/g, ' [đoạn mã đã được hiển thị trên giao diện] ')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/[*_~#>]/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/[-*•]\s+/g, ', ')
+      .replace(/\n+/g, '. ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  // Dừng toàn bộ âm thanh đang phát
+  const stopVoiceSpeech = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeechActive(false);
+    setIsVoicePlaying(false);
+    setVoiceState(prev => (prev === 'speaking' ? 'idle' : prev));
+  };
+
+  // Tự động phát giọng nói Trí AI (Web Speech API)
+  const speakAiResponse = (text) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      console.warn('SpeechSynthesis is not supported in this browser.');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const cleanText = cleanMarkdownForTts(text);
+    if (!cleanText) {
+      setVoiceState('idle');
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = selectedLang === 'English' ? 'en-US' : 'vi-VN';
+    utterance.rate = speechRate;
+    utterance.pitch = selectedVoiceGender === 'female' ? 1.15 : 0.85;
+
+    const voices = window.speechSynthesis.getVoices();
+    const langCode = selectedLang === 'English' ? 'en' : 'vi';
+    const matchedVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith(langCode));
+    if (matchedVoice) {
+      utterance.voice = matchedVoice;
+    }
+
+    utterance.onstart = () => {
+      setSpeechActive(true);
+      setIsVoicePlaying(true);
+      setVoiceState('speaking');
+      setVoiceError('');
+    };
+
+    utterance.onend = () => {
+      setSpeechActive(false);
+      setIsVoicePlaying(false);
+      setVoiceState('idle');
+    };
+
+    utterance.onerror = (e) => {
+      console.warn('TTS playback error:', e);
+      setSpeechActive(false);
+      setIsVoicePlaying(false);
+      setVoiceState('idle');
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Gửi tin nhắn / Gọi lệnh (Phân biệt rạch ròi Voice vs Text)
+  const handleSend = async (textToSend, inputMode = 'text') => {
     const query = typeof textToSend === 'string' ? textToSend : input;
-    if (!query.trim()) return;
+    if (!query || !query.trim()) return;
 
     // Yêu cầu đăng nhập nếu người dùng chưa đăng nhập
     if (!user?.isLoggedIn) {
@@ -134,17 +209,22 @@ export default function ChatSection({
       return;
     }
 
+    // Nếu người dùng nhập TEXT -> Dừng ngay bất kỳ âm thanh nào đang phát
+    if (inputMode === 'text') {
+      stopVoiceSpeech();
+    }
+
     // Đánh dấu đã gọi lệnh cho chế độ tương ứng
     if (bannerMode === 'result') setHasCalledResultCommand(true);
     if (bannerMode === 'file') setHasCalledFileCommand(true);
     if (bannerMode === 'skill') setHasCalledSkillCommand(true);
-    if (bannerMode === 'voice') setHasCalledVoiceCommand(true);
-    if (bannerMode === 'chat') setHasCalledChatCommand(true);
+    if (bannerMode === 'voice' || inputMode === 'voice') setHasCalledVoiceCommand(true);
+    if (bannerMode === 'chat' || inputMode === 'text') setHasCalledChatCommand(true);
 
     const userMsg = {
       id: Date.now(),
       role: 'user',
-      text: query,
+      text: query.trim(),
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     };
 
@@ -152,11 +232,16 @@ export default function ChatSection({
     setInput('');
     setIsAiTyping(true);
 
+    if (inputMode === 'voice') {
+      setVoiceState('processing');
+      setVoiceError('');
+    }
+
     try {
       const chatRes = await api.chat.sendMessage({
         agentId: activeCompanionAgent?.id || null,
         skillId: activeSkill?.id || null,
-        message: query
+        message: query.trim()
       });
 
       if (chatRes && chatRes.success) {
@@ -200,11 +285,23 @@ export default function ChatSection({
         };
 
         setMessages(prev => [...prev, aiMsg]);
+
+        // QUY TẮC BẮT BUỘC:
+        // 1. Nếu inputMode === 'voice' -> TỰ ĐỘNG PHÁT GIỌNG NÓI TTS + Hiển thị Text
+        // 2. Nếu inputMode === 'text' -> CHỈ HIỂN THỊ TEXT, KHÔNG PHÁT ÂM THANH
+        if (inputMode === 'voice') {
+          speakAiResponse(contentText);
+        } else {
+          setVoiceState('idle');
+        }
       } else {
         throw new Error(chatRes?.error || 'Không nhận được kết quả từ máy chủ AI.');
       }
     } catch (err) {
       console.warn('Chat execution note/error:', err);
+      if (inputMode === 'voice') {
+        setVoiceState('idle');
+      }
       if (err.status === 403 || (err.data && err.data.restricted)) {
         const lockedMsg = {
           id: Date.now() + 1,
@@ -218,6 +315,9 @@ export default function ChatSection({
           files: []
         };
         setMessages(prev => [...prev, lockedMsg]);
+        if (inputMode === 'voice') {
+          speakAiResponse('Tài khoản của bạn hiện chưa được Quản trị viên phê duyệt bản quyền Skill này.');
+        }
       } else {
         const errorMsg = {
           id: Date.now() + 1,
@@ -228,6 +328,9 @@ export default function ChatSection({
           files: []
         };
         setMessages(prev => [...prev, errorMsg]);
+        if (inputMode === 'voice') {
+          speakAiResponse('Hệ thống đang bận, vui lòng thử lại sau.');
+        }
       }
     } finally {
       setIsAiTyping(false);
@@ -293,34 +396,16 @@ export default function ChatSection({
     }, 600);
   };
 
-  // Tóm tắt bằng giọng nói (Web Speech API)
+  // Tóm tắt / Nghe lại giọng nói (Replay hoặc Tạm dừng thủ công)
   const handleVoiceSummary = (customText = null) => {
-    if ('speechSynthesis' in window) {
-      if (speechActive) {
-        window.speechSynthesis.cancel();
-        setSpeechActive(false);
-        setIsVoicePlaying(false);
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      if (speechActive || isVoicePlaying || voiceState === 'speaking') {
+        stopVoiceSpeech();
         return;
       }
-      window.speechSynthesis.cancel();
-      const textToRead = customText || 'Dạ anh Trí, kết quả kiểm tra sơ bộ hồ sơ nghiệm thu hệ thống PCCC cho thấy: Thành phần hồ sơ đầy đủ, biểu mẫu đúng theo quy định, nội dung kỹ thuật phù hợp thiết kế được duyệt. Có 2 điểm cần lưu ý về van xả tràn tầng 15 và biên bản thử nghiệm chuông báo cháy tự động.';
-      const utterance = new SpeechSynthesisUtterance(textToRead);
-      utterance.lang = 'vi-VN';
-      utterance.rate = speechRate;
-      utterance.onstart = () => {
-        setSpeechActive(true);
-        setIsVoicePlaying(true);
-        setHasCalledVoiceCommand(true);
-      };
-      utterance.onend = () => {
-        setSpeechActive(false);
-        setIsVoicePlaying(false);
-      };
-      utterance.onerror = () => {
-        setSpeechActive(false);
-        setIsVoicePlaying(false);
-      };
-      window.speechSynthesis.speak(utterance);
+      const lastAiMsg = [...messages].reverse().find(m => m.role === 'ai' && m.text);
+      const textToRead = customText || lastAiMsg?.text || 'Dạ anh Trí, kết quả kiểm tra sơ bộ hồ sơ nghiệm thu hệ thống PCCC cho thấy: Thành phần hồ sơ đầy đủ, biểu mẫu đúng theo quy định, nội dung kỹ thuật phù hợp thiết kế được duyệt. Có 2 điểm cần lưu ý về van xả tràn tầng 15 và biên bản thử nghiệm chuông báo cháy tự động.';
+      speakAiResponse(textToRead);
     } else {
       alert('Trình duyệt không hỗ trợ phát giọng nói.');
     }
@@ -387,36 +472,94 @@ export default function ChatSection({
     });
   };
 
-  // Kích hoạt Micro
+  // Kích hoạt Micro / Nhận diện giọng nói (Speech-to-Text)
   const handleToggleMic = () => {
-    if (!isRecording) {
-      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRec();
-        recognition.lang = selectedLang === 'English' ? 'en-US' : 'vi-VN';
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.onstart = () => {
-          setIsRecording(true);
-          setHasCalledVoiceCommand(true);
-        };
-        recognition.onresult = (e) => {
-          const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
-          setInput(transcript);
-        };
-        recognition.onerror = () => setIsRecording(false);
-        recognition.onend = () => setIsRecording(false);
-        recognition.start();
-      } else {
+    if (typeof window === 'undefined') return;
+
+    // Nếu đang phát âm thanh AI -> Bấm nút dừng âm thanh
+    if (voiceState === 'speaking' || isVoicePlaying || speechActive) {
+      stopVoiceSpeech();
+      return;
+    }
+
+    // Nếu đang thu âm -> Dừng thu âm
+    if (isRecording) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.warn('Error stopping speech recognition:', e);
+        }
+      }
+      setIsRecording(false);
+      setVoiceState('idle');
+      return;
+    }
+
+    // Bắt đầu thu âm giọng nói người dùng
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      stopVoiceSpeech();
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRec();
+      recognition.lang = selectedLang === 'English' ? 'en-US' : 'vi-VN';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      let finalTranscript = '';
+
+      recognition.onstart = () => {
         setIsRecording(true);
+        setVoiceState('listening');
+        setVoiceError('');
         setHasCalledVoiceCommand(true);
-        setTimeout(() => {
-          setInput('Kiểm tra giúp tôi các hạng mục cần lưu ý trong hồ sơ nghiệm thu này.');
-          setIsRecording(false);
-        }, 2200);
+      };
+
+      recognition.onresult = (e) => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) {
+            finalTranscript += e.results[i][0].transcript;
+          } else {
+            interim += e.results[i][0].transcript;
+          }
+        }
+        const liveText = finalTranscript || interim;
+        if (liveText) setInput(liveText);
+      };
+
+      recognition.onerror = (e) => {
+        console.warn('Speech recognition error:', e.error);
+        setIsRecording(false);
+        setVoiceState('idle');
+        if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+          setVoiceError('Vui lòng cấp quyền Microphone trong trình duyệt để nói chuyện với Trí AI.');
+        } else if (e.error === 'no-speech') {
+          setVoiceError('Chưa nhận được âm thanh. Anh nhấn lại Micro và nói nhé.');
+        } else {
+          setVoiceError(`Lỗi nhận diện âm thanh (${e.error}). Vui lòng thử lại.`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        const textToDispatch = finalTranscript.trim() || input.trim();
+        if (textToDispatch) {
+          handleSend(textToDispatch, 'voice');
+        } else {
+          setVoiceState('idle');
+        }
+      };
+
+      recognitionRef.current = recognition;
+      try {
+        recognition.start();
+      } catch (err) {
+        console.warn('Could not start recognition:', err);
+        setVoiceError('Không thể khởi động micro. Vui lòng thử lại.');
+        setIsRecording(false);
+        setVoiceState('idle');
       }
     } else {
-      setIsRecording(false);
+      setVoiceError('Trình duyệt của bạn không hỗ trợ Web Speech API. Hãy sử dụng Chrome hoặc Edge.');
     }
   };
 
@@ -1554,26 +1697,36 @@ export default function ChatSection({
           {/* Center Soundwave & Glowing Mic (Ẩn khi thu xuống, hiện khi thu lên) */}
           {!isDockCollapsed && (
             <div className="dock-wave-center-area">
-              <div className={`soundwave-visual-wrap ${isRecording ? 'recording-wave' : ''}`}>
+              <div className={`soundwave-visual-wrap ${isRecording ? 'recording-wave' : ''} ${voiceState === 'speaking' ? 'speaking-wave' : ''}`}>
                 <img 
                   src="/assets/soundwave_exact.png" 
                   alt="Voice Visualizer" 
-                  className="soundwave-exact-img"
+                  className={`soundwave-exact-img ${(isRecording || voiceState === 'speaking') ? 'animated-wave' : ''}`}
                   onClick={handleToggleMic}
                 />
 
                 <button 
                   type="button"
-                  className={`mic-pulsing-circle ${isRecording ? 'is-mic-on' : ''}`}
+                  className={`mic-pulsing-circle ${isRecording ? 'is-mic-on' : ''} ${voiceState === 'speaking' ? 'is-ai-speaking' : ''}`}
                   onClick={handleToggleMic}
-                  title="Bấm để nói trực tiếp"
+                  title={voiceState === 'speaking' ? "Dừng giọng nói AI" : isRecording ? "Dừng lắng nghe" : "Bấm để nói trực tiếp"}
                 >
-                  {isRecording ? <MicOff size={24} /> : <Mic size={24} />}
+                  {voiceState === 'speaking' ? <Volume2 size={24} className="speaking-anim" /> : isRecording ? <MicOff size={24} /> : <Mic size={24} />}
                 </button>
               </div>
 
               <div className="mic-hint-caption" onClick={handleToggleMic}>
-                {isRecording ? 'Đang lắng nghe giọng của anh...' : 'Nhấn để nói...'}
+                {voiceError ? (
+                  <span style={{ color: '#ef4444', fontWeight: 500 }}>{voiceError}</span>
+                ) : voiceState === 'listening' || isRecording ? (
+                  <span style={{ color: '#2563eb', fontWeight: 600 }}>🎙️ Đang nghe giọng của bạn... (Nói vào micro)</span>
+                ) : voiceState === 'processing' ? (
+                  <span style={{ color: '#f59e0b', fontWeight: 600 }}>⚡ Trí AI đang xử lý câu hỏi...</span>
+                ) : voiceState === 'speaking' ? (
+                  <span style={{ color: '#10b981', fontWeight: 600 }}>🔊 Trí AI đang trả lời... (Bấm để dừng)</span>
+                ) : (
+                  'Nhấn để nói...'
+                )}
               </div>
             </div>
           )}
@@ -1585,24 +1738,32 @@ export default function ChatSection({
               {isDockCollapsed && (
                 <button 
                   type="button"
-                  className={`btn-dock-pill mini-mic-pill ${isRecording ? 'recording-active' : ''}`}
+                  className={`btn-dock-pill mini-mic-pill ${isRecording ? 'recording-active' : ''} ${voiceState === 'speaking' ? 'speaking-active' : ''}`}
                   onClick={handleToggleMic}
-                  title="Bấm để nói nhanh"
+                  title="Bấm để nói nhanh hoặc dừng âm thanh"
                 >
-                  {isRecording ? <MicOff size={15} color="#ef4444" /> : <Mic size={15} color="#2b78fe" />}
-                  <span>{isRecording ? 'Đang nghe...' : 'Nói'}</span>
+                  {voiceState === 'speaking' ? (
+                    <Volume2 size={15} color="#10b981" />
+                  ) : isRecording ? (
+                    <MicOff size={15} color="#ef4444" />
+                  ) : (
+                    <Mic size={15} color="#2b78fe" />
+                  )}
+                  <span>
+                    {voiceState === 'speaking' ? 'Đang nói...' : isRecording ? 'Đang nghe...' : 'Nói'}
+                  </span>
                 </button>
               )}
 
               {/* Nghe lại giọng nói AI */}
               <button 
                 type="button"
-                className={`btn-dock-pill ${isVoicePlaying ? 'speaking-active' : ''}`}
+                className={`btn-dock-pill ${isVoicePlaying || voiceState === 'speaking' ? 'speaking-active' : ''}`}
                 onClick={() => handleVoiceSummary()}
-                title="Bấm để phát hoặc tạm dừng giọng đọc AI"
+                title="Bấm để phát lại hoặc tạm dừng giọng đọc AI"
               >
-                {isVoicePlaying ? <Pause size={15} /> : <Play size={15} />}
-                <span>{isVoicePlaying ? 'Tạm dừng đọc' : 'Phát giọng AI'}</span>
+                {isVoicePlaying || voiceState === 'speaking' ? <Pause size={15} /> : <Play size={15} />}
+                <span>{isVoicePlaying || voiceState === 'speaking' ? 'Tạm dừng đọc' : 'Phát giọng AI'}</span>
               </button>
 
               {/* Đổi giọng Nam / Nữ */}
@@ -1639,7 +1800,7 @@ export default function ChatSection({
                   type="text" 
                   value={input}
                   onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSend()}
+                  onKeyDown={e => e.key === 'Enter' && handleSend(input, 'text')}
                   placeholder="Nhập phản hồi đàm thoại tại đây..."
                   className="dock-compact-chat-input"
                 />
@@ -1676,8 +1837,8 @@ export default function ChatSection({
               <button 
                 type="button"
                 className={`btn-round-send ${input.trim() ? 'has-text' : ''}`}
-                onClick={() => handleSend()}
-                title="Gửi tin nhắn âm thanh"
+                onClick={() => handleSend(input, 'text')}
+                title="Gửi tin nhắn"
               >
                 <Send size={18} />
               </button>
@@ -1691,8 +1852,8 @@ export default function ChatSection({
               type="text" 
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder="Nói vào micro hoặc gõ phản hồi âm thanh..."
+              onKeyDown={e => e.key === 'Enter' && handleSend(input, 'text')}
+              placeholder="Nói vào micro hoặc gõ phản hồi tại đây..."
               className="dock-inline-chat-input"
             />
           )}
