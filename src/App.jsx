@@ -99,42 +99,76 @@ export default function App() {
     if (!isAdmin) return 0;
     try {
       const reqs = getLicenseRequests();
-      return reqs.filter(r => r.status === 'pending').length;
+      return Array.isArray(reqs) ? reqs.filter(r => r.status === 'pending').length : 0;
     } catch (e) {
       return 0;
     }
   }, [isAdmin, licenseChangeTick]);
 
-  // Trial 15 phút state & Live Countdown Timer (mỗi 1 giây)
+  // Trial 15 phút state & Server License State
   const [trialStatus, setTrialStatus] = useState(null);
+  const [serverOwnedSkillIds, setServerOwnedSkillIds] = useState([]);
 
+  // Đồng bộ License và Dùng thử từ máy chủ
   useEffect(() => {
-    const checkTrial = () => {
+    let timer = null;
+    const syncServerLicenses = async () => {
       if (user?.isLoggedIn && user?.email && !isAdmin) {
-        const active = getActiveTrial(user.email);
-        setTrialStatus(active);
-      } else {
-        setTrialStatus(null);
+        try {
+          const res = await api.licenses.getMyLicenses();
+          if (res && res.success && Array.isArray(res.licenses)) {
+            const activeLicIds = res.licenses
+              .filter(l => l.status === 'active' || l.status === 'granted')
+              .map(l => l.skill_id);
+            setServerOwnedSkillIds(activeLicIds);
+
+            const activeTrialLic = res.licenses.find(l => l.status === 'trial' || l.is_trial);
+            if (activeTrialLic) {
+              const expiresAt = new Date(activeTrialLic.expires_at || activeTrialLic.trial_expires_at).getTime();
+              const now = Date.now();
+              const remainingSec = Math.max(0, Math.floor((expiresAt - now) / 1000));
+              setTrialStatus({
+                hasTrial: true,
+                skillId: activeTrialLic.skill_id,
+                skillName: activeTrialLic.skill_name || activeTrialLic.skill_id,
+                remainingSeconds: remainingSec,
+                isExpired: remainingSec <= 0
+              });
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Đồng bộ License từ server:', e);
+        }
       }
+      setTrialStatus(null);
     };
-    checkTrial();
-    const timer = setInterval(checkTrial, 1000);
-    return () => clearInterval(timer);
-  }, [user?.isLoggedIn, user?.email, isAdmin]);
+
+    if (user?.isLoggedIn && !isAdmin) {
+      syncServerLicenses();
+      timer = setInterval(syncServerLicenses, 10000);
+    } else {
+      setTrialStatus(null);
+      setServerOwnedSkillIds([]);
+    }
+
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [user?.isLoggedIn, user?.email, isAdmin, licenseChangeTick]);
 
   // Danh sách Skill thuộc sở hữu của tài khoản hiện tại (kèm Skill đang dùng thử nếu còn hạn)
-  const baseOwnedSkillIds = user?.isLoggedIn ? getUserOwnedSkillIds(user.email, user.role) : [];
   const userOwnedSkillIds = React.useMemo(() => {
     if (!user?.isLoggedIn) return [];
-    if (isAdmin || baseOwnedSkillIds === null) return null;
-    const list = [...baseOwnedSkillIds];
+    if (isAdmin) return null;
+    const list = [...serverOwnedSkillIds];
     if (trialStatus && trialStatus.hasTrial && !trialStatus.isExpired && trialStatus.skillId) {
       if (!list.includes(trialStatus.skillId)) {
         list.push(trialStatus.skillId);
       }
     }
     return list;
-  }, [user?.isLoggedIn, isAdmin, baseOwnedSkillIds, trialStatus]);
+  }, [user?.isLoggedIn, isAdmin, serverOwnedSkillIds, trialStatus]);
 
   const ownedSkills = !user?.isLoggedIn
     ? []
