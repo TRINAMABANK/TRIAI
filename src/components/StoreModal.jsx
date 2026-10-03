@@ -42,10 +42,24 @@ export default function StoreModal({ isOpen, onClose, onRequestPurchase, onStart
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container store-modal" style={{ maxWidth: '960px', width: '95vw', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+      <div 
+        className="modal-container store-modal" 
+        style={{ 
+          maxWidth: '980px', 
+          width: '95vw', 
+          maxHeight: '90vh', 
+          height: '90vh',
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden',
+          borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+        }} 
+        onClick={e => e.stopPropagation()}
+      >
         
         {/* Modal Header */}
-        <div className="modal-header" style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 10, borderBottom: '1px solid #e2e8f0', padding: '16px 24px' }}>
+        <div className="modal-header" style={{ flexShrink: 0, background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '16px 24px' }}>
           <div className="modal-title-wrap" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', padding: '10px', borderRadius: '12px', color: '#fff', display: 'flex' }}>
               <ShoppingCart size={22} />
@@ -59,7 +73,7 @@ export default function StoreModal({ isOpen, onClose, onRequestPurchase, onStart
         </div>
 
         {/* Modal Controls: Tabs & Billing Toggle */}
-        <div style={{ padding: '16px 24px 0', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+        <div style={{ flexShrink: 0, padding: '14px 24px 0', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
           
           {/* Navigation Tabs */}
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -164,7 +178,7 @@ export default function StoreModal({ isOpen, onClose, onRequestPurchase, onStart
         </div>
 
         {/* Modal Body */}
-        <div style={{ padding: '24px' }}>
+        <div className="store-modal-body" style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 48px', minHeight: 0 }}>
 
           {/* TAB 1: SKILL ĐƠN LẺ */}
           {activeTab === 'skills' && (
