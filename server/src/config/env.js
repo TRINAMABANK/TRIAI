@@ -42,6 +42,10 @@ export const env = {
   BANK_API_KEY: process.env.BANK_API_KEY || '',
   BANK_WEBHOOK_SECRET: process.env.BANK_WEBHOOK_SECRET || '',
 
+  // Google OAuth 2.0 / Google Identity Services
+  GOOGLE_CLIENT_ID: (process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || '').trim(),
+  GOOGLE_CLIENT_SECRET: (process.env.GOOGLE_CLIENT_SECRET || '').trim(),
+
   // SMTP Email Configuration
   SMTP_HOST: process.env.SMTP_HOST || '',
   SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),

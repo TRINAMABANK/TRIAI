@@ -6,6 +6,7 @@
 -- 1. USERS TABLE
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
+    google_id TEXT,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     full_name TEXT NOT NULL,

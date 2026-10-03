@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Mail, 
@@ -8,7 +8,7 @@ import {
   LogIn, 
   ShieldCheck, 
   User, 
-  UserPlus,
+  UserPlus, 
   AlertCircle
 } from 'lucide-react';
 import { api, setAuthToken } from '../api/client';
@@ -28,6 +28,9 @@ export default function AuthModal({
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  const googleButtonContainerRef = useRef(null);
+  const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || '').trim();
+
   useEffect(() => {
     if (isOpen) {
       setAuthMode(initialMode || 'login');
@@ -37,7 +40,100 @@ export default function AuthModal({
     }
   }, [isOpen, initialMode]);
 
-  if (!isOpen) return null;
+  // Xử lý xác thực ID Token từ Google gửi về Backend
+  const processGoogleCredential = async (credential) => {
+    if (!credential) {
+      setErrorMessage('Không nhận được thông tin xác thực từ Google.');
+      return;
+    }
+    setErrorMessage('');
+    setIsLoading(true);
+    try {
+      const res = await api.auth.googleLogin({ credential });
+      if (res && res.success && res.token) {
+        setAuthToken(res.token);
+        const userData = {
+          id: res.user.id,
+          name: res.user.full_name || res.user.name || res.user.email.split('@')[0],
+          email: res.user.email,
+          role: res.user.role,
+          plan: res.user.plan,
+          avatar: res.user.avatar_url || '/assets/user_avatar.png',
+          isLoggedIn: true,
+          isAdmin: res.user.role === 'owner' || res.user.role === 'admin'
+        };
+        setSuccessMessage('Đăng nhập bằng Google thành công!');
+        setTimeout(() => {
+          if (onLogin) onLogin(userData, res.token, res.access);
+          onClose();
+        }, 350);
+      } else {
+        setErrorMessage(res?.error || 'Đăng nhập Google không thành công.');
+      }
+    } catch (err) {
+      console.error('Google auth error:', err);
+      setErrorMessage(err.message || 'Lỗi xác thực tài khoản Google với máy chủ.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Khởi tạo Google Identity Services (GIS)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let checkInterval = null;
+
+    const initGsi = () => {
+      if (typeof window !== 'undefined' && window.google?.accounts?.id && GOOGLE_CLIENT_ID) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response) => {
+              if (response && response.credential) {
+                processGoogleCredential(response.credential);
+              }
+            },
+            auto_select: false,
+            cancel_on_tap_outside: true,
+            context: 'signin'
+          });
+
+          if (googleButtonContainerRef.current) {
+            window.google.accounts.id.renderButton(
+              googleButtonContainerRef.current,
+              {
+                theme: 'outline',
+                size: 'large',
+                text: 'continue_with',
+                shape: 'rectangular',
+                logo_alignment: 'left',
+                width: 380,
+                locale: 'vi'
+              }
+            );
+          }
+        } catch (err) {
+          console.warn('Google Identity Services setup notice:', err);
+        }
+      }
+    };
+
+    if (window.google?.accounts?.id) {
+      initGsi();
+    } else {
+      checkInterval = setInterval(() => {
+        if (window.google?.accounts?.id) {
+          initGsi();
+          clearInterval(checkInterval);
+        }
+      }, 300);
+    }
+
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+    };
+  }, [isOpen, GOOGLE_CLIENT_ID]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -94,36 +190,28 @@ export default function AuthModal({
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     setErrorMessage('');
-    setIsLoading(true);
-    try {
-      const res = await api.auth.googleLogin({
-        email: email.trim().toLowerCase() || 'khachhang.google@gmail.com',
-        fullName: fullName.trim() || 'Google User'
-      });
+    if (!GOOGLE_CLIENT_ID) {
+      setErrorMessage('GOOGLE_CLIENT_ID chưa được thiết lập trong biến môi trường (.env).');
+      return;
+    }
 
-      if (res && res.success && res.token) {
-        setAuthToken(res.token);
-        const userData = {
-          id: res.user.id,
-          name: res.user.full_name || res.user.name,
-          email: res.user.email,
-          role: res.user.role,
-          plan: res.user.plan,
-          avatar: res.user.avatar_url || '/assets/user_avatar.png',
-          isLoggedIn: true,
-          isAdmin: res.user.role === 'owner' || res.user.role === 'admin'
-        };
-        if (onLogin) onLogin(userData, res.token, res.access);
-        onClose();
-      } else {
-        setErrorMessage(res?.error || 'Đăng nhập Google không thành công.');
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            const renderedBtn = googleButtonContainerRef.current?.querySelector('div[role="button"]');
+            if (renderedBtn) {
+              renderedBtn.click();
+            }
+          }
+        });
+      } catch (e) {
+        console.warn('Google prompt error:', e);
       }
-    } catch (err) {
-      setErrorMessage(err.message || 'Lỗi xác thực Google.');
-    } finally {
-      setIsLoading(false);
+    } else {
+      setErrorMessage('Google Identity Services chưa sẵn sàng. Vui lòng tải lại trang.');
     }
   };
 
@@ -338,7 +426,23 @@ export default function AuthModal({
           </div>
 
           {/* NÚT GOOGLE SIGN-IN */}
-          <div className="auth-social-buttons">
+          <div className="auth-social-buttons" style={{ position: 'relative', minHeight: '44px' }}>
+            {/* Vùng gắn Google Identity Services iframe */}
+            <div 
+              ref={googleButtonContainerRef} 
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0.001,
+                zIndex: 2,
+                cursor: 'pointer',
+                overflow: 'hidden'
+              }}
+            />
+
             <button 
               type="button" 
               className={`btn-auth-pill btn-continue-google ${isLoading ? 'loading' : ''}`}
@@ -346,10 +450,12 @@ export default function AuthModal({
               disabled={isLoading}
               title="Đăng nhập bằng tài khoản Google"
               style={{
+                position: 'relative',
+                zIndex: 1,
                 width: '100%',
                 padding: '10px 14px',
                 borderRadius: '10px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #cbd5e1',
                 background: '#ffffff',
                 color: '#334155',
                 fontWeight: '600',
@@ -358,7 +464,8 @@ export default function AuthModal({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '10px'
+                gap: '10px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
               }}
             >
               <svg viewBox="0 0 24 24" width="18" height="18">
@@ -367,7 +474,7 @@ export default function AuthModal({
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
               </svg>
-              <span>Tiếp tục với Google</span>
+              <span>{isLoading ? 'Đang xác thực Google...' : 'Tiếp tục với Google'}</span>
             </button>
           </div>
 

@@ -18,6 +18,12 @@ export async function runMigrations() {
     // 1. Auto-migrate missing columns if tables already existed
     const tablesToMigrate = [
       {
+        table: 'users',
+        columns: [
+          { name: 'google_id', type: 'TEXT' }
+        ]
+      },
+      {
         table: 'payments',
         columns: [
           { name: 'bank_transaction_ref', type: 'TEXT' },
