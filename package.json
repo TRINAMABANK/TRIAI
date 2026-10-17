@@ -15,7 +15,9 @@
     "test:e2e": "node server/tests/test_e2e_full_business_flow.js",
     "test:payments": "node server/tests/test_payment_verification_edge_cases.js",
     "test:security": "node server/tests/test_security_hardening.js",
-    "test:uploads": "node server/tests/test_upload_and_zip_security.js"
+    "test:uploads": "node server/tests/test_upload_and_zip_security.js",
+    "db:backup": "node server/src/utils/dbBackup.js backup",
+    "db:restore": "node server/src/utils/dbBackup.js restore"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
