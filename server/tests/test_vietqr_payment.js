@@ -166,7 +166,10 @@ async function runVietQRTests() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${tokenAdmin}`
       },
-      body: JSON.stringify({ transactionRef: `${orderCode}_OCB_CONFIRMED` })
+      body: JSON.stringify({
+        transactionRef: `${orderCode}_OCB_CONFIRMED_${Date.now()}`,
+        actualAmount: 399000
+      })
     });
     const verifyData = await verifyRes.json();
     console.log('-> Verify Response:', verifyData);

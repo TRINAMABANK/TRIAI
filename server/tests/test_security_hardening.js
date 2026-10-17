@@ -201,12 +201,13 @@ async function runSecurityTests() {
 
   // User B tries to mark user A's notification as read
   const userBId = `usr_cust_b_${Date.now()}`;
+  const userBEmail = `other_cust_${Date.now()}@triai.vn`;
   await db.run(
     `INSERT INTO users (id, email, password_hash, full_name, role, plan, is_active, created_at, updated_at)
-     VALUES (?, 'other_cust@triai.vn', 'dummyhash', 'User B', 'customer', 'Plan', 1, ?, ?)`,
-    [userBId, new Date().toISOString(), new Date().toISOString()]
+     VALUES (?, ?, 'dummyhash', 'User B', 'customer', 'Plan', 1, ?, ?)`,
+    [userBId, userBEmail, new Date().toISOString(), new Date().toISOString()]
   );
-  const userBToken = generateToken({ userId: userBId, email: 'other_cust@triai.vn', role: 'customer' });
+  const userBToken = generateToken({ userId: userBId, email: userBEmail, role: 'customer' });
   const idorAttempt = await fetch(`${baseUrl}/notifications/${notifIdA}/read`, {
     method: 'POST',
     headers: {
@@ -239,13 +240,14 @@ async function runSecurityTests() {
 
   // Create a regular admin user
   const regularAdminId = `usr_reg_admin_${Date.now()}`;
+  const staffAdminEmail = `staff_admin_${Date.now()}@triai.vn`;
   const regAdminPassHash = await hashPassword('AdminPass123!');
   await db.run(
     `INSERT INTO users (id, email, password_hash, full_name, role, plan, is_active, created_at, updated_at)
-     VALUES (?, 'staff_admin@triai.vn', ?, 'Staff Admin', 'admin', 'Staff Plan', 1, ?, ?)`,
-    [regularAdminId, regAdminPassHash, new Date().toISOString(), new Date().toISOString()]
+     VALUES (?, ?, ?, 'Staff Admin', 'admin', 'Staff Plan', 1, ?, ?)`,
+    [regularAdminId, staffAdminEmail, regAdminPassHash, new Date().toISOString(), new Date().toISOString()]
   );
-  const staffAdminToken = generateToken({ userId: regularAdminId, email: 'staff_admin@triai.vn', role: 'admin' });
+  const staffAdminToken = generateToken({ userId: regularAdminId, email: staffAdminEmail, role: 'admin' });
 
   // 6.1 Staff admin tries to lock Master Admin
   const lockMasterAttempt = await fetch(`${baseUrl}/admin/users/${masterUser.id}`, {

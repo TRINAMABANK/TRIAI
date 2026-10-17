@@ -68,7 +68,8 @@ async function runTests() {
     orderId: orderRes.orderId,
     adminUserId: 'usr_master_admin',
     adminEmail: 'triqnnamabank@gmail.com',
-    transactionRef: 'FT240982441446_VERIFIED'
+    actualAmount: 399000,
+    transactionRef: `FT240982441446_VERIFIED_${Date.now()}`
   });
 
   console.log(`-> Admin Verify response: status=${verifyRes.status}, message=${verifyRes.message}`);

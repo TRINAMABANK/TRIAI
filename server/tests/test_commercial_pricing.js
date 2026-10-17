@@ -105,8 +105,11 @@ async function runTests() {
   // Verify Combo 5 grants 5 licenses
   const verifiedCombo = await PaymentService.adminVerifyPayment({
     orderId: orderCombo.orderId,
-    adminId: 'usr_master_admin',
-    note: 'Payment received via OCB transfer'
+    adminUserId: 'usr_master_admin',
+    adminEmail: 'triqnnamabank@gmail.com',
+    actualAmount: orderCombo.totalAmount,
+    bankTransactionRef: `FT_COMBO_${Date.now()}`,
+    notes: 'Payment received via OCB transfer'
   });
   assert.ok(verifiedCombo.status === 'completed' || verifiedCombo.status === 'paid', 'Status must be paid or completed');
 
@@ -118,8 +121,11 @@ async function runTests() {
   await db.run('DELETE FROM licenses WHERE user_id = ?', [userId]);
   const verifiedMaster = await PaymentService.adminVerifyPayment({
     orderId: orderMaster.orderId,
-    adminId: 'usr_master_admin',
-    note: 'Master 33 payment confirmed'
+    adminUserId: 'usr_master_admin',
+    adminEmail: 'triqnnamabank@gmail.com',
+    actualAmount: orderMaster.totalAmount,
+    bankTransactionRef: `FT_MASTER_${Date.now()}`,
+    notes: 'Master 33 payment confirmed'
   });
   assert.ok(verifiedMaster.status === 'completed' || verifiedMaster.status === 'paid', 'Status must be paid or completed');
 

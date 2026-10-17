@@ -6,18 +6,25 @@ import { resolveOrderProduct } from '../config/pricing.js';
 import EmailService from './emailService.js';
 import defaultBankProvider from './bankPaymentProvider.js';
 
+const activeVerificationLocks = new Set();
+
 export class PaymentService {
   /**
    * Create an order on server-side
    * Backend strictly resolves product prices and calculates totalAmount.
    */
-  static async createOrder({ userId, items = [], note = '' }) {
-    if (!items || items.length === 0) {
-      throw new Error('Đơn hàng cần ít nhất 1 sản phẩm.');
-    }
-
+  static async createOrder({ userId, items = [], skillId, planDuration = 'monthly', note = '' }) {
     if (!userId) {
       throw new Error('Vui lòng đăng nhập để tạo đơn hàng.');
+    }
+
+    // Support single-skill fallback parameters
+    if ((!items || items.length === 0) && skillId) {
+      items = [{ productId: skillId, period: planDuration }];
+    }
+
+    if (!items || items.length === 0) {
+      throw new Error('Đơn hàng cần ít nhất 1 sản phẩm.');
     }
 
     const orderId = `ord_${uuidv4().substring(0, 8)}`;
@@ -29,7 +36,7 @@ export class PaymentService {
 
     for (const item of items) {
       const targetId = item.productId || item.skillId || item.id;
-      const period = item.period || item.billingCycle || 'monthly';
+      const period = item.period || item.billingCycle || item.planDuration || item.plan_duration || 'monthly';
       const product = resolveOrderProduct(targetId, period);
 
       totalAmount += product.price;
@@ -46,27 +53,40 @@ export class PaymentService {
       });
     }
 
-    // Reuse existing pending order if created within the last 60 minutes for the same skill
-    const targetSkillId = resolvedItems[0]?.skillId;
-    const existingPending = await db.get(
-      `SELECT o.* FROM orders o 
-       JOIN order_items oi ON o.id = oi.order_id 
-       WHERE o.user_id = ? AND o.status = 'pending' AND oi.skill_id = ? 
-       AND datetime(o.created_at) > datetime('now', '-60 minutes')
-       ORDER BY o.created_at DESC LIMIT 1`,
-      [userId, targetSkillId]
+    // Reuse existing pending order ONLY if created within the last 60 minutes
+    // with exact same total_amount, item count, and all item skill IDs and plan durations matching 100%
+    const recentPendingOrders = await db.all(
+      `SELECT * FROM orders 
+       WHERE user_id = ? AND status = 'pending' AND total_amount = ? 
+       AND datetime(created_at) > datetime('now', '-60 minutes')
+       ORDER BY created_at DESC`,
+      [userId, totalAmount]
     );
 
-    if (existingPending) {
+    let matchingPending = null;
+    for (const po of recentPendingOrders) {
+      const existingItems = await db.all('SELECT * FROM order_items WHERE order_id = ?', [po.id]);
+      if (existingItems.length === resolvedItems.length) {
+        const allMatch = resolvedItems.every(ri => 
+          existingItems.some(ei => ei.skill_id === ri.skillId && ei.plan_duration === ri.period)
+        );
+        if (allMatch) {
+          matchingPending = { order: po, items: existingItems };
+          break;
+        }
+      }
+    }
+
+    if (matchingPending) {
       const qrUrl = this.generateVietQRUrl({
-        amount: existingPending.total_amount,
-        orderCode: existingPending.order_code
+        amount: matchingPending.order.total_amount,
+        orderCode: matchingPending.order.order_code
       });
       return {
-        orderId: existingPending.id,
-        orderCode: existingPending.order_code,
-        totalAmount: existingPending.total_amount,
-        formattedAmount: existingPending.total_amount.toLocaleString('vi-VN') + ' đ',
+        orderId: matchingPending.order.id,
+        orderCode: matchingPending.order.order_code,
+        totalAmount: matchingPending.order.total_amount,
+        formattedAmount: matchingPending.order.total_amount.toLocaleString('vi-VN') + ' đ',
         status: 'pending',
         bankInfo: {
           bankName: env.BANK_NAME || 'OCB',
@@ -74,10 +94,10 @@ export class PaymentService {
           accountNumber: env.BANK_ACCOUNT_NUMBER || '0982441446',
           accountHolder: env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ'
         },
-        transferContent: existingPending.order_code,
+        transferContent: matchingPending.order.order_code,
         qrUrl,
         items: resolvedItems,
-        createdAt: existingPending.created_at,
+        createdAt: matchingPending.order.created_at,
         isReused: true
       };
     }
@@ -254,6 +274,13 @@ export class PaymentService {
   }
 
   /**
+   * Alias for requestPayment (Backward compatibility for submit-proof endpoints)
+   */
+  static async submitPaymentProof(params) {
+    return this.requestPayment(params);
+  }
+
+  /**
    * Admin verifies actual bank transaction, performs strict reconciliation, and activates licenses
    */
   static async adminVerifyPayment({
@@ -261,217 +288,296 @@ export class PaymentService {
     adminUserId,
     adminEmail,
     actualAmount,
-    bankTransactionRef = '',
+    bankTransactionRef,
+    transactionRef,
     transactionTime = '',
     notes = ''
   }) {
-    const order = await db.get('SELECT * FROM orders WHERE id = ? OR order_code = ?', [orderId, orderId]);
-    if (!order) {
-      throw new Error('Không tìm thấy đơn hàng cần phê duyệt.');
+    if (!orderId) {
+      throw new Error('Thiếu mã đơn hàng cần phê duyệt.');
     }
 
-    if (order.status === 'completed' || order.status === 'paid') {
-      return {
-        success: true,
-        message: 'Đơn hàng đã được đối soát và kích hoạt trước đó.',
-        orderId: order.id,
-        orderCode: order.order_code,
-        status: 'completed'
-      };
+    // 1. Strict validation: actualAmount is mandatory and must be a valid positive integer/number
+    if (actualAmount === undefined || actualAmount === null || actualAmount === '') {
+      throw new Error('Số tiền thực nhận từ ngân hàng là bắt buộc.');
+    }
+    const verifiedAmt = typeof actualAmount === 'number' ? actualAmount : parseInt(actualAmount, 10);
+    if (isNaN(verifiedAmt) || verifiedAmt <= 0) {
+      throw new Error('Số tiền thực nhận từ ngân hàng không hợp lệ.');
     }
 
-    const verifiedAmt = typeof actualAmount === 'number' ? actualAmount : parseInt(actualAmount || order.total_amount, 10);
-
-    // Strict validation: Amount must match exactly
-    if (verifiedAmt !== order.total_amount) {
-      throw new Error(`Số tiền thực nhận (${verifiedAmt.toLocaleString('vi-VN')} đ) không khớp với tổng tiền đơn hàng (${order.total_amount.toLocaleString('vi-VN')} đ).`);
+    // 2. Strict validation: bankTransactionRef is mandatory and must not be empty or fake template
+    const cleanBankRef = (bankTransactionRef || transactionRef || '').trim();
+    if (!cleanBankRef) {
+      throw new Error('Mã giao dịch ngân hàng thực tế là bắt buộc.');
+    }
+    if (cleanBankRef.length < 3) {
+      throw new Error('Mã giao dịch ngân hàng không hợp lệ (tối thiểu 3 ký tự).');
     }
 
-    // Strict validation: Bank transaction reference must be unique if provided
-    const cleanBankRef = bankTransactionRef ? bankTransactionRef.trim() : `FT_${Date.now()}`;
-    if (bankTransactionRef && bankTransactionRef.trim()) {
+    // 3. Concurrency Lock: Prevent simultaneous double-verification on same order or same bank reference
+    const orderLockKey = `order:${orderId}`;
+    const refLockKey = `ref:${cleanBankRef}`;
+    if (activeVerificationLocks.has(orderLockKey)) {
+      throw new Error('Đơn hàng này đang được xử lý đối soát đồng thời. Vui lòng không gửi yêu cầu lặp lại.');
+    }
+    if (activeVerificationLocks.has(refLockKey)) {
+      throw new Error(`Giao dịch ngân hàng '${cleanBankRef}' đang được xử lý đối soát đồng thời.`);
+    }
+    activeVerificationLocks.add(orderLockKey);
+    activeVerificationLocks.add(refLockKey);
+
+    try {
+      const order = await db.get('SELECT * FROM orders WHERE id = ? OR order_code = ?', [orderId, orderId]);
+      if (!order) {
+        throw new Error('Không tìm thấy đơn hàng cần phê duyệt.');
+      }
+
+      // Idempotency: If already paid or completed, return success without re-granting licenses
+      if (order.status === 'completed' || order.status === 'paid') {
+        return {
+          success: true,
+          alreadyVerified: true,
+          message: 'Đơn hàng đã được đối soát và kích hoạt trước đó.',
+          orderId: order.id,
+          orderCode: order.order_code,
+          status: order.status
+        };
+      }
+
+      if (order.status === 'cancelled') {
+        throw new Error('Đơn hàng này đã bị hủy, không thể xác nhận thanh toán.');
+      }
+
+      if (order.status !== 'pending') {
+        throw new Error(`Đơn hàng đang ở trạng thái '${order.status}', không hợp lệ để đối soát.`);
+      }
+
+      // 4. Validate order owner customer
+      const customer = await db.get('SELECT id, email, full_name, is_active FROM users WHERE id = ?', [order.user_id]);
+      if (!customer) {
+        throw new Error('Không tìm thấy thông tin khách hàng sở hữu đơn hàng.');
+      }
+      if (!customer.is_active) {
+        throw new Error('Tài khoản khách hàng sở hữu đơn hàng đang bị khóa hoặc vô hiệu hóa.');
+      }
+
+      // 5. Strict validation: Amount must match exactly
+      if (verifiedAmt !== order.total_amount) {
+        throw new Error(`Số tiền thực nhận (${verifiedAmt.toLocaleString('vi-VN')} đ) không khớp với tổng tiền đơn hàng (${order.total_amount.toLocaleString('vi-VN')} đ).`);
+      }
+
+      // 6. Strict validation: Bank transaction reference must be unique across all verified payments
       const duplicateRef = await db.get(
         `SELECT p.id, o.order_code FROM payments p 
          JOIN orders o ON p.order_id = o.id 
-         WHERE p.bank_transaction_ref = ? AND p.status = 'verified' AND p.order_id != ?`,
-        [cleanBankRef, order.id]
+         WHERE p.bank_transaction_ref = ? AND p.status = 'verified'`,
+        [cleanBankRef]
       );
       if (duplicateRef) {
         throw new Error(`Mã giao dịch ngân hàng '${cleanBankRef}' đã được đối soát cho đơn hàng ${duplicateRef.order_code}. Vui lòng kiểm tra lại.`);
       }
-    }
 
-    const now = new Date().toISOString();
-    const verifiedTimestamp = transactionTime || now;
-    const verifier = adminEmail || env.ADMIN_EMAIL;
+      const now = new Date().toISOString();
+      const verifiedTimestamp = transactionTime || now;
+      const verifier = adminEmail || env.ADMIN_EMAIL;
 
-    // Fetch customer details for notification and email
-    const customer = await db.get('SELECT id, email, full_name FROM users WHERE id = ?', [order.user_id]);
-    const items = await db.all('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
-    const productNames = items.map(i => i.skill_name || i.skill_id).join(', ');
+      const items = await db.all('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
+      const productNames = items.map(i => i.skill_name || i.skill_id).join(', ');
 
-    let calculatedExpiresAt = null;
+      let calculatedExpiresAt = null;
 
-    await db.transaction(async () => {
-      // 1. Update order status to 'paid' (or completed)
-      await db.run(
-        `UPDATE orders SET status = 'paid', updated_at = ? WHERE id = ?`,
-        [now, order.id]
-      );
+      await db.transaction(async () => {
+        // Double-check order status inside transaction (prevent race conditions)
+        const freshOrder = await db.get('SELECT status FROM orders WHERE id = ?', [order.id]);
+        if (freshOrder.status === 'paid' || freshOrder.status === 'completed') {
+          throw new Error('Đơn hàng đã được đối soát thanh toán trước đó.');
+        }
 
-      // 2. Update or insert payment record as 'verified'
-      const existingPayment = await db.get('SELECT * FROM payments WHERE order_id = ?', [order.id]);
-      if (existingPayment) {
-        await db.run(
-          `UPDATE payments 
-           SET status = 'verified', 
-               bank_transaction_ref = ?, 
-               verified_amount = ?, 
-               reconciliation_type = 'manual',
-               verification_notes = ?,
-               verified_at = ?, 
-               verified_by = ?, 
-               raw_response_json = ?, 
-               updated_at = ? 
-           WHERE id = ?`,
-          [
-            cleanBankRef,
-            verifiedAmt,
-            notes,
-            verifiedTimestamp,
-            verifier,
-            JSON.stringify({ verifiedBy: verifier, bankRef: cleanBankRef, at: now, notes }),
-            now,
-            existingPayment.id
-          ]
+        // Double-check duplicate bank transaction reference inside transaction
+        const freshDup = await db.get(
+          `SELECT id FROM payments WHERE bank_transaction_ref = ? AND status = 'verified'`,
+          [cleanBankRef]
         );
-      } else {
-        const paymentId = `pay_${uuidv4().substring(0, 8)}`;
+        if (freshDup) {
+          throw new Error(`Mã giao dịch ngân hàng '${cleanBankRef}' đã được đối soát cho một đơn hàng khác.`);
+        }
+
+        // 1. Update order status to 'paid'
         await db.run(
-          `INSERT INTO payments (id, order_id, user_id, transaction_ref, bank_transaction_ref, amount, verified_amount, currency, payment_gateway, bank_name, account_number, account_name, status, reconciliation_type, verification_notes, verified_at, verified_by, raw_response_json, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'VND', 'vietqr', ?, ?, ?, 'verified', 'manual', ?, ?, ?, ?, ?, ?)`,
+          `UPDATE orders SET status = 'paid', updated_at = ? WHERE id = ?`,
+          [now, order.id]
+        );
+
+        // 2. Update or insert payment record as 'verified'
+        const existingPayment = await db.get('SELECT * FROM payments WHERE order_id = ?', [order.id]);
+        if (existingPayment) {
+          await db.run(
+            `UPDATE payments 
+             SET status = 'verified', 
+                 bank_transaction_ref = ?, 
+                 verified_amount = ?, 
+                 reconciliation_type = 'manual',
+                 verification_notes = ?,
+                 verified_at = ?, 
+                 verified_by = ?, 
+                 raw_response_json = ?, 
+                 updated_at = ? 
+             WHERE id = ?`,
+            [
+              cleanBankRef,
+              verifiedAmt,
+              notes,
+              verifiedTimestamp,
+              verifier,
+              JSON.stringify({ verifiedBy: verifier, bankRef: cleanBankRef, at: now, notes }),
+              now,
+              existingPayment.id
+            ]
+          );
+        } else {
+          const paymentId = `pay_${uuidv4().substring(0, 8)}`;
+          await db.run(
+            `INSERT INTO payments (id, order_id, user_id, transaction_ref, bank_transaction_ref, amount, verified_amount, currency, payment_gateway, bank_name, account_number, account_name, status, reconciliation_type, verification_notes, verified_at, verified_by, raw_response_json, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'VND', 'vietqr', ?, ?, ?, 'verified', 'manual', ?, ?, ?, ?, ?, ?)`,
+            [
+              paymentId,
+              order.id,
+              order.user_id,
+              `REF_${order.order_code}`,
+              cleanBankRef,
+              order.total_amount,
+              verifiedAmt,
+              env.BANK_NAME || 'OCB',
+              env.BANK_ACCOUNT_NUMBER || '0982441446',
+              env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ',
+              notes,
+              verifiedTimestamp,
+              verifier,
+              JSON.stringify({ verifiedBy: verifier, bankRef: cleanBankRef, at: now, notes }),
+              now,
+              now
+            ]
+          );
+        }
+
+        // 3. Activate licenses for all items in order
+        for (const item of items) {
+          const durationDays = item.plan_duration === 'yearly' ? 365 : 30;
+          const product = resolveOrderProduct(item.skill_id, item.plan_duration);
+
+          let targetSkills = [];
+          if (product.includedSkills === 'all_33') {
+            const all = await db.all('SELECT id FROM skills');
+            targetSkills = all.map(s => s.id);
+          } else if (Array.isArray(product.includedSkills)) {
+            targetSkills = product.includedSkills;
+          } else {
+            targetSkills = [item.skill_id];
+          }
+
+          for (const skId of targetSkills) {
+            // Prevent duplicate licenses for this order
+            const existingLic = await db.get(
+              `SELECT id FROM licenses WHERE user_id = ? AND skill_id = ? AND notes = ?`,
+              [order.user_id, skId, `order:${order.id}`]
+            );
+            if (!existingLic) {
+              const lic = await LicenseEngine.grantLicense({
+                userId: order.user_id,
+                skillId: skId,
+                licenseType: item.plan_duration === 'yearly' ? 'yearly' : 'monthly',
+                durationDays,
+                grantedBy: verifier,
+                notes: `order:${order.id}`
+              });
+              if (lic && lic.expiresAt) {
+                calculatedExpiresAt = lic.expiresAt;
+              }
+            }
+          }
+        }
+
+        // 4. Record Audit Log
+        const auditId = `aud_${uuidv4().substring(0, 8)}`;
+        await db.run(
+          `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, details_json, created_at)
+           VALUES (?, ?, 'verify_payment', 'order', ?, ?, ?)`,
           [
-            paymentId,
+            auditId,
+            adminUserId || 'usr_master_admin',
             order.id,
-            order.user_id,
-            `REF_${order.order_code}`,
-            cleanBankRef,
-            order.total_amount,
-            verifiedAmt,
-            env.BANK_NAME || 'OCB',
-            env.BANK_ACCOUNT_NUMBER || '0982441446',
-            env.BANK_ACCOUNT_HOLDER || 'QUANG NHỰT TRÍ',
-            notes,
-            verifiedTimestamp,
-            verifier,
-            JSON.stringify({ verifiedBy: verifier, bankRef: cleanBankRef, at: now, notes }),
-            now,
+            JSON.stringify({
+              orderCode: order.order_code,
+              amount: verifiedAmt,
+              bankTransactionRef: cleanBankRef,
+              verifiedBy: verifier,
+              timestamp: now
+            }),
             now
           ]
         );
+
+        // 5. Mark admin notifications for this order as read
+        await db.run(
+          `UPDATE notifications SET is_read = 1, read_at = ? WHERE resource_id = ? OR resource_id = ?`,
+          [now, order.id, order.order_code]
+        );
+
+        // 6. Create Notification for Customer
+        const custNotifId = `notif_${uuidv4().substring(0, 8)}`;
+        await db.run(
+          `INSERT INTO notifications (id, user_id, type, title, message, resource_type, resource_id, is_read, created_at)
+           VALUES (?, ?, 'payment_verified', 'Thanh toán đã được xác nhận', ?, 'order', ?, 0, ?)`,
+          [
+            custNotifId,
+            order.user_id,
+            `Đơn hàng ${order.order_code} của bạn đã được Admin xác nhận thanh toán (${verifiedAmt.toLocaleString('vi-VN')} đ). Bản quyền Skill đã được kích hoạt thành công!`,
+            order.id,
+            now
+          ]
+        );
+
+        // 7. Auto-cancel ONLY duplicate pending orders that contain the same skill(s) as this verified order
+        for (const item of items) {
+          await db.run(
+            `UPDATE orders SET status = 'cancelled', updated_at = ? 
+             WHERE user_id = ? AND id != ? AND status = 'pending'
+             AND id IN (SELECT order_id FROM order_items WHERE skill_id = ?)`,
+            [now, order.user_id, order.id, item.skill_id]
+          );
+        }
+      });
+
+      console.log(`✅ [ADMIN] Order ${order.order_code} verified by ${verifier}. License ACTIVATED for user ${order.user_id}.`);
+
+      // 8. Send Confirmation Email (Asynchronous, post-commit)
+      if (customer?.email) {
+        EmailService.sendPaymentVerifiedEmail({
+          userId: customer.id,
+          userEmail: customer.email,
+          userName: customer.full_name,
+          orderCode: order.order_code,
+          orderId: order.id,
+          productName: productNames,
+          amount: verifiedAmt,
+          expiresAt: calculatedExpiresAt
+        }).catch(e => console.error('[EMAIL DISPATCH ERROR]', e.message));
       }
 
-      // 3. Activate licenses for all items in order
-      for (const item of items) {
-        const durationDays = item.plan_duration === 'yearly' ? 365 : 30;
-        const product = resolveOrderProduct(item.skill_id, item.plan_duration);
-
-        let targetSkills = [];
-        if (product.includedSkills === 'all_33') {
-          const all = await db.all('SELECT id FROM skills');
-          targetSkills = all.map(s => s.id);
-        } else if (Array.isArray(product.includedSkills)) {
-          targetSkills = product.includedSkills;
-        } else {
-          targetSkills = [item.skill_id];
-        }
-
-        for (const skId of targetSkills) {
-          const lic = await LicenseEngine.grantLicense({
-            userId: order.user_id,
-            skillId: skId,
-            licenseType: item.plan_duration === 'yearly' ? 'yearly' : 'monthly',
-            durationDays,
-            grantedBy: verifier
-          });
-          if (lic && lic.expiresAt) {
-            calculatedExpiresAt = lic.expiresAt;
-          }
-        }
-      }
-
-      // 4. Record Audit Log
-      const auditId = `aud_${uuidv4().substring(0, 8)}`;
-      await db.run(
-        `INSERT INTO audit_logs (id, user_id, action, resource_type, resource_id, details_json, created_at)
-         VALUES (?, ?, 'verify_payment', 'order', ?, ?, ?)`,
-        [
-          auditId,
-          adminUserId || 'usr_master_admin',
-          order.id,
-          JSON.stringify({
-            orderCode: order.order_code,
-            amount: verifiedAmt,
-            bankTransactionRef: cleanBankRef,
-            verifiedBy: verifier,
-            timestamp: now
-          }),
-          now
-        ]
-      );
-
-      // 5. Mark admin notifications for this order as read
-      await db.run(
-        `UPDATE notifications SET is_read = 1, read_at = ? WHERE resource_id = ? OR resource_id = ?`,
-        [now, order.id, order.order_code]
-      );
-
-      // 6. Create Notification for Customer
-      const custNotifId = `notif_${uuidv4().substring(0, 8)}`;
-      await db.run(
-        `INSERT INTO notifications (id, user_id, type, title, message, resource_type, resource_id, is_read, created_at)
-         VALUES (?, ?, 'payment_verified', 'Thanh toán đã được xác nhận', ?, 'order', ?, 0, ?)`,
-        [
-          custNotifId,
-          order.user_id,
-          `Đơn hàng ${order.order_code} của bạn đã được Admin xác nhận thanh toán (${verifiedAmt.toLocaleString('vi-VN')} đ). Bản quyền Skill đã được kích hoạt thành công!`,
-          order.id,
-          now
-        ]
-      );
-
-      // 7. Auto-cancel duplicate pending orders for this user
-      await db.run(
-        `UPDATE orders SET status = 'cancelled', updated_at = ? WHERE user_id = ? AND id != ? AND status = 'pending'`,
-        [now, order.user_id, order.id]
-      );
-    });
-
-    console.log(`✅ [ADMIN] Order ${order.order_code} verified by ${verifier}. License ACTIVATED for user ${order.user_id}.`);
-
-    // 8. Send Confirmation Email (Asynchronous, post-commit)
-    if (customer?.email) {
-      EmailService.sendPaymentVerifiedEmail({
-        userId: customer.id,
-        userEmail: customer.email,
-        userName: customer.full_name,
-        orderCode: order.order_code,
+      return {
+        success: true,
+        message: `Đã đối soát thành công đơn hàng ${order.order_code} và kích hoạt bản quyền Skill!`,
         orderId: order.id,
-        productName: productNames,
-        amount: verifiedAmt,
-        expiresAt: calculatedExpiresAt
-      }).catch(e => console.error('[EMAIL DISPATCH ERROR]', e.message));
+        orderCode: order.order_code,
+        status: 'paid',
+        bankTransactionRef: cleanBankRef,
+        verifiedAmount: verifiedAmt
+      };
+    } finally {
+      activeVerificationLocks.delete(orderLockKey);
+      activeVerificationLocks.delete(refLockKey);
     }
-
-    return {
-      success: true,
-      message: `Đã đối soát thành công đơn hàng ${order.order_code} và kích hoạt bản quyền Skill!`,
-      orderId: order.id,
-      orderCode: order.order_code,
-      status: 'paid',
-      bankTransactionRef: cleanBankRef,
-      verifiedAmount: verifiedAmt
-    };
   }
 
   /**

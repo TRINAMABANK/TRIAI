@@ -1,27 +1,38 @@
 import express from 'express';
 import PaymentService from '../services/paymentService.js';
-import { requireAdmin, optionalAuth } from '../middleware/auth.js';
+import { requireAdmin, requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
 /**
  * POST /api/payments/confirm
  * STRICT ADMIN-ONLY: Customers are strictly forbidden from confirming payments.
+ * Requires valid actualAmount and actual bank transaction ref.
  */
 router.post('/confirm', requireAdmin, async (req, res, next) => {
   try {
-    const { orderId, orderCode, transactionRef } = req.body;
+    const { orderId, orderCode, transactionRef, bankTransactionRef, actualAmount, notes, transactionTime } = req.body;
     const targetId = orderId || orderCode;
+    const targetRef = (bankTransactionRef || transactionRef || '').trim();
 
     if (!targetId) {
       return res.status(400).json({ success: false, error: 'Thiếu mã đơn hàng cần xác nhận.' });
+    }
+    if (!targetRef) {
+      return res.status(400).json({ success: false, error: 'Mã giao dịch ngân hàng thực tế là bắt buộc.' });
+    }
+    if (actualAmount === undefined || actualAmount === null || actualAmount === '') {
+      return res.status(400).json({ success: false, error: 'Số tiền thực nhận từ ngân hàng là bắt buộc.' });
     }
 
     const result = await PaymentService.adminVerifyPayment({
       orderId: targetId,
       adminUserId: req.user.id,
       adminEmail: req.user.email,
-      transactionRef
+      actualAmount,
+      bankTransactionRef: targetRef,
+      transactionTime,
+      notes
     });
 
     res.json(result);
@@ -34,7 +45,7 @@ router.post('/confirm', requireAdmin, async (req, res, next) => {
  * POST /api/payments/submit-proof
  * Customer notifies that they have transferred money (STATUS = PENDING, NO LICENSE ACTIVATED)
  */
-router.post('/submit-proof', optionalAuth, async (req, res, next) => {
+router.post('/submit-proof', requireAuth, async (req, res, next) => {
   try {
     const { orderId, orderCode, transactionRef, note } = req.body;
     const targetId = orderId || orderCode;
@@ -48,7 +59,7 @@ router.post('/submit-proof', optionalAuth, async (req, res, next) => {
       orderCode,
       transactionRef,
       note,
-      userId: req.user ? req.user.id : null
+      userId: req.user.id
     });
 
     res.json(result);

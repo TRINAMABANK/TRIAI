@@ -109,7 +109,7 @@ async function runHardeningTests() {
     // TEST 4: Real Bank Verification & License Activation for Order 1
     // =========================================================================
     console.log('[TEST 4] Real Bank Verification for Order 1...');
-    const bankRef1 = 'FT26090123456';
+    const bankRef1 = `FT2609_${Date.now()}`;
     const verifyRes = await PaymentService.adminVerifyPayment({
       orderId: ord1.orderId,
       actualAmount: ord1.totalAmount,

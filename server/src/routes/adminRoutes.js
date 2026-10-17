@@ -141,12 +141,21 @@ router.get('/payments', async (req, res, next) => {
 });
 
 /**
- * POST /api/admin/payments/:id/verify
+ * POST /api/admin/payments/:id/verify & POST /api/admin/orders/:id/verify-payment
  * Strict reconciliation with actual amount and unique bank transaction ref
  */
-router.post('/payments/:id/verify', async (req, res, next) => {
+router.post(['/payments/:id/verify', '/orders/:id/verify-payment'], async (req, res, next) => {
   try {
-    const { actualAmount, bankTransactionRef, transactionTime, notes } = req.body;
+    const { actualAmount, bankTransactionRef, transactionRef, transactionTime, notes } = req.body;
+    const targetRef = (bankTransactionRef || transactionRef || '').trim();
+
+    if (!targetRef) {
+      return res.status(400).json({ success: false, error: 'Mã giao dịch ngân hàng thực tế là bắt buộc.' });
+    }
+    if (actualAmount === undefined || actualAmount === null || actualAmount === '') {
+      return res.status(400).json({ success: false, error: 'Số tiền thực nhận từ ngân hàng là bắt buộc.' });
+    }
+
     const payment = await db.get('SELECT order_id FROM payments WHERE id = ?', [req.params.id]);
     const orderId = payment ? payment.order_id : req.params.id;
 
@@ -155,7 +164,7 @@ router.post('/payments/:id/verify', async (req, res, next) => {
       adminUserId: req.user.id,
       adminEmail: req.user.email,
       actualAmount,
-      bankTransactionRef,
+      bankTransactionRef: targetRef,
       transactionTime,
       notes
     });
@@ -166,9 +175,9 @@ router.post('/payments/:id/verify', async (req, res, next) => {
 });
 
 /**
- * POST /api/admin/payments/:id/reject
+ * POST /api/admin/payments/:id/reject & POST /api/admin/orders/:id/reject-payment
  */
-router.post('/payments/:id/reject', async (req, res, next) => {
+router.post(['/payments/:id/reject', '/orders/:id/reject-payment'], async (req, res, next) => {
   try {
     const { reason } = req.body;
     const payment = await db.get('SELECT order_id FROM payments WHERE id = ?', [req.params.id]);

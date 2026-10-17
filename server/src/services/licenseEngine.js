@@ -140,7 +140,7 @@ export class LicenseEngine {
   /**
    * Grant license to a user (after payment or admin manual grant)
    */
-  static async grantLicense({ userId, skillId, licenseType = 'monthly', durationDays = 30, grantedBy = 'system' }) {
+  static async grantLicense({ userId, skillId, licenseType = 'monthly', durationDays = 30, grantedBy = 'system', notes = null }) {
     const now = new Date();
     let expiresAt = null;
 
@@ -164,12 +164,12 @@ export class LicenseEngine {
     }
 
     await db.run(
-      `INSERT INTO licenses (id, user_id, skill_id, license_key, license_type, status, expires_at, granted_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
-      [id, userId, targetSkillId, licenseKey, licenseType, expiresAt, grantedBy, now.toISOString(), now.toISOString()]
+      `INSERT INTO licenses (id, user_id, skill_id, license_key, license_type, status, expires_at, granted_by, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
+      [id, userId, targetSkillId, licenseKey, licenseType, expiresAt, grantedBy, notes, now.toISOString(), now.toISOString()]
     );
 
-    return { id, licenseKey, licenseType, expiresAt, status: 'active' };
+    return { id, licenseKey, licenseType, expiresAt, status: 'active', notes };
   }
 
   /**

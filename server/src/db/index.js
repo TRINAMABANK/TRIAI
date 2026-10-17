@@ -68,7 +68,7 @@ export const db = {
   },
 
   async transaction(fn) {
-    await this.run('BEGIN TRANSACTION');
+    await this.run('BEGIN IMMEDIATE TRANSACTION');
     try {
       const result = await fn(this);
       await this.run('COMMIT');
