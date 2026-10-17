@@ -24,6 +24,8 @@ dist-ssr
 # Local SQLite Database and Uploads
 .data/
 uploads/
+.backups/
+.tmp_test_uploads/
 deploy.js
 deploy.cjs
 scripts/
