@@ -41,6 +41,12 @@ export async function runMigrations() {
           { name: 'resource_type', type: "TEXT DEFAULT 'order'" },
           { name: 'resource_id', type: 'TEXT' }
         ]
+      },
+      {
+        table: 'files',
+        columns: [
+          { name: 'is_public', type: 'INTEGER DEFAULT 0' }
+        ]
       }
     ];
 

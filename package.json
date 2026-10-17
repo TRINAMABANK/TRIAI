@@ -10,7 +10,12 @@
     "server": "node server/src/server.js",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "node server/src/server.js"
+    "start": "node server/src/server.js",
+    "test": "node server/tests/run_all_tests.js",
+    "test:e2e": "node server/tests/test_e2e_full_business_flow.js",
+    "test:payments": "node server/tests/test_payment_verification_edge_cases.js",
+    "test:security": "node server/tests/test_security_hardening.js",
+    "test:uploads": "node server/tests/test_upload_and_zip_security.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

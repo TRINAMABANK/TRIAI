@@ -1,0 +1,62 @@
+name: TRÍ AI CI - Automated Quality & Security Gate
+
+on:
+  push:
+    branches: [ main, master, audit-security-and-hardening ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build, Lint & Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Frontend (Vite)
+        run: npm run build
+
+      - name: Run Full Security Hardening Tests
+        run: npm run test:security
+        env:
+          NODE_ENV: test
+          PORT: 5001
+          JWT_SECRET: test_ci_jwt_secret_not_used_in_production_min_32_chars
+          ADMIN_INITIAL_PASSWORD: TestPassword123!
+          MASTER_ADMIN_EMAIL: triqnnamabank@gmail.com
+          DATABASE_PATH: ./.data/triai_ci.db
+
+      - name: Run Payment & Verification Tests
+        run: npm run test:payments
+        env:
+          NODE_ENV: test
+          PORT: 5001
+          JWT_SECRET: test_ci_jwt_secret_not_used_in_production_min_32_chars
+          DATABASE_PATH: ./.data/triai_ci.db
+
+      - name: Run Upload & ZIP Security Tests
+        run: npm run test:uploads
+        env:
+          NODE_ENV: test
+          PORT: 5001
+          JWT_SECRET: test_ci_jwt_secret_not_used_in_production_min_32_chars
+          DATABASE_PATH: ./.data/triai_ci.db
+
+      - name: Run End-to-End Business Flow Tests
+        run: npm run test:e2e
+        env:
+          NODE_ENV: test
+          PORT: 5001
+          JWT_SECRET: test_ci_jwt_secret_not_used_in_production_min_32_chars
+          DATABASE_PATH: ./.data/triai_ci.db

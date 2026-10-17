@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import db from './db/index.js';
+import { verifyToken } from './utils/security.js';
 import { env } from './config/env.js';
 import { runMigrations } from './db/migrations.js';
 import { runSeeds } from './db/seeds.js';
@@ -59,15 +61,43 @@ app.use(cors({
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// 3. Static uploads serving (Protected with security headers)
+// 3. Static uploads serving (Protected with security headers and Anti-IDOR for private files)
 const uploadsPath = path.resolve(process.cwd(), env.UPLOAD_DIR || './uploads');
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
 }
-app.use('/uploads', (req, res, next) => {
+app.use('/uploads', async (req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Content-Security-Policy', "default-src 'none'; media-src 'self'; img-src 'self' data:;");
-  next();
+
+  const requestedFilename = path.basename(req.path);
+  if (!requestedFilename) return next();
+
+  try {
+    const fileRecord = await db.get(
+      'SELECT user_id, is_public FROM files WHERE storage_path LIKE ? OR storage_path LIKE ?',
+      [`%${requestedFilename}`, requestedFilename]
+    );
+
+    // If file is tracked in database and marked private (is_public = 0)
+    if (fileRecord && fileRecord.is_public === 0) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, error: 'Tệp tin riêng tư yêu cầu đăng nhập để truy cập.' });
+      }
+      const token = authHeader.split(' ')[1];
+      const decoded = verifyToken(token);
+      if (!decoded || !decoded.userId) {
+        return res.status(401).json({ success: false, error: 'Phiên đăng nhập không hợp lệ.' });
+      }
+      if (decoded.userId !== fileRecord.user_id && decoded.role !== 'admin' && decoded.role !== 'owner') {
+        return res.status(403).json({ success: false, error: 'Bạn không có quyền truy cập tệp tin riêng tư này (Forbidden).' });
+      }
+    }
+    next();
+  } catch (err) {
+    next();
+  }
 }, express.static(uploadsPath, { dotfiles: 'ignore', index: false }));
 
 // 4. API Routes Mounting

@@ -47,7 +47,20 @@ router.post('/', requireAdmin, async (req, res, next) => {
 });
 
 /**
+ * PUT /api/skills/:id (Admin only)
+ */
+router.put('/:id', requireAdmin, async (req, res, next) => {
+  try {
+    const saved = await SkillEngine.upsertSkill({ ...req.body, id: req.params.id });
+    res.json({ success: true, data: saved, message: 'Đã cập nhật cấu hình Skill thành công.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
  * POST /api/skills/upload-zip (Admin only)
+ * Safely extracts package with guaranteed temporary file cleanup
  */
 router.post('/upload-zip', requireAdmin, uploadZip.single('skillZip'), async (req, res, next) => {
   try {
@@ -58,9 +71,6 @@ router.post('/upload-zip', requireAdmin, uploadZip.single('skillZip'), async (re
     const fileBuffer = fs.readFileSync(req.file.path);
     const result = await SkillEngine.importFromZip(fileBuffer, req.file.originalname);
 
-    // Clean up temporary zip file
-    fs.unlinkSync(req.file.path);
-
     res.json({
       success: true,
       data: result,
@@ -68,6 +78,15 @@ router.post('/upload-zip', requireAdmin, uploadZip.single('skillZip'), async (re
     });
   } catch (err) {
     next(err);
+  } finally {
+    // Guaranteed cleanup even if extraction fails or throws an error
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (cleanupErr) {
+        console.error('[CLEANUP WARNING] Failed to unlink temp zip file:', cleanupErr.message);
+      }
+    }
   }
 });
 

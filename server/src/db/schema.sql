@@ -211,6 +211,7 @@ CREATE TABLE IF NOT EXISTS files (
     mime_type TEXT NOT NULL,
     size_bytes INTEGER NOT NULL,
     purpose TEXT DEFAULT 'attachment', -- 'attachment' | 'knowledge' | 'generated'
+    is_public INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
 );
