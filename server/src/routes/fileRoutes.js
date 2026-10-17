@@ -8,13 +8,13 @@ const router = express.Router();
 /**
  * POST /api/files/upload
  */
-router.post('/upload', optionalAuth, upload.single('file'), async (req, res, next) => {
+router.post('/upload', requireAuth, upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'Không tìm thấy tệp tin được tải lên.' });
     }
 
-    const userId = req.user ? req.user.id : null;
+    const userId = req.user.id;
     const conversationId = req.body.conversationId || null;
     const purpose = req.body.purpose || 'attachment';
 

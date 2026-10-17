@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import db from '../db/index.js';
 import { hashPassword, comparePassword, generateToken, sanitizeUser } from '../utils/security.js';
 import { requireAuth } from '../middleware/auth.js';
+import { authRateLimiter } from '../middleware/rateLimiter.js';
 import { env } from '../config/env.js';
 import LicenseEngine from '../services/licenseEngine.js';
 import QuotaService from '../services/quotaService.js';
@@ -12,7 +13,7 @@ const router = express.Router();
 /**
  * POST /api/auth/register
  */
-router.post('/register', async (req, res, next) => {
+router.post('/register', authRateLimiter, async (req, res, next) => {
   try {
     const { email, password, fullName } = req.body;
 
@@ -20,7 +21,20 @@ router.post('/register', async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Email và mật khẩu không được để trống.' });
     }
 
+    if (typeof password !== 'string' || password.trim().length < 8) {
+      return res.status(400).json({ success: false, error: 'Mật khẩu phải có độ dài tối thiểu 8 ký tự.' });
+    }
+
     const cleanEmail = email.trim().toLowerCase();
+
+    // Block registering with master admin email through public registration form
+    if (cleanEmail === env.ADMIN_EMAIL.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        error: 'Email quản trị hệ thống không được đăng ký qua form công khai. Vui lòng đăng nhập trực tiếp.'
+      });
+    }
+
     const existing = await db.get('SELECT id FROM users WHERE email = ?', [cleanEmail]);
 
     if (existing) {
@@ -30,8 +44,8 @@ router.post('/register', async (req, res, next) => {
     const userId = `usr_${uuidv4().substring(0, 8)}`;
     const passwordHash = await hashPassword(password);
     const now = new Date().toISOString();
-    const isMaster = cleanEmail === env.ADMIN_EMAIL.toLowerCase();
-    const role = isMaster ? 'owner' : 'customer';
+    // Public registration ALWAYS grants customer role only
+    const role = 'customer';
 
     await db.run(
       `INSERT INTO users (id, email, password_hash, full_name, avatar_url, role, plan, is_active, created_at, updated_at)
@@ -43,7 +57,7 @@ router.post('/register', async (req, res, next) => {
         fullName || cleanEmail.split('@')[0],
         '/assets/user_avatar.png',
         role,
-        isMaster ? 'Gói Quản Trị Hệ Thống (Master)' : 'Gói Khách Hàng',
+        'Gói Khách Hàng',
         now,
         now
       ]
@@ -67,7 +81,7 @@ router.post('/register', async (req, res, next) => {
 /**
  * POST /api/auth/login
  */
-router.post('/login', async (req, res, next) => {
+router.post('/login', authRateLimiter, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -147,6 +161,8 @@ async function verifyGoogleIdToken(idToken) {
       console.warn(`[GOOGLE AUTH WARNING] Token aud (${data.aud}) mismatch with server GOOGLE_CLIENT_ID (${env.GOOGLE_CLIENT_ID})`);
       throw new Error('Google Client ID của Token không khớp với cấu hình hệ thống TRÍ AI.');
     }
+  } else if (!env.IS_DEV) {
+    throw new Error('Hệ thống máy chủ chưa cấu hình GOOGLE_CLIENT_ID phía backend.');
   }
 
   // 4. Kiểm tra email đã được Google xác thực
@@ -158,7 +174,8 @@ async function verifyGoogleIdToken(idToken) {
     googleId: data.sub,
     email: (data.email || '').trim().toLowerCase(),
     fullName: data.name || data.given_name || (data.email || '').split('@')[0],
-    avatarUrl: data.picture || '/assets/user_avatar.png'
+    avatarUrl: data.picture || '/assets/user_avatar.png',
+    isRealToken: true
   };
 }
 
@@ -166,7 +183,7 @@ async function verifyGoogleIdToken(idToken) {
  * POST /api/auth/google
  * Xác thực Google Sign-In chuẩn OAuth 2.0 / Google Identity Services
  */
-router.post('/google', async (req, res, next) => {
+router.post('/google', authRateLimiter, async (req, res, next) => {
   try {
     const { credential, idToken } = req.body;
     const tokenToVerify = credential || idToken;
@@ -177,13 +194,22 @@ router.post('/google', async (req, res, next) => {
       // 1. Xác minh chữ ký số và claims trực tiếp từ Google OAuth2 TokenInfo API
       verifiedProfile = await verifyGoogleIdToken(tokenToVerify);
     } else if (env.IS_DEV && !env.GOOGLE_CLIENT_ID && req.body.email) {
-      // Chế độ DEV cục bộ khi chưa gắn biến môi trường
+      // Chế độ DEV cục bộ khi chưa gắn biến môi trường - CẤM mock admin
+      const reqEmail = (req.body.email || '').trim().toLowerCase();
+      if (reqEmail === env.ADMIN_EMAIL.toLowerCase()) {
+        return res.status(403).json({
+          success: false,
+          error: 'Không thể đăng nhập tài khoản Master Admin qua chế độ Dev Mock khi chưa có chữ ký bảo mật từ Google.'
+        });
+      }
+
       console.warn('[AUTH DEV NOTICE] Dev fallback mode: No Google Client ID configured, accepting dev payload.');
       verifiedProfile = {
         googleId: `mock_g_${uuidv4().substring(0, 8)}`,
-        email: req.body.email.trim().toLowerCase(),
-        fullName: req.body.fullName || req.body.email.split('@')[0],
-        avatarUrl: req.body.avatarUrl || '/assets/user_avatar.png'
+        email: reqEmail,
+        fullName: req.body.fullName || reqEmail.split('@')[0],
+        avatarUrl: req.body.avatarUrl || '/assets/user_avatar.png',
+        isRealToken: false
       };
     } else {
       return res.status(400).json({
@@ -205,8 +231,8 @@ router.post('/google', async (req, res, next) => {
     );
 
     const now = new Date().toISOString();
-    // Quyền Admin/Owner CHỈ do server quyết định dựa trên MASTER_ADMIN_EMAIL trong ENV, tuyệt đối không tin client
-    const isMaster = cleanEmail === env.ADMIN_EMAIL.toLowerCase();
+    // Quyền Admin/Owner CHỈ do server quyết định khi có token thật từ Google và khớp ADMIN_EMAIL
+    const isMaster = Boolean(verifiedProfile.isRealToken && cleanEmail === env.ADMIN_EMAIL.toLowerCase());
 
     if (!user) {
       // 3. Tạo tài khoản TRÍ AI mới từ profile Google hợp lệ

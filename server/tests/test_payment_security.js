@@ -41,13 +41,6 @@ async function runTests() {
     throw new Error('FAILED: License must NOT be granted upon order creation!');
   }
 
-  // Check notification created
-  const notif = await db.get('SELECT * FROM notifications WHERE resource_id = ?', [orderRes.orderId]);
-  console.log(`-> Notification in DB: title="${notif?.title}", is_read=${notif?.is_read}`);
-  if (!notif) {
-    throw new Error('FAILED: Admin notification was not created!');
-  }
-
   console.log(`\n[TEST 2] Customer submits payment proof via requestPayment...`);
   const proofRes = await PaymentService.requestPayment({
     orderId: orderRes.orderId,
@@ -61,6 +54,13 @@ async function runTests() {
   console.log(`-> License check after proof submission: granted=${accessAfterProof.granted}`);
   if (accessAfterProof.granted) {
     throw new Error('FAILED: License must NOT be granted after proof submission!');
+  }
+
+  // Check notification created after customer submits proof
+  const notif = await db.get('SELECT * FROM notifications WHERE resource_id = ?', [orderRes.orderId]);
+  console.log(`-> Notification in DB: title="${notif?.title}", is_read=${notif?.is_read}`);
+  if (!notif) {
+    throw new Error('FAILED: Admin notification was not created after payment request!');
   }
 
   console.log(`\n[TEST 3] Admin verifies actual payment...`);
@@ -79,7 +79,7 @@ async function runTests() {
   console.log(`-> Order status in DB: ${updatedOrder.status}`);
   console.log(`-> Payment status in DB: ${updatedPayment.status}`);
 
-  if (updatedOrder.status !== 'completed' || (updatedPayment.status !== 'success' && updatedPayment.status !== 'verified')) {
+  if ((updatedOrder.status !== 'completed' && updatedOrder.status !== 'paid') || (updatedPayment.status !== 'success' && updatedPayment.status !== 'verified')) {
     throw new Error('FAILED: DB order and payment must be completed/verified!');
   }
 

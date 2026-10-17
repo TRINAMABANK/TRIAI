@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/index.js';
+import { env } from '../config/env.js';
 
 export class QuotaService {
   /**
@@ -37,7 +38,7 @@ export class QuotaService {
     }
 
     // Owner / Admin = Unlimited
-    if (user.role === 'owner' || user.role === 'admin' || user.email === 'triqnnamabank@gmail.com') {
+    if (user.role === 'owner' || user.role === 'admin' || user.email?.toLowerCase() === env.ADMIN_EMAIL.toLowerCase()) {
       return {
         planName: 'Quản trị viên (Không giới hạn)',
         maxAiRequests: 1000000,

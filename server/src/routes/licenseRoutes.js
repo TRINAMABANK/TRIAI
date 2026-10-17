@@ -38,7 +38,13 @@ router.post('/trial/:skillId', requireAuth, async (req, res, next) => {
 router.get('/my', requireAuth, async (req, res, next) => {
   try {
     const map = await LicenseEngine.getUserAccessMap(req.user.id);
-    res.json({ success: true, data: map });
+    res.json({
+      success: true,
+      data: map,
+      licenses: map.licenses || {},
+      trials: map.trials || {},
+      isMaster: map.isMaster || false
+    });
   } catch (err) {
     next(err);
   }

@@ -41,12 +41,21 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-/**
- * POST /api/notifications/:id/read or PUT /api/notifications/:id/read
- */
 const markReadHandler = async (req, res, next) => {
   try {
     const now = new Date().toISOString();
+    const isAdmin = req.user.role === 'owner' || req.user.role === 'admin';
+    const notif = await db.get('SELECT * FROM notifications WHERE id = ?', [req.params.id]);
+
+    if (!notif) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy thông báo.' });
+    }
+
+    // Must be recipient of notification or an admin
+    if (notif.user_id !== req.user.id && notif.user_id !== 'all' && !(isAdmin && notif.user_id === 'usr_master_admin')) {
+      return res.status(403).json({ success: false, error: 'Bạn không có quyền thao tác trên thông báo này.' });
+    }
+
     await db.run(
       `UPDATE notifications SET is_read = 1, read_at = ? WHERE id = ?`,
       [now, req.params.id]

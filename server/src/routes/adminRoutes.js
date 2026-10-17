@@ -1,6 +1,7 @@
 import express from 'express';
 import db from '../db/index.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { env } from '../config/env.js';
 import LicenseEngine from '../services/licenseEngine.js';
 import PaymentService from '../services/paymentService.js';
 import defaultBankProvider from '../services/bankPaymentProvider.js';
@@ -63,6 +64,27 @@ router.put('/users/:id', async (req, res, next) => {
   try {
     const { role, plan, is_active } = req.body;
     const now = new Date().toISOString();
+
+    const targetUser = await db.get('SELECT * FROM users WHERE id = ?', [req.params.id]);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy người dùng.' });
+    }
+
+    const isTargetMaster = targetUser.id === 'usr_master_admin' || targetUser.email.toLowerCase() === env.ADMIN_EMAIL.toLowerCase();
+
+    if (isTargetMaster) {
+      if (is_active === false || is_active === 0) {
+        return res.status(403).json({ success: false, error: 'Không thể vô hiệu hóa hoặc khóa tài khoản Master Admin.' });
+      }
+      if (role && role !== 'owner') {
+        return res.status(403).json({ success: false, error: 'Không thể thay đổi hoặc hạ vai trò của Master Admin tối cao.' });
+      }
+    }
+
+    // Only owners can promote or grant owner/admin roles
+    if (role && (role === 'owner' || role === 'admin') && req.user.role !== 'owner') {
+      return res.status(403).json({ success: false, error: 'Chỉ Master Admin (Owner) mới có quyền cấp quyền quản trị cho người dùng khác.' });
+    }
 
     await db.run(
       `UPDATE users SET role = COALESCE(?, role), plan = COALESCE(?, plan), is_active = COALESCE(?, is_active), updated_at = ?

@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../db/index.js';
 import AIRuntime from '../services/aiRuntime.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
+import { chatRateLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -67,7 +68,7 @@ router.get('/conversations/:id', requireAuth, async (req, res, next) => {
 /**
  * POST /api/chat/send
  */
-router.post('/send', optionalAuth, async (req, res, next) => {
+router.post('/send', chatRateLimiter, optionalAuth, async (req, res, next) => {
   try {
     const { conversationId, agentId, skillId, message, attachments } = req.body;
 

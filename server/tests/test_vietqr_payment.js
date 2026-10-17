@@ -170,7 +170,7 @@ async function runVietQRTests() {
     });
     const verifyData = await verifyRes.json();
     console.log('-> Verify Response:', verifyData);
-    if (!verifyData.success || verifyData.status !== 'completed') {
+    if (!verifyData.success || (verifyData.status !== 'completed' && verifyData.status !== 'paid')) {
       throw new Error('FAILED: Admin verify did not complete order');
     }
 

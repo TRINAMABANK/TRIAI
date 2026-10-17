@@ -58,5 +58,38 @@ export const env = {
 
 export const config = env;
 
+export function validateEnvironment(targetEnv = env) {
+  if (targetEnv.NODE_ENV === 'production') {
+    const insecureSecrets = [
+      'triai_master_jwt_secret_dev_key_2026_qnt',
+      'your_jwt_secret_key',
+      'secret',
+      'jwt_secret'
+    ];
+    if (!targetEnv.JWT_SECRET || insecureSecrets.includes(targetEnv.JWT_SECRET) || targetEnv.JWT_SECRET.length < 32) {
+      throw new Error('[FATAL SECURITY] Trong môi trường production, JWT_SECRET phải được cấu hình an toàn (tối thiểu 32 ký tự) và không được dùng khóa mặc định.');
+    }
+
+    const insecurePasswords = [
+      'Giamua@2023admin',
+      'admin123',
+      'password',
+      '12345678'
+    ];
+    if (!targetEnv.ADMIN_INITIAL_PASSWORD || insecurePasswords.includes(targetEnv.ADMIN_INITIAL_PASSWORD) || targetEnv.ADMIN_INITIAL_PASSWORD.length < 10) {
+      throw new Error('[FATAL SECURITY] Trong môi trường production, ADMIN_INITIAL_PASSWORD phải được cấu hình mật khẩu mạnh (tối thiểu 10 ký tự) và không dùng mật khẩu mặc định.');
+    }
+
+    if (!targetEnv.ADMIN_EMAIL || targetEnv.ADMIN_EMAIL === 'admin@example.com') {
+      throw new Error('[FATAL SECURITY] Trong môi trường production, MASTER_ADMIN_EMAIL / ADMIN_EMAIL phải được chỉ định rõ.');
+    }
+  }
+  return true;
+}
+
+if (env.NODE_ENV === 'production') {
+  validateEnvironment(env);
+}
+
 export default env;
 

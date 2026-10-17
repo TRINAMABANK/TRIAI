@@ -22,24 +22,53 @@ import notificationRoutes from './routes/notificationRoutes.js';
 
 const app = express();
 
-// 1. CORS Configuration
+// 1. CORS Configuration (Strict origin whitelist, disallow arbitrary origin reflection)
+const allowedOrigins = [
+  'https://banhangdinhcao.com',
+  'https://www.banhangdinhcao.com',
+  env.APP_URL
+];
+
+if (env.CORS_ORIGIN && env.CORS_ORIGIN !== '*') {
+  env.CORS_ORIGIN.split(',').forEach(o => {
+    const trimmed = o.trim();
+    if (trimmed && !allowedOrigins.includes(trimmed)) allowedOrigins.push(trimmed);
+  });
+}
+
+if (env.IS_DEV) {
+  ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://localhost:80', 'http://localhost:5000'].forEach(devOrigin => {
+    if (!allowedOrigins.includes(devOrigin)) allowedOrigins.push(devOrigin);
+  });
+}
+
 app.use(cors({
-  origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(','),
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || (env.IS_DEV && origin.startsWith('http://localhost:'))) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS request blocked by TRÍ AI security policy.'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-// 2. Body Parsers
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// 2. Body Parsers (Strict limit to prevent ReDoS / memory exhaustion)
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// 3. Static uploads serving
+// 3. Static uploads serving (Protected with security headers)
 const uploadsPath = path.resolve(process.cwd(), env.UPLOAD_DIR || './uploads');
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
 }
-app.use('/uploads', express.static(uploadsPath));
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', "default-src 'none'; media-src 'self'; img-src 'self' data:;");
+  next();
+}, express.static(uploadsPath, { dotfiles: 'ignore', index: false }));
 
 // 4. API Routes Mounting
 app.use('/api/health', healthRoutes);
